@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>CS8617; CS8614; CS8620; CS8603; CS8605; CS8602; CS8600; CS8604; CS8625</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="../../SourceGenerator.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="../../SourceGenerator.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StandardLibraryExtensions" Version="1.5.0" />
+    <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\SourceGenerator\SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

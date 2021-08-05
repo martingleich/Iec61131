@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="Objects">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="TokenInterfaces">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="TokenInterface" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="TokenClasses">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="TokenWithoutValueClass" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+                    <xs:element type="xs:string" name="Generating"/>
+                    <xs:element type="xs:string" name="Interface" maxOccurs="unbounded" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="TokenKeywordClass" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+                    <xs:element type="xs:string" name="Generating"/>
+                    <xs:element type="xs:string" name="Interface" maxOccurs="unbounded" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="TokenWithValueClass" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+                    <xs:element type="xs:string" name="ValueType"/>
+                    <xs:element type="xs:string" name="Interface" minOccurs="0"/>
+                    <xs:element type="xs:string" name="DefaultValue" minOccurs="0" maxOccurs="1"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="SyntaxInterfaces">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SyntaxInterface" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+					<xs:element type="xs:string" name="Extends" minOccurs="0" maxOccurs="1"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="SyntaxClasses">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="SyntaxClass" maxOccurs="unbounded" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element type="xs:string" name="Name"/>
+                    <xs:element type="xs:string" name="Interface" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element name="Element" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+						  <xs:element type="xs:string" name="Name"/>
+                          <xs:element name="Kind" minOccurs="0" maxOccurs="1">
+                            <xs:simpleType>
+                              <xs:restriction base="xs:string">
+                                <xs:enumeration value="Nullable"/>
+                                <xs:enumeration value="Array"/>
+                                <xs:enumeration value="CommaSeparated"/>
+                              </xs:restriction>
+                            </xs:simpleType>
+                          </xs:element>
+						  <xs:element type="xs:string" name="Type"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
