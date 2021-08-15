@@ -108,6 +108,7 @@ namespace SourceGenerator
 			{
 				cw.WriteCode(tokenClass.ToCode());
 			}
+			cw.WriteCode(TokenDescriptionKeyword.WriteKeywordTable(TokenClasses.All.OfType<TokenDescriptionKeyword>()));
 			cw.EndBlock();
 			return cw.ToString();
 		}
@@ -145,9 +146,9 @@ namespace SourceGenerator
 		{
 			var cw = new CodeWriter();
 			cw.WriteLine("#nullable enable");
-			cw.WriteLine("using Ace;");
+			cw.WriteLine("using Compiler;");
 			cw.WriteLine("using Xunit;");
-			cw.WriteLine("using TokenTest = System.Action<Ace.IToken>;");
+			cw.WriteLine("using TokenTest = System.Action<Compiler.IToken?>;");
 			cw.WriteLine("namespace Tests");
 			cw.StartBlock();
 			cw.WriteLine("public static partial class ScannerTestHelper");
@@ -167,10 +168,10 @@ namespace SourceGenerator
 		{
 			var cw = new CodeWriter();
 			cw.WriteLine("#nullable enable");
-			cw.WriteLine("using Ace;");
+			cw.WriteLine("using Compiler;");
 			cw.WriteLine("using Xunit;");
-			cw.WriteLine("using TokenTest = System.Action<Ace.IToken>;");
-			cw.WriteLine("using SyntaxTest = System.Action<Ace.ISyntax?>;");
+			cw.WriteLine("using TokenTest = System.Action<Compiler.IToken?>;");
+			cw.WriteLine("using SyntaxTest = System.Action<Compiler.ISyntax?>;");
 			cw.WriteLine("namespace Tests");
 			cw.StartBlock();
 			cw.WriteLine("using static ScannerTestHelper;");

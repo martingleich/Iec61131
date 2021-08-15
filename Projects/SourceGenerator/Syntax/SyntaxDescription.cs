@@ -90,20 +90,18 @@ namespace SourceGenerator
 		private string GetTestType(SyntaxElement synElem) => $"System.Action<{synElem.TypeName}>";
 		private string GetFixedTestArg(SyntaxElement synElem)
 		{
-			if (synElem.IsTokenInterface)
-				return null;
 			if (synElem.IsTokenWithValue)
-				return $"{synElem.TypeName}({synElem.ArgName})";
+				return $"{synElem.BaseTypeName}({synElem.ArgName})";
 			if (synElem.IsTokenWithoutValue && synElem.Kind == ElementKind.Normal)
 				return synElem.TypeName;
 			return synElem.ArgName;
 		}
 		private string GetFixedTestType(SyntaxElement synElem)
 		{
-			if (synElem.IsTokenWithValue)
-				return ((TokenDescriptionWithValue)synElem.BaseType).ValueType;
 			if (synElem.IsTokenWithoutValue && !synElem.IsNullable)
 				return null;
+			if (synElem.IsTokenWithValue)
+				return ((TokenDescriptionWithValue)synElem.BaseType).ValueType;
 			return GetTestType(synElem);
 		}
 		private string GetFixedTestArgDeclaration(SyntaxElement synElem)

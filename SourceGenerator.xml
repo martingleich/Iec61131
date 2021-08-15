@@ -22,6 +22,9 @@
     <TokenInterface>
       <Name>IParenthesisedOperatorToken</Name>
     </TokenInterface>
+    <TokenInterface>
+      <Name>IBuiltInTypeToken</Name>
+    </TokenInterface>
   </TokenInterfaces>
   <TokenClasses>
     <!--Token without value-->
@@ -111,14 +114,13 @@
       <Interface>IBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
-      <Name>ModToken</Name>
-      <Generating>Mod</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
-    </TokenWithoutValueClass>
-    <TokenWithoutValueClass>
       <Name>PowerToken</Name>
       <Generating>**</Generating>
       <Interface>IBinaryOperatorToken</Interface>
+    </TokenWithoutValueClass>
+    <TokenWithoutValueClass>
+      <Name>EndToken</Name>
+      <Generating></Generating>
     </TokenWithoutValueClass>
     <!--Alls kinds of parenthesis-->
     <TokenWithoutValueClass>
@@ -206,6 +208,10 @@
     <TokenKeywordClass>
       <Name>ArrayToken</Name>
       <Generating>ARRAY</Generating>
+    </TokenKeywordClass>
+    <TokenKeywordClass>
+      <Name>StringToken</Name>
+      <Generating>STRING</Generating>
     </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>OfToken</Name>
@@ -349,6 +355,142 @@
       <Name>EndUnionToken</Name>
       <Generating>END_UNION</Generating>
     </TokenKeywordClass>
+    <TokenKeywordClass>
+      <Name>ModToken</Name>
+      <Generating>MOD</Generating>
+      <Interface>IBinaryOperatorToken</Interface>
+    </TokenKeywordClass>
+    <TokenKeywordClass>
+      <Name>TrueToken</Name>
+      <Generating>TRUE</Generating>
+      <Interface>ILiteralToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>FalseToken</Name>
+      <Generating>FALSE</Generating>
+      <Interface>ILiteralToken</Interface>
+    </TokenKeywordClass> 
+    <!--BuiltInTypes--> 
+    <TokenKeywordClass>
+      <Name>CharToken</Name>
+      <Generating>CHAR</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LRealToken</Name>
+      <Generating>LREAL</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>RealToken</Name>
+      <Generating>REAL</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LIntToken</Name>
+      <Generating>LINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>DIntToken</Name>
+      <Generating>DINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>IntToken</Name>
+      <Generating>INT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>SIntToken</Name>
+      <Generating>SINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>ULIntToken</Name>
+      <Generating>ULINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>UDIntToken</Name>
+      <Generating>UDINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>UIntToken</Name>
+      <Generating>UINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>USIntToken</Name>
+      <Generating>USINT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LWordToken</Name>
+      <Generating>LWORD</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>DWordToken</Name>
+      <Generating>DWORD</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>WordToken</Name>
+      <Generating>WORD</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>ByteToken</Name>
+      <Generating>BYTE</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>BoolToken</Name>
+      <Generating>BOOL</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LTimeToken</Name>
+      <Generating>LTIME</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>TimeToken</Name>
+      <Generating>TIME</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LDTToken</Name>
+      <Generating>LDT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>DTToken</Name>
+      <Generating>DT</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LDateToken</Name>
+      <Generating>LDATE</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>DateToken</Name>
+      <Generating>DATE</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>LTODToken</Name>
+      <Generating>LTOD</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
+    <TokenKeywordClass>
+      <Name>TODToken</Name>
+      <Generating>TOD</Generating>
+      <Interface>IBuiltInTypeToken</Interface>
+    </TokenKeywordClass> 
     <!--Simple token with value-->
     <TokenWithValueClass>
       <Name>IdentifierToken</Name>
@@ -375,34 +517,39 @@
     </TokenWithValueClass>
     <!--Literals-->
     <TokenWithValueClass>
-      <Name>IntegerToken</Name>
-      <ValueType>OverflowingInteger</ValueType>
+      <Name>TypedLiteralToken</Name>
+      <ValueType>TypedLiteral</ValueType>
       <Interface>ILiteralToken</Interface>
-      <DefaultValue>default</DefaultValue>
-    </TokenWithValueClass>
-    <TokenWithValueClass>
-      <Name>RealToken</Name>
-      <ValueType>OverflowingReal</ValueType>
-      <Interface>ILiteralToken</Interface>
-      <DefaultValue>default</DefaultValue>
-    </TokenWithValueClass>
-    <TokenWithValueClass>
-      <Name>SingleByteStringToken</Name>
-      <ValueType>string</ValueType>
-      <Interface>ILiteralToken</Interface>
-      <DefaultValue>""</DefaultValue>
-    </TokenWithValueClass>
-    <TokenWithValueClass>
-      <Name>MultiByteStringToken</Name>
-      <ValueType>string</ValueType>
-      <Interface>ILiteralToken</Interface>
-      <DefaultValue>""</DefaultValue>
     </TokenWithValueClass>
     <TokenWithValueClass>
       <Name>BooleanLiteralToken</Name>
       <ValueType>bool</ValueType>
       <Interface>ILiteralToken</Interface>
       <DefaultValue>default</DefaultValue>
+    </TokenWithValueClass>
+    <TokenWithValueClass>
+      <Name>IntegerLiteralToken</Name>
+      <ValueType>OverflowingInteger</ValueType>
+      <Interface>ILiteralToken</Interface>
+      <DefaultValue>default</DefaultValue>
+    </TokenWithValueClass>
+    <TokenWithValueClass>
+      <Name>RealLiteralToken</Name>
+      <ValueType>OverflowingReal</ValueType>
+      <Interface>ILiteralToken</Interface>
+      <DefaultValue>default</DefaultValue>
+    </TokenWithValueClass>
+    <TokenWithValueClass>
+      <Name>SingleByteStringLiteralToken</Name>
+      <ValueType>string</ValueType>
+      <Interface>ILiteralToken</Interface>
+      <DefaultValue>""</DefaultValue>
+    </TokenWithValueClass>
+    <TokenWithValueClass>
+      <Name>MultiByteStringLiteralToken</Name>
+      <ValueType>string</ValueType>
+      <Interface>ILiteralToken</Interface>
+      <DefaultValue>""</DefaultValue>
     </TokenWithValueClass>
     <TokenWithValueClass>
       <Name>DateLiteralToken</Name>
@@ -546,6 +693,14 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>BuiltInTypeSyntax</Name>
+      <Interface>ITypeSyntax</Interface>
+      <Element>
+        <Name>TokenType</Name>
+        <Type>IBuiltInTypeToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>ArrayTypeSyntax</Name>
       <Interface>ITypeSyntax</Interface>
       <Element>
@@ -619,6 +774,34 @@
       <Element>
         <Name>Range</Name>
         <Type>RangeSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenParenthesisClose</Name>
+        <Type>ParenthesisCloseToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>StringTypeSyntax</Name>
+      <Interface>ITypeSyntax</Interface>
+      <Element>
+        <Name>TokenString</Name>
+        <Type>StringToken</Type>
+      </Element>
+      <Element>
+        <Name>Size</Name>
+        <Kind>Nullable</Kind>
+        <Type>StringSizeSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>StringSizeSyntax</Name>
+      <Element>
+        <Name>TokenParenthesisOpen</Name>
+        <Type>ParenthesisOpenToken</Type>
+      </Element>
+      <Element>
+        <Name>Size</Name>
+        <Type>IExpressionSyntax</Type>
       </Element>
       <Element>
         <Name>TokenParenthesisClose</Name>
