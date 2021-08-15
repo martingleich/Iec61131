@@ -86,5 +86,29 @@ namespace Tests
 		{
 			AssertAllTokens("BOOL#17", TypedLiteralToken(BoolToken, IntegerLiteralToken(17)));
 		}
+		[Fact]
+		public void Attribute()
+		{
+			AssertAllTokens("{My attribute 1234 &/-}", AttributeToken("My attribute 1234 &/-}"));
+		}
+		[Fact]
+		public void Attribute_Empty()
+		{
+			AssertAllTokens("{}", AttributeToken(""));
+		}
+		[Fact]
+		public void Attribute_MissingEnd()
+		{
+			AssertAllTokens_WithError("{My attribute 1234 &/-",
+				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfAttributeMessage>()),
+				AttributeToken("My attribute 1234 &/-}"));
+		}
+		[Fact]
+		public void Attribute_MissingEnd_Empty()
+		{
+			AssertAllTokens_WithError("{",
+				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfAttributeMessage>()),
+				AttributeToken(""));
+		}
 	}
 }

@@ -58,14 +58,15 @@ namespace Compiler
 						{
 							++Cursor;
 							// End of comment
-							break;
+							var comment = Text[commentStart..Cursor];
+							return new CommentToken(comment[1..^1], comment, commentStart, leadingToken);
 						}
 					}
 					++Cursor;
 				}
-				// If the break did not hit this is a unexpected end of file! Parse as comment anyways.
-				var comment = Text[commentStart..Cursor];
-				return new CommentToken(comment[1..], comment, commentStart, leadingToken);
+				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourcePosition.FromStartLength(commentStart, 0), "*" + terminator));
+				var comment2 = Text[commentStart..Cursor];
+				return new CommentToken(comment2[1..], comment2, commentStart, leadingToken);
 			}
 			return leadingToken;
 		}
@@ -323,9 +324,23 @@ namespace Compiler
 			else if (cur == ')')
 				return new ParenthesisCloseToken(start, leadingToken);
 			else if (cur == '{')
-				return new BraceOpenToken(start, leadingToken);
-			else if (cur == '}')
-				return new BraceCloseToken(start, leadingToken);
+			{
+				while (Cursor < Text.Length)
+				{
+					var c = Text[Cursor];
+					++Cursor;
+					if (c == '}')
+					{
+						var generating = Text[start..Cursor];
+						var value = generating[1..^1];
+						return new AttributeToken(value, generating, start, leadingToken);
+					}
+				}
+				Messages.Add(new Messages.MissingEndOfAttributeMessage(SourcePosition.FromStartLength(start, 0)));
+				var generating2 = Text[start..Cursor];
+				var value2 = generating2[1..];
+				return new AttributeToken(value2, generating2, start, leadingToken);
+			}
 			else if (cur == '+')
 				return new PlusToken(start, leadingToken);
 			else if (cur == '-')
@@ -453,5 +468,7 @@ namespace Compiler
 			} while (!(token is EndToken));
 			return allTokens.ToImmutable();
 		}
+
+		public override string ToString() => Text.Insert(Cursor, "^");
 	}
 }

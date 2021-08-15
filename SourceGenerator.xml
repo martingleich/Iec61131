@@ -124,14 +124,6 @@
     </TokenWithoutValueClass>
     <!--Alls kinds of parenthesis-->
     <TokenWithoutValueClass>
-      <Name>BraceOpenToken</Name>
-      <Generating>{</Generating>
-    </TokenWithoutValueClass>
-    <TokenWithoutValueClass>
-      <Name>BraceCloseToken</Name>
-      <Generating>}</Generating>
-    </TokenWithoutValueClass>
-    <TokenWithoutValueClass>
       <Name>ParenthesisOpenToken</Name>
       <Generating>(</Generating>
     </TokenWithoutValueClass>
@@ -651,7 +643,7 @@
         <Type>AttributeToken</Type>
       </Element>
       <Element>
-        <Name>TokenIdentifier</Name>
+        <Name>TokenIdentifiers</Name>
         <Type>IdentifierToken</Type>
       </Element>
       <Element>

@@ -9,7 +9,7 @@ namespace Compiler
 	{
 	}
 
-	public readonly struct SyntaxCommaSeparated<T> : ISyntax, IEnumerable<T> where T : ISyntax
+	public readonly struct SyntaxCommaSeparated<T> : ISyntax, IEnumerable<T> where T : INode
 	{
 		public SyntaxCommaSeparated(HeadSyntax? head, SourcePosition startPosition)
 		{

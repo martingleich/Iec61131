@@ -46,4 +46,22 @@ namespace Compiler.Messages
 
 		public override string Text => "Expected '0','1','TRUE' or 'FALSE'";
 	}
+	public class MissingEndOfMultilineCommentMessage : ACriticalMessage
+	{
+		public readonly string Expected;
+		public MissingEndOfMultilineCommentMessage( SourcePosition position, string expected) : base(position)
+		{
+			Expected = expected;
+		}
+
+		public override string Text => $"Could not find the string '{Expected}' terminating the multiline comment.";
+	}
+	public class MissingEndOfAttributeMessage : ACriticalMessage
+	{
+		public MissingEndOfAttributeMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "Could not find the string '}' terminating the attribute.";
+	}
 }
