@@ -594,6 +594,7 @@
       </Element>
       <Element>
         <Name>ReturnDeclaration</Name>
+        <Kind>Nullable</Kind>
         <Type>ReturnDeclSyntax</Type>
       </Element>
       <Element>
