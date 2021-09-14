@@ -1,5 +1,6 @@
 ﻿using System;
 using Compiler.Messages;
+using Compiler.Types;
 
 namespace Compiler
 {
@@ -27,19 +28,19 @@ namespace Compiler
 			=> Scope.LookupType(identifierTypeSyntax.Identifier.ToCaseInsensitive(), identifierTypeSyntax.SourcePosition).Extract(MessageBag);
 
 		public IType Visit(BuiltInTypeSyntax builtInTypeSyntax) =>
-			BuiltInTypeSymbol.MapTokenToType(builtInTypeSyntax.TokenType);
+			BuiltInType.MapTokenToType(builtInTypeSyntax.TokenType);
 
 		public IType Visit(ArrayTypeSyntax arrayTypeSyntax)
 		{
 			var baseType = arrayTypeSyntax.BaseType.Accept(this);
-			var arrayTypeSymbol = new ArrayTypeSymbol(baseType, Scope, arrayTypeSyntax);
+			var arrayTypeSymbol = new ArrayType(baseType, Scope, arrayTypeSyntax);
 			return arrayTypeSymbol;
 		}
 
 		public IType Visit(PointerTypeSyntax pointerTypeSyntax)
 		{
 			var baseType = pointerTypeSyntax.BaseType.Accept(this);
-			return new PointerTypeSymbol(baseType);
+			return new PointerType(baseType);
 		}
 
 		public IType Visit(SubrangeTypeSyntax subrangeTypeSyntax)
@@ -48,6 +49,6 @@ namespace Compiler
 			throw new NotImplementedException();
 		}
 
-		public IType Visit(StringTypeSyntax stringTypeSyntax) => new StringTypeSymbol(Scope, stringTypeSyntax);
+		public IType Visit(StringTypeSyntax stringTypeSyntax) => new StringType(Scope, stringTypeSyntax);
 	}
 }

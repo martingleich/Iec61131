@@ -1,4 +1,5 @@
 ﻿using Compiler.Messages;
+using Compiler.Types;
 using System;
 
 namespace Compiler

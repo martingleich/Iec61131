@@ -1,5 +1,6 @@
 ﻿using Compiler;
 using Compiler.Messages;
+using Compiler.Types;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -42,8 +43,8 @@ namespace Tests
 			Assert.Equal(8, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInTypeSymbol.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInTypeSymbol.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInType.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInType.Real, b.Type); });
 		}
 
 		[Fact]
@@ -57,8 +58,8 @@ namespace Tests
 			Assert.Equal(4, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInTypeSymbol.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInTypeSymbol.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInType.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInType.Real, b.Type); });
 		}
 		[Fact]
 		public void FieldOfUserdefinedType()
@@ -79,7 +80,7 @@ namespace Tests
 			var boundModule = project.LazyBoundModule.Value;
 			Assert.Empty(boundModule.InterfaceMessages);
 			var field = Assert.IsType<StructuredTypeSymbol>(boundModule.Interface.DutTypes["MyDut"]).Fields["field"];
-			var baseType = Assert.IsType<PointerTypeSymbol>(field.Type).BaseType;
+			var baseType = Assert.IsType<PointerType>(field.Type).BaseType;
 			Assert.Equal(boundModule.Interface.DutTypes["MyDut"], baseType);
 		}
 
@@ -151,7 +152,7 @@ namespace Tests
 			Assert.Empty(boundModule.InterfaceMessages);
 			var dutType = boundModule.Interface.DutTypes["MyDut"];
 			var fieldType = Assert.IsType<StructuredTypeSymbol>(dutType).Fields["field"].Type;
-			var arrayUpperBound = Assert.IsType<ArrayTypeSymbol>(Assert.IsType<PointerTypeSymbol>(fieldType).BaseType).Ranges[0].UpperBound;
+			var arrayUpperBound = Assert.IsType<ArrayType>(Assert.IsType<PointerType>(fieldType).BaseType).Ranges[0].UpperBound;
 			Assert.Equal(dutType.LayoutInfo.Size, arrayUpperBound);
 			Assert.Equal(4, dutType.LayoutInfo.Size);
 		}
@@ -196,18 +197,18 @@ namespace Tests
 		public static IEnumerable<object[]> TypeCompiler_Data() => TypeCompiler_Data_Real().Select(v => new object[] { v.Item1, v.Item2 });
 		public static IEnumerable<(string, IType)> TypeCompiler_Data_Real()
 		{
-			yield return ("INT", BuiltInTypeSymbol.Int);
-			yield return ("BOOL", BuiltInTypeSymbol.Bool);
-			yield return ("ARRAY[0..1] OF LREAL", new ArrayTypeSymbol(BuiltInTypeSymbol.LReal, ImmutableArray.Create(new ArrayRange(0, 1))));
-			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayTypeSymbol(BuiltInTypeSymbol.Date, ImmutableArray.Create(new ArrayRange(0, 1), new ArrayRange(2, 5))));
-			yield return ("ARRAY[0..0] OF LREAL", new ArrayTypeSymbol(BuiltInTypeSymbol.LReal, ImmutableArray.Create(new ArrayRange(0, 0))));
-			yield return ("ARRAY[0..-1] OF LREAL", new ArrayTypeSymbol(BuiltInTypeSymbol.LReal, ImmutableArray.Create(new ArrayRange(0, -1))));
+			yield return ("INT", BuiltInType.Int);
+			yield return ("BOOL", BuiltInType.Bool);
+			yield return ("ARRAY[0..1] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, 1))));
+			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayType(BuiltInType.Date, ImmutableArray.Create(new ArrayType.Range(0, 1), new ArrayType.Range(2, 5))));
+			yield return ("ARRAY[0..0] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, 0))));
+			yield return ("ARRAY[0..-1] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, -1))));
 			yield return ("MyType", new StructuredTypeSymbol(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, default));
-			yield return ("STRING[17]", new StringTypeSymbol(17));
-			yield return ("STRING", new StringTypeSymbol(80));
-			yield return ("STRING[SIZEOF(MyType)]", new StringTypeSymbol(23));
-			yield return ("POINTER TO BYTE", new PointerTypeSymbol(BuiltInTypeSymbol.Byte));
-			yield return ("POINTER TO POINTER TO SINT", new PointerTypeSymbol(new PointerTypeSymbol(BuiltInTypeSymbol.SInt)));
+			yield return ("STRING[17]", new StringType(17));
+			yield return ("STRING", new StringType(80));
+			yield return ("STRING[SIZEOF(MyType)]", new StringType(23));
+			yield return ("POINTER TO BYTE", new PointerType(BuiltInType.Byte));
+			yield return ("POINTER TO POINTER TO SINT", new PointerType(new PointerType(BuiltInType.SInt)));
 		}
 		[Theory]
 		[MemberData(nameof(TypeCompiler_Data))]
@@ -228,7 +229,7 @@ namespace Tests
 			Assert.Empty(boundModule.InterfaceMessages);
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundModule.Interface.DutTypes["MyEnum"]);
 			Assert.Empty(myEnum.Values);
-			Assert.Equal(BuiltInTypeSymbol.DInt, myEnum.BaseType);
+			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
 		}
 		[Fact]
 		public void FullyInitialisedEnum()
@@ -242,7 +243,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, ((DIntLiteralValue)first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, ((DIntLiteralValue)second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInTypeSymbol.DInt, myEnum.BaseType);
+			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
 		}
 		[Fact]
 		public void AutoInitialisedEnum()
@@ -256,7 +257,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, ((DIntLiteralValue)first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, ((DIntLiteralValue)second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInTypeSymbol.DInt, myEnum.BaseType);
+			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
 		}
 		[Fact]
 		public void ReferenceOtherEnumValues()
@@ -270,7 +271,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, ((DIntLiteralValue)first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, ((DIntLiteralValue)second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInTypeSymbol.DInt, myEnum.BaseType);
+			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
 		}
 		[Fact]
 		public void Error_RecursiveEnumDeclaration()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Compiler.Types;
+using System;
 using System.Collections.Immutable;
 
 namespace Compiler
@@ -29,13 +30,13 @@ namespace Compiler
 			if (b is null)
 				throw new ArgumentNullException(nameof(b));
 
-			if (a is ArrayTypeSymbol arrayA && b is ArrayTypeSymbol arrayB)
+			if (a is ArrayType arrayA && b is ArrayType arrayB)
 				return IsIdenticalType(arrayA.BaseType, arrayB.BaseType) && Equal(arrayA.Ranges, arrayB.Ranges);
-			else if (a is StringTypeSymbol stringA && b is StringTypeSymbol stringB)
+			else if (a is StringType stringA && b is StringType stringB)
 				return stringA.Size == stringB.Size;
-			else if (a is PointerTypeSymbol pointerA && b is PointerTypeSymbol pointerB)
+			else if (a is PointerType pointerA && b is PointerType pointerB)
 				return IsIdenticalType(pointerA.BaseType, pointerB.BaseType);
-			else if (a is BuiltInTypeSymbol builtInA && b is BuiltInTypeSymbol builtInB)
+			else if (a is BuiltInType builtInA && b is BuiltInType builtInB)
 				return builtInA.Name == builtInB.Name;
 			else if (a is EnumTypeSymbol enumA && b is EnumTypeSymbol enumB)
 				return enumA.Name == enumB.Name;

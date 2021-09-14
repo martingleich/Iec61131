@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Compiler.Types;
+using System;
 
 namespace Compiler
 {
@@ -39,7 +40,7 @@ namespace Compiler
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
-		IType IBoundExpression.Type => BuiltInTypeSymbol.DInt;
+		IType IBoundExpression.Type => BuiltInType.DInt;
 		T IBoundExpression.Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 

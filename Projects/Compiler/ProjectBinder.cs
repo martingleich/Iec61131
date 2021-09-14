@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Compiler.Messages;
+using Compiler.Types;
 
 namespace Compiler
 {
@@ -110,7 +111,7 @@ namespace Compiler
 			{
 				var baseType = BodySyntax.EnumBaseType != null
 					? TypeCompiler.MapSymbolic(projectBinder, BodySyntax.EnumBaseType, projectBinder.MessageBag)
-					: BuiltInTypeSymbol.DInt;
+					: BuiltInType.DInt;
 				Symbol._SetBaseType(baseType);
 				List<EnumValueSymbol> allValueSymbols = new List<EnumValueSymbol>();
 				EnumValueSymbol? prevSymbol = null;

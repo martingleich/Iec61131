@@ -1,5 +1,6 @@
 ﻿using System;
 using Compiler.Messages;
+using Compiler.Types;
 
 namespace Compiler
 {
@@ -25,7 +26,7 @@ namespace Compiler
 
 			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
 			{
-				var type = BuiltInTypeSymbol.MapTokenToType(typedLiteralToken.Value.Type);
+				var type = BuiltInType.MapTokenToType(typedLiteralToken.Value.Type);
 				var boundValue = typedLiteralToken.Value.LiteralToken.Accept(this, type);
 				return ExpressionBinder.ImplicitCast(typedLiteralToken.SourcePosition, boundValue, context);
 			}
@@ -34,7 +35,7 @@ namespace Compiler
 			{
 				if (context != null)
 				{
-					if (TypeRelations.IsIdenticalType(context, BuiltInTypeSymbol.DInt))
+					if (TypeRelations.IsIdenticalType(context, BuiltInType.DInt))
 					{
 						ILiteralValue value;
 						if (!integerLiteralToken.Value.TryGetInt(out int intValue))
@@ -57,8 +58,8 @@ namespace Compiler
 				}
 				else
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, BuiltInTypeSymbol.LInt));
-					return new LiteralBoundExpression(new UnknownLiteralValue(context ?? BuiltInTypeSymbol.DInt));
+					MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, BuiltInType.LInt));
+					return new LiteralBoundExpression(new UnknownLiteralValue(context ?? BuiltInType.DInt));
 				}
 			}
 
@@ -135,8 +136,8 @@ namespace Compiler
 		{
 			if (binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
 			{
-				var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, BuiltInTypeSymbol.DInt);
-				var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, BuiltInTypeSymbol.DInt);
+				var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, BuiltInType.DInt);
+				var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, BuiltInType.DInt);
 				return new AddBoundExpression(boundLeft.Type, boundLeft, boundRight);
 			}
 			throw new NotImplementedException();

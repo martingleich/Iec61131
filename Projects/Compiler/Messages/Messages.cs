@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Compiler.Types;
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;

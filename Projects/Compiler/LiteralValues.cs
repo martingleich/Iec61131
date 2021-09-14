@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Compiler.Types;
+using System;
 
 namespace Compiler
 {
@@ -15,7 +16,7 @@ namespace Compiler
 			Value = value;
 		}
 
-		public IType Type => BuiltInTypeSymbol.UDInt;
+		public IType Type => BuiltInType.UDInt;
 
 		public bool Equals(DIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as DIntLiteralValue);
@@ -31,7 +32,7 @@ namespace Compiler
 			Value = value;
 		}
 
-		public IType Type => BuiltInTypeSymbol.Bool;
+		public IType Type => BuiltInType.Bool;
 		public bool Equals(BooleanLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as BooleanLiteralValue);
 		public override bool Equals(object? obj) => Equals(obj as BooleanLiteralValue);
