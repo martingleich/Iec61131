@@ -164,7 +164,7 @@ namespace Compiler
 			foreach (var typeSymbol in typeSymbols)
 				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, typeSymbol.DeclaringPosition);
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
-				enumTypeSymbol.RecursiveInitializers(MessageBag, enumTypeSymbol.DeclaringPosition);
+				enumTypeSymbol.RecursiveInitializers(MessageBag);
 
 			var itf = new BoundModuleInterface(typeSymbols);
 			return new LazyBoundModule(MessageBag.ToImmutable(), itf);

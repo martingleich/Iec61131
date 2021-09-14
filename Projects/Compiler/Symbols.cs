@@ -10,6 +10,14 @@ namespace Compiler
 		public SourcePosition DeclaringPosition { get; }
 	}
 
+	public interface IVariableSymbol : ISymbol
+	{
+		IType Type { get; }
+
+		public static IVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) =>
+			new ErrorVariableSymbol(declaringPosition, ITypeSymbol.CreateError(declaringPosition, name), name);
+	}
+	
 	public sealed class FieldSymbol : IVariableSymbol
 	{
 		public CaseInsensitiveString Name { get; }
@@ -38,14 +46,6 @@ namespace Compiler
 		}
 
 		public override string ToString() => $"{Name} : {Type}";
-	}
-	
-	public interface IVariableSymbol : ISymbol
-	{
-		IType Type { get; }
-
-		public static IVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) =>
-			new ErrorVariableSymbol(declaringPosition, ITypeSymbol.CreateError(declaringPosition, name), name);
 	}
 
 	public sealed class ErrorVariableSymbol : IVariableSymbol
