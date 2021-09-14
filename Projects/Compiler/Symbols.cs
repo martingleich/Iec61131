@@ -93,14 +93,14 @@ namespace Compiler
 		}
 
 		private bool InGetConstantValue;
-		internal ILiteralValue _GetConstantValue(MessageBag messageBag, SourcePosition sourcePosition)
+		internal ILiteralValue _GetConstantValue(MessageBag messageBag)
 		{
 			if (_value != null)
 				return _value;
 
 			if (InGetConstantValue)
 			{
-				messageBag.Add(new RecursiveConstantDeclarationMessage(sourcePosition));
+				messageBag.Add(new RecursiveConstantDeclarationMessage(MaybeValueSyntax!.SourcePosition));
 				return _value = new EnumLiteralValue(Type, new UnknownLiteralValue(Type.BaseType));
 			}
 

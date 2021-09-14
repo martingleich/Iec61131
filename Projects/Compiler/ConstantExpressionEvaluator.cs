@@ -37,7 +37,7 @@ namespace Compiler
 		public ILiteralValue? Visit(VariableBoundExpression variableBoundExpression)
 		{
 			if (variableBoundExpression.Variable is EnumValueSymbol enumValueSymbol)
-				return enumValueSymbol._GetConstantValue(Messages, variableBoundExpression.OriginalSyntax?.SourcePosition ?? default);
+				return enumValueSymbol._GetConstantValue(Messages);
 			else
 			{
 				Messages.Add(new NotAConstantMessage(variableBoundExpression.OriginalSyntax?.SourcePosition ?? default));

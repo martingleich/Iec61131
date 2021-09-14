@@ -162,9 +162,9 @@ namespace Compiler
 		{
 			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
 			foreach (var typeSymbol in typeSymbols)
-				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, default);
+				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, typeSymbol.DeclaringPosition);
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
-				enumTypeSymbol.RecursiveInitializers(MessageBag, default);
+				enumTypeSymbol.RecursiveInitializers(MessageBag, enumTypeSymbol.DeclaringPosition);
 
 			var itf = new BoundModuleInterface(typeSymbols);
 			return new LazyBoundModule(MessageBag.ToImmutable(), itf);

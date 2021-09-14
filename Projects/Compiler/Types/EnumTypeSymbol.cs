@@ -51,10 +51,10 @@ namespace Compiler.Types
 			return DelayedLayoutType.RecursiveLayout(BaseType, messageBag, position);
 		}
 
-		public void RecursiveInitializers(MessageBag messageBag, SourcePosition position)
+		public void RecursiveInitializers(MessageBag messageBag)
 		{
 			foreach (var value in Values)
-				value._GetConstantValue(messageBag, position);
+				value._GetConstantValue(messageBag);
 		}
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
