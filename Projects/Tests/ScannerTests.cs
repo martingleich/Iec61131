@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 
 namespace Tests
@@ -55,6 +56,12 @@ namespace Tests
 				RealLiteralToken(3.1415).Generating("3.1415"));
 		}
 		[Fact]
+		public void RealBare_WithUnderscore()
+		{
+			AssertAllTokens("1_003.1415",
+				RealLiteralToken(1003.1415).Generating("1_003.1415"));
+		}
+		[Fact]
 		public void OverflowingReal()
 		{
 			var str = new string('9', 1000) + ".0";
@@ -89,7 +96,7 @@ namespace Tests
 		[Fact]
 		public void Attribute()
 		{
-			AssertAllTokens("{My attribute 1234 &/-}", AttributeToken("My attribute 1234 &/-}"));
+			AssertAllTokens("{My attribute 1234 &/-}", AttributeToken("My attribute 1234 &/-"));
 		}
 		[Fact]
 		public void Attribute_Empty()
@@ -101,7 +108,7 @@ namespace Tests
 		{
 			AssertAllTokens_WithError("{My attribute 1234 &/-",
 				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfAttributeMessage>()),
-				AttributeToken("My attribute 1234 &/-}"));
+				AttributeToken("My attribute 1234 &/-"));
 		}
 		[Fact]
 		public void Attribute_MissingEnd_Empty()
@@ -109,6 +116,167 @@ namespace Tests
 			AssertAllTokens_WithError("{",
 				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfAttributeMessage>()),
 				AttributeToken(""));
+		}
+		[Fact]
+		public void Integer_Simple()
+		{
+			AssertAllTokens("123", IntegerLiteralToken(123));
+		}
+		[Fact]
+		public void Integer_Simple_Signed()
+		{
+			AssertAllTokens("-123", IntegerLiteralToken(-123));
+		}
+		[Fact]
+		public void Integer_Simple_Signed_WithUnderscore()
+		{
+			AssertAllTokens("-1_234", IntegerLiteralToken(-1234));
+		}
+		[Fact]
+		public void Integer_Simple_SignedPositive()
+		{
+			AssertAllTokens("+1234", IntegerLiteralToken(1234));
+		}
+		[Fact]
+		public void Integer_SpacedSign()
+		{
+			AssertAllTokens("- 1234", MinusToken, IntegerLiteralToken(1234));
+		}
+		[Theory]
+		[InlineData("INT")]
+		[InlineData("UINT")]
+		[InlineData("SINT")]
+		[InlineData("USINT")]
+		[InlineData("DINT")]
+		[InlineData("UDINT")]
+		[InlineData("LINT")]
+		[InlineData("ULINT")]
+		[InlineData("BYTE")]
+		[InlineData("WORD")]
+		[InlineData("DWORD")]
+		[InlineData("LWORD")]
+		[InlineData("REAL")]
+		[InlineData("LREAL")]
+		public void TypeQualifiedInteger(string type)
+		{
+			AssertAllTokens(type + "#456", TypedLiteralToken(tok => Assert.Equal(type, tok.Generating), IntegerLiteralToken(456)));
+		}
+		[Theory]
+		[InlineData("INT")]
+		[InlineData("UINT")]
+		[InlineData("SINT")]
+		[InlineData("USINT")]
+		[InlineData("DINT")]
+		[InlineData("UDINT")]
+		[InlineData("LINT")]
+		[InlineData("ULINT")]
+		[InlineData("BYTE")]
+		[InlineData("WORD")]
+		[InlineData("DWORD")]
+		[InlineData("LWORD")]
+		[InlineData("REAL")]
+		[InlineData("LREAL")]
+		public void TypeQualifiedReal(string type)
+		{
+			AssertAllTokens(type + "#1.5", TypedLiteralToken(tok => Assert.Equal(type, tok.Generating), RealLiteralToken(1.5)));
+		}
+		[Theory]
+		[InlineData("(", typeof(Compiler.ParenthesisOpenToken))]
+		[InlineData(")", typeof(Compiler.ParenthesisCloseToken))]
+		[InlineData("[", typeof(Compiler.BracketOpenToken))]
+		[InlineData("]", typeof(Compiler.BracketCloseToken))]
+		[InlineData("+", typeof(Compiler.PlusToken))]
+		[InlineData("-", typeof(Compiler.MinusToken))]
+		[InlineData("*", typeof(Compiler.StarToken))]
+		[InlineData("**", typeof(Compiler.PowerToken))]
+		[InlineData("/", typeof(Compiler.SlashToken))]
+		[InlineData(",", typeof(Compiler.CommaToken))]
+		[InlineData("=", typeof(Compiler.EqualToken))]
+		[InlineData("=>", typeof(Compiler.DoubleArrowToken))]
+		[InlineData("<=", typeof(Compiler.LessEqualToken))]
+		[InlineData("<", typeof(Compiler.LessToken))]
+		[InlineData("<>", typeof(Compiler.UnEqualToken))]
+		[InlineData(":=", typeof(Compiler.AssignToken))]
+		[InlineData(":", typeof(Compiler.ColonToken))]
+		[InlineData("..", typeof(Compiler.DotsToken))]
+		[InlineData(".", typeof(Compiler.DotToken))]
+		[InlineData(";", typeof(Compiler.SemicolonToken))]
+		[InlineData("^", typeof(Compiler.DerefToken))]
+		[InlineData(">=", typeof(Compiler.GreaterEqualToken))]
+		[InlineData(">", typeof(Compiler.GreaterToken))]
+		public void Symbols(string generating, Type tokenType)
+		{
+			AssertAllTokens(generating, tok => Assert.IsType(tokenType, tok));
+		}
+
+		[Fact]
+		public void LineComment()
+		{
+			AssertAllTokens("// Hallo",
+				EndToken.Leading(CommentToken(" Hallo").Generating("// Hallo").Position(0, 8)));
+		}
+		[Fact]
+		public void LineCommentEndWindows()
+		{
+			AssertAllTokens("// Hallo\r\n123",
+				IntegerLiteralToken(123).Leading(CommentToken(" Hallo\r\n")));
+		}
+		[Fact]
+		public void LineCommentEndUnix()
+		{
+			AssertAllTokens("// Hallo\n123",
+				IntegerLiteralToken(123).Leading(CommentToken(" Hallo\n")));
+		}
+		[Fact]
+		public void LineCommentEndDarwin()
+		{
+			AssertAllTokens("// Hallo\r123",
+				IntegerLiteralToken(123).Leading(CommentToken(" Hallo\r")));
+		}
+		[Fact]
+		public void LineCommentEndMidWindows()
+		{
+			AssertAllTokens("// Hallo\r",
+				EndToken.Leading(CommentToken(" Hallo\r")));
+		}
+
+		[Fact]
+		public void MultipleLinesCommentEndUnix()
+		{
+			AssertAllTokens("// Hallo\n// Welt\n123",
+				IntegerLiteralToken(123).Leading(CommentToken(" Welt\n").Leading(CommentToken(" Hallo\n"))));
+		}
+		[Fact]
+		public void MultiLineComment_StartParen()
+		{
+			AssertAllTokens("(*Hallo\nWelt*)",
+				EndToken.Leading(CommentToken("Hallo\nWelt")));
+		}
+		[Fact]
+		public void MultiLineComment_StartSlash()
+		{
+			AssertAllTokens("/*Hallo\nWelt*/",
+				EndToken.Leading(CommentToken("Hallo\nWelt")));
+		}
+		[Fact]
+		public void MultiLineComment_StartSlash_InnerParenBlock()
+		{
+			AssertAllTokens("/*Hallo*)\nWelt*/",
+				EndToken.Leading(CommentToken("Hallo*)\nWelt")));
+		}
+		[Fact]
+		public void MultiLineComment_StartSlash_MissingEnd()
+		{
+			AssertAllTokens_WithError("/*Hallo*)\nWelt",
+				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfMultilineCommentMessage>()),
+				EndToken.Leading(CommentToken("Hallo*)\nWelt")));
+		}
+		[Fact]
+		public void MultiLineComment_StartSlash_MissingEnd_WithStartingStar()
+		{
+			AssertAllTokens_WithError("/*Hallo*)\nWelt*",
+				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfMultilineCommentMessage>()),
+				EndToken.Leading(CommentToken("Hallo*)\nWelt*")));
 		}
 	}
 }

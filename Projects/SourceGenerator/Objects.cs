@@ -20,8 +20,10 @@ namespace SourceGenerator
 
 		public IBasicSyntaxElementType GetBasicSyntaxElementTypeByName(string name) => TypeMap.TryGetValue(name, out var value) ? value : null;
 		public SyntaxInterface GetSyntaxInterfaceByName(string name) => SyntaxInterfaceMap.TryGetValue(name, out var value) ? value : null;
+		public TokenInterface GetTokenInterfaceByName(string name) => TokenInterfaceMap.TryGetValue(name, out var value) ? value : null;
 		private Dictionary<string, IBasicSyntaxElementType> TypeMap;
 		private Dictionary<string, SyntaxInterface> SyntaxInterfaceMap;
+		private Dictionary<string, TokenInterface> TokenInterfaceMap;
 
 		private Dictionary<string, TValue> ToDictionarySafe<TValue>(IEnumerable<TValue> values, Func<TValue, string> keyFunc, List<string> errors)
 		{
@@ -44,6 +46,11 @@ namespace SourceGenerator
 			SyntaxInterfaceMap = ToDictionarySafe(
 				SyntaxInterfaces.All,
 				x => x.Name, errors);
+			TokenInterfaceMap = ToDictionarySafe(
+				TokenInterfaces.All,
+				x => x.Name, errors);
+			foreach (var desc in TokenClasses.All)
+				desc.Initialize(this, errors);
 			foreach (var cls in SyntaxClasses.All)
 				cls.Initialize(this, errors);
 			foreach (var itf in SyntaxInterfaces.All)
@@ -59,7 +66,7 @@ namespace SourceGenerator
 			cw.StartBlock();
 			foreach (var itf in TokenInterfaces.All)
 			{
-				var impls = TokenClasses.All.Where(tok => tok.Interfaces.Contains(itf.Name)).ToImmutableArray();
+				var impls = TokenClasses.All.Where(tok => tok.AllInterfaces.Contains(itf.Name)).ToImmutableArray();
 				cw.WriteCode(itf.ToCode(impls));
 			}
 			cw.EndBlock();

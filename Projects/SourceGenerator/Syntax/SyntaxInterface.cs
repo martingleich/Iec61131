@@ -51,6 +51,13 @@ namespace SourceGenerator
 			cw.EndBlock();
 			cw.WriteLine("T Accept<T>(IVisitor<T> visitor);");
 
+			cw.WriteLine($"public {newQualifier} interface IVisitor<out T, TContext>");
+			cw.StartBlock();
+			foreach (var impl in implementations)
+				cw.WriteLine($"T Visit({impl.Name} {impl.ArgName}, TContext context);");
+			cw.EndBlock();
+			cw.WriteLine("T Accept<T, TContext>(IVisitor<T, TContext> visitor, TContext context);");
+
 			cw.WriteLine($"public {newQualifier} interface IVisitor");
 			cw.StartBlock();
 			foreach (var impl in implementations)
@@ -58,6 +65,7 @@ namespace SourceGenerator
 			cw.EndBlock();
 			cw.WriteLine("void Accept(IVisitor visitor);");
 			cw.EndBlock();
+
 			return cw.ToCode();
 		}
 

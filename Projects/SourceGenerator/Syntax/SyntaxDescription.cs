@@ -73,6 +73,7 @@ namespace SourceGenerator
 			foreach(var itf in AllInterfaces().Select(itf => itf.Name))
 			{
 				cw.WriteLine($"T {itf}.Accept<T>({itf}.IVisitor<T> visitor) => visitor.Visit(this);");
+				cw.WriteLine($"T {itf}.Accept<T, TContext>({itf}.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);");
 				cw.WriteLine($"void {itf}.Accept({itf}.IVisitor visitor) => visitor.Visit(this);");
 			}
 			cw.WriteLine($"public INode FirstNonNullChild => {FirstNonNullChild()};");

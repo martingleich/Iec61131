@@ -10,6 +10,7 @@
                 <xs:complexType>
                   <xs:sequence>
                     <xs:element type="xs:string" name="Name"/>
+					<xs:element type="xs:string" name="BaseInterface" maxOccurs="unbounded" minOccurs="0"/>
                   </xs:sequence>
                 </xs:complexType>
               </xs:element>

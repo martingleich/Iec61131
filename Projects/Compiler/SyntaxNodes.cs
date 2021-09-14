@@ -70,13 +70,13 @@ namespace Compiler
 
 	public readonly struct SyntaxArray<T> : ISyntax, IReadOnlyList<T> where T : ISyntax
 	{
-		public SyntaxArray(ImmutableArray<T> values, SourcePosition startPosition)
+		public SyntaxArray(ImmutableArray<T> values, SourcePosition defaultStartPosition)
 		{
 			Values = values;
 			if (values.Length > 0)
 				SourcePosition = SourcePosition.ConvexHull(values[0].SourcePosition, values[^1].SourcePosition); // The convex hull is equal to the convex hull of the first and last element, because the elements are ordered by start position.
 			else
-				SourcePosition = startPosition;
+				SourcePosition = defaultStartPosition;
 		}
 
 		public readonly ImmutableArray<T> Values;
@@ -91,9 +91,16 @@ namespace Compiler
 
 	public static class SyntaxArray
 	{
-		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T> self, SourcePosition startPosition) where T : ISyntax
-			=> new(self, startPosition);
-		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T>.Builder self, SourcePosition startPosition) where T : ISyntax
-			=> self.ToImmutable().ToSyntaxArray(startPosition);
+		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T> self, SourcePosition defaultStartPosition) where T : ISyntax
+			=> new(self, defaultStartPosition);
+		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T>.Builder self, SourcePosition defaultStartPosition) where T : ISyntax
+			=> self.ToImmutable().ToSyntaxArray(defaultStartPosition);
+	}
+	public static class StatementListSyntaxExt
+	{
+		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax> self, SourcePosition defaultStartPosition)
+			=> new(self.ToSyntaxArray(defaultStartPosition));
+		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax>.Builder self, SourcePosition defaultStartPosition)
+			=> new(self.ToSyntaxArray(defaultStartPosition));
 	}
 }

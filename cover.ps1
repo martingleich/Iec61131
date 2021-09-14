@@ -1,0 +1,2 @@
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=..\..\report\OpenCover.xml /p:SkipAutoProps=true # Relative to Test.csproj
+reportgenerator -reports:".\report\OpenCover.xml" -targetdir:"report" # Relative to cover.ps1

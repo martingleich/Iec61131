@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Compiler.Messages
 {
+	[DebuggerDisplay("Count = {Count}")]
 	public sealed class MessageBag : ICollection<IMessage>
 	{
+		[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
 		private readonly List<IMessage> Messages = new();
 
 		public int Count => Messages.Count;

@@ -20,10 +20,23 @@
       <Name>IParameterKindToken</Name>
     </TokenInterface>
     <TokenInterface>
-      <Name>IParenthesisedOperatorToken</Name>
+      <Name>IBuiltInTypeToken</Name>
     </TokenInterface>
     <TokenInterface>
-      <Name>IBuiltInTypeToken</Name>
+      <Name>IEquBinaryOperatorToken</Name>
+      <BaseInterface>IBinaryOperatorToken</BaseInterface>
+    </TokenInterface>
+    <TokenInterface>
+      <Name>ICompareBinaryOperatorToken</Name>
+      <BaseInterface>IBinaryOperatorToken</BaseInterface>
+    </TokenInterface>
+    <TokenInterface>
+      <Name>IAddBinaryOperatorToken</Name>
+      <BaseInterface>IBinaryOperatorToken</BaseInterface>
+    </TokenInterface>
+    <TokenInterface>
+      <Name>ITermBinaryOperatorToken</Name>
+      <BaseInterface>IBinaryOperatorToken</BaseInterface>
     </TokenInterface>
   </TokenInterfaces>
   <TokenClasses>
@@ -44,32 +57,32 @@
     <TokenWithoutValueClass>
       <Name>EqualToken</Name>
       <Generating>=</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>ICompareBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>LessEqualToken</Name>
       <Generating>&lt;=</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IEquBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>LessToken</Name>
       <Generating>&lt;</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IEquBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>GreaterToken</Name>
       <Generating>&gt;</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IEquBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>GreaterEqualToken</Name>
       <Generating>&gt;=</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IEquBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>UnEqualToken</Name>
       <Generating>&lt;&gt;</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>ICompareBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>DoubleArrowToken</Name>
@@ -95,23 +108,23 @@
     <TokenWithoutValueClass>
       <Name>PlusToken</Name>
       <Generating>+</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IAddBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>MinusToken</Name>
       <Generating>-</Generating>
       <Interface>IUnaryOperatorToken</Interface>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>IAddBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>StarToken</Name>
       <Generating>*</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>ITermBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>SlashToken</Name>
       <Generating>/</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>ITermBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
       <Name>PowerToken</Name>
@@ -316,12 +329,10 @@
     <TokenKeywordClass>
       <Name>SizeOfToken</Name>
       <Generating>SIZEOF</Generating>
-      <Interface>IParenthesisedOperatorToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>AdrToken</Name>
       <Generating>ADR</Generating>
-      <Interface>IParenthesisedOperatorToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>TypeToken</Name>
@@ -350,7 +361,7 @@
     <TokenKeywordClass>
       <Name>ModToken</Name>
       <Generating>MOD</Generating>
-      <Interface>IBinaryOperatorToken</Interface>
+      <Interface>ITermBinaryOperatorToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>TrueToken</Name>
@@ -578,11 +589,18 @@
   </SyntaxInterfaces>
   <SyntaxClasses>
     <SyntaxClass>
+      <Name>AttributeSyntax</Name>
+      <Element>
+        <Name>Token</Name>
+        <Type>AttributeToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>PouInterfaceSyntax</Name>
       <Element>
-        <Name>TokenAttribute</Name>
-        <Kind>Nullable</Kind>
-        <Type>AttributeToken</Type>
+        <Name>Attributes</Name>
+        <Kind>Array</Kind>
+        <Type>AttributeSyntax</Type>
       </Element>
       <Element>
         <Name>TokenPouKind</Name>
@@ -639,9 +657,9 @@
     <SyntaxClass>
       <Name>VarDeclSyntax</Name>
       <Element>
-        <Name>TokenAttribute</Name>
-        <Kind>Nullable</Kind>
-        <Type>AttributeToken</Type>
+        <Name>Attributes</Name>
+        <Kind>Array</Kind>
+        <Type>AttributeSyntax</Type>
       </Element>
       <Element>
         <Name>TokenIdentifiers</Name>
@@ -789,16 +807,16 @@
     <SyntaxClass>
       <Name>StringSizeSyntax</Name>
       <Element>
-        <Name>TokenParenthesisOpen</Name>
-        <Type>ParenthesisOpenToken</Type>
+        <Name>TokenBracketOpen</Name>
+        <Type>BracketOpenToken</Type>
       </Element>
       <Element>
         <Name>Size</Name>
         <Type>IExpressionSyntax</Type>
       </Element>
       <Element>
-        <Name>TokenParenthesisClose</Name>
-        <Type>ParenthesisCloseToken</Type>
+        <Name>TokenBracketClose</Name>
+        <Type>BracketCloseToken</Type>
       </Element>
     </SyntaxClass>
     <!--Expressions-->
@@ -870,6 +888,10 @@
         <Type>IExpressionSyntax</Type>
       </Element>
       <Element>
+        <Name>TokenDot</Name>
+        <Type>DotToken</Type>
+      </Element>
+      <Element>
         <Name>TokenIdentifier</Name>
         <Type>IdentifierToken</Type>
       </Element>
@@ -908,20 +930,19 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>ParenthesisedOperatorSyntax</Name>
+      <Name>SizeOfExpressionSyntax</Name>
       <Interface>IExpressionSyntax</Interface>
       <Element>
-        <Name>TokenParenthesisedOperator</Name>
-        <Type>IParenthesisedOperatorToken</Type>
+        <Name>TokenSizeOf</Name>
+        <Type>SizeOfToken</Type>
       </Element>
       <Element>
         <Name>TokenParenthesisOpen</Name>
         <Type>ParenthesisOpenToken</Type>
       </Element>
       <Element>
-        <Name>Arguments</Name>
-        <Kind>CommaSeparated</Kind>
-        <Type>IExpressionSyntax</Type>
+        <Name>Argument</Name>
+        <Type>ITypeSyntax</Type>
       </Element>
       <Element>
         <Name>TokenParenthesisClose</Name>
@@ -974,7 +995,7 @@
     </SyntaxClass>
     <!--Statements-->
     <SyntaxClass>
-      <Name>SequenceStatement</Name>
+      <Name>StatementListSyntax</Name>
       <Interface>IStatementSyntax</Interface>
       <Element>
         <Name>Statements</Name>
@@ -1035,10 +1056,6 @@
         <Name>TokenEndIf</Name>
         <Type>EndIfToken</Type>
       </Element>
-      <Element>
-        <Name>TokenSemicolon</Name>
-        <Type>SemicolonToken</Type>
-      </Element>
     </SyntaxClass>
     <SyntaxClass>
       <Name>ElsifBranchSyntax</Name>
@@ -1056,7 +1073,7 @@
       </Element>
       <Element>
         <Name>Statements</Name>
-        <Type>StatementList</Type>
+        <Type>StatementListSyntax</Type>
       </Element>
     </SyntaxClass>
     <SyntaxClass>
@@ -1067,7 +1084,7 @@
       </Element>
       <Element>
         <Name>Statements</Name>
-        <Type>StatementList</Type>
+        <Type>StatementListSyntax</Type>
       </Element>
     </SyntaxClass>
     <SyntaxClass>
@@ -1086,7 +1103,7 @@
       </Element>
       <Element>
         <Name>Statements</Name>
-        <Type>StatementList</Type>
+        <Type>StatementListSyntax</Type>
       </Element>
     </SyntaxClass> 
     <SyntaxClass>
@@ -1142,7 +1159,7 @@
       </Element>
       <Element>
         <Name>Statements</Name>
-        <Type>StatementList</Type>
+        <Type>StatementListSyntax</Type>
       </Element>
       <Element>
         <Name>TokenEndWhile</Name>
@@ -1187,7 +1204,7 @@
       </Element>
       <Element>
         <Name>Statements</Name>
-        <Type>StatementList</Type>
+        <Type>StatementListSyntax</Type>
       </Element>
       <Element>
         <Name>TokenEndFor</Name>
@@ -1206,16 +1223,7 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>StatementList</Name>
-      <Interface>IStatementSyntax</Interface>
-      <Element>
-        <Name>Statements</Name>
-        <Kind>Array</Kind>
-        <Type>IStatementSyntax</Type>
-      </Element>
-    </SyntaxClass>
-    <SyntaxClass>
-      <Name>EmptyStatement</Name>
+      <Name>EmptyStatementSyntax</Name>
       <Interface>IStatementSyntax</Interface>
       <Element>
         <Name>TokenSemicolon</Name>
@@ -1226,9 +1234,9 @@
     <SyntaxClass>
       <Name>TypeDeclarationSyntax</Name>
       <Element>
-        <Name>TokenAttribute</Name>
-        <Kind>Nullable</Kind>
-        <Type>AttributeToken</Type>
+        <Name>Attributes</Name>
+        <Kind>Array</Kind>
+        <Type>AttributeSyntax</Type>
       </Element>
       <Element>
         <Name>TokenType</Name>
@@ -1351,5 +1359,18 @@
         <Type>VarInitSyntax</Type>
       </Element>
     </SyntaxClass>
+    <SyntaxClass>
+      <Name>GlobalVarListSyntax</Name>
+      <Element>
+        <Name>Attributes</Name>
+        <Kind>Array</Kind>
+        <Type>AttributeSyntax</Type>
+      </Element>
+      <Element>
+        <Name>VariableDeclarations</Name>
+        <Kind>Array</Kind>
+        <Type>VarDeclBlockSyntax</Type>
+      </Element>
+    </SyntaxClass> 
   </SyntaxClasses>
 </Objects>

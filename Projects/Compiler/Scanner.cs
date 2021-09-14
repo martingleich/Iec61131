@@ -11,11 +11,11 @@ namespace Compiler
 
 		private int Cursor;
 
-		public Scanner(string text, Messages.MessageBag messages)
+		internal Scanner(string text, Messages.MessageBag messages)
 		{
-			Text = text;
+			Text = text ?? throw new System.ArgumentNullException(nameof(text));
 			LiteralScanner = new LiteralScannerT(this);
-			Messages = messages;
+			Messages = messages ?? throw new System.ArgumentNullException(nameof(messages));
 		}
 
 		private IToken? SkipNonSyntax(IToken? leadingToken)
@@ -59,14 +59,17 @@ namespace Compiler
 							++Cursor;
 							// End of comment
 							var comment = Text[commentStart..Cursor];
-							return new CommentToken(comment[1..^1], comment, commentStart, leadingToken);
+							return new CommentToken(comment[2..^2], comment, commentStart, leadingToken);
 						}
 					}
-					++Cursor;
+					else
+					{
+						++Cursor;
+					}
 				}
 				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourcePosition.FromStartLength(commentStart, 0), "*" + terminator));
 				var comment2 = Text[commentStart..Cursor];
-				return new CommentToken(comment2[1..], comment2, commentStart, leadingToken);
+				return new CommentToken(comment2[2..], comment2, commentStart, leadingToken);
 			}
 			return leadingToken;
 		}
@@ -100,7 +103,7 @@ namespace Compiler
 					}
 				}
 				var comment = Text[commentStart..Cursor];
-				return new CommentToken(comment[1..], comment, commentStart, leadingToken);
+				return new CommentToken(comment[2..], comment, commentStart, leadingToken);
 			}
 			return leadingToken;
 		}
@@ -117,7 +120,7 @@ namespace Compiler
 
 			public LiteralScannerT(Scanner scanner)
 			{
-				Scanner = scanner;
+				Scanner = scanner ?? throw new System.ArgumentNullException(nameof(scanner));
 			}
 
 			private IToken ScanNumber(IBuiltInTypeToken builtInType)
@@ -208,11 +211,13 @@ namespace Compiler
 			{
 				isNegative = true;
 				valueStart = start + 1;
+				++Cursor;
 			}
 			else if (Cursor < Text.Length && Text[Cursor] == '+')
 			{
 				isNegative = false;
 				valueStart = start + 1;
+				++Cursor;
 			}
 			else
 			{
@@ -312,13 +317,17 @@ namespace Compiler
 			int start = Cursor;
 			++Cursor;
 			char cur = Text[start];
-			if (IsDigit(cur) || (cur == '-' && cur < Text.Length && IsDigit(Text[cur + 1])))
+			if (IsDigit(cur) || ((cur == '-' || cur == '+') && Cursor < Text.Length && IsDigit(Text[Cursor])))
 			{
 				--Cursor;
 				return ScanNumber(leadingToken);
 			}
 			else if (IsStartIdentifier(cur))
 				return ScanIdentifier(leadingToken);
+			else if (cur == '[')
+				return new BracketOpenToken(start, leadingToken);
+			else if (cur == ']')
+				return new BracketCloseToken(start, leadingToken);
 			else if (cur == '(')
 				return new ParenthesisOpenToken(start, leadingToken);
 			else if (cur == ')')

@@ -65,8 +65,34 @@ namespace Compiler
 			}
 			return FromUlong(value, isNegative);
 		}
-
 		public override string ToString() => IsOverflown ? "Overflown" : ((IsNegative ? "-" : "") + Value.ToString());
+
+		public bool TryGetInt(out int value)
+		{
+			if (!IsOverflown)
+			{
+				if (!IsNegative && Value <= int.MaxValue)
+				{
+					value = (int)Value;
+					return true;
+				}
+				else if (IsNegative && Value <= -((long)int.MinValue))
+				{
+					value = (int)(-(long)Value);
+					return true;
+				}
+				else
+				{
+					value = 0;
+					return false;
+				}
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
 	}
 
 	public struct OverflowingReal

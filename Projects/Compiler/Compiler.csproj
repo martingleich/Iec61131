@@ -6,6 +6,14 @@
     <WarningsAsErrors>CS8617; CS8614; CS8620; CS8603; CS8605; CS8602; CS8600; CS8604; CS8625</WarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="../../SourceGenerator.xml" />
   </ItemGroup>
