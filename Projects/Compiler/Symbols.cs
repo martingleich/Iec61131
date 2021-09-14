@@ -15,6 +15,18 @@ namespace Compiler
 	{
 		LayoutInfo LayoutInfo { get; }
 		string Code { get; }
+		T Accept<T, TContext>(IVisitor<T, TContext> visitor, TContext context);
+
+		interface IVisitor<T, TContext>
+		{
+			T VisitError(TContext context);
+			T Visit(StructuredTypeSymbol structuredTypeSymbol, TContext context);
+			T Visit(BuiltInTypeSymbol builtInTypeSymbol, TContext context);
+			T Visit(PointerTypeSymbol pointerTypeSymbol, TContext context);
+			T Visit(StringTypeSymbol stringTypeSymbol, TContext context);
+			T Visit(ArrayTypeSymbol arrayTypeSymbol, TContext context);
+			T Visit(EnumTypeSymbol enumTypeSymbol, TContext context);
+		}
 	}
 	public interface ITypeSymbol : ISymbol, IType
 	{
@@ -90,6 +102,8 @@ namespace Compiler
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.Original;
 		public SourcePosition DeclaringPosition { get; }
+
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.VisitError(context);
 
 		public override string ToString() => Code;
 	}
@@ -185,6 +199,8 @@ namespace Compiler
 			}
 			return MaybeLayoutInfo.Value;
 		}
+
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public sealed class BuiltInTypeSymbol : IType
@@ -228,6 +244,7 @@ namespace Compiler
 		public LayoutInfo LayoutInfo => new(Size, Alignment);
 
 		public static BuiltInTypeSymbol MapTokenToType(IBuiltInTypeToken token) => token.Accept(TypeMapper.Instance);
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 
 		public override string ToString() => Name.ToString();
 		private sealed class TypeMapper : IBuiltInTypeToken.IVisitor<BuiltInTypeSymbol>
@@ -277,6 +294,7 @@ namespace Compiler
 			=> DelayedLayoutType.RecursiveLayout(BaseType, messageBag, position);
 		LayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 			=> LayoutInfo;
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 	public sealed class StringTypeSymbol : IType, _IDelayedLayoutType
 	{
@@ -326,6 +344,7 @@ namespace Compiler
 		{
 			return ((_IDelayedLayoutType)this).RecursiveLayout(messageBag, position);
 		}
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 	public readonly struct ArrayRange : IEquatable<ArrayRange>
 	{
@@ -343,7 +362,7 @@ namespace Compiler
 		public int Size => UpperBound - LowerBound + 1;
 
 		public bool Equals(ArrayRange other) => LowerBound == other.LowerBound && UpperBound == other.UpperBound;
-		public override bool Equals(object? obj) => obj is ArrayRange range && Equals(range);
+		public override bool Equals(object? obj) => throw new NotImplementedException("Use Equals(ArrayRange) instead");
 		public override int GetHashCode() => HashCode.Combine(LowerBound, UpperBound);
 		public override string ToString() => $"{LowerBound}..{UpperBound}";
 
@@ -445,6 +464,7 @@ namespace Compiler
 		private static ImmutableArray<ArrayRange> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax)
 			=> arraySyntax.Ranges.Select(r => BindRange<DIntLiteralValue>(scope, messageBag, r, BuiltInTypeSymbol.DInt)).Select(x => BoundRangeToArrayRange(messageBag, x)).ToImmutableArray();
 
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public interface IVariableSymbol : ISymbol
@@ -574,5 +594,6 @@ namespace Compiler
 			foreach (var value in Values)
 				value._GetConstantValue(messageBag, position);
 		}
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 }

@@ -34,7 +34,7 @@ namespace Compiler
 			{
 				if (context != null)
 				{
-					if (context.Equals(BuiltInTypeSymbol.DInt))
+					if (TypeRelations.IsIdenticalType(context, BuiltInTypeSymbol.DInt))
 					{
 						ILiteralValue value;
 						if (!integerLiteralToken.Value.TryGetInt(out int intValue))
@@ -109,11 +109,11 @@ namespace Compiler
 
 		private IBoundExpression ImplicitCast(SourcePosition errorPosition, IBoundExpression boundValue, IType? targetType)
 		{
-			if (targetType == null || boundValue.Type.Equals(targetType))
+			if (targetType == null || TypeRelations.IsIdenticalType(boundValue.Type, targetType))
 			{
 				return boundValue;
 			}
-			else if (Scope.CurrentEnum != null && boundValue.Type.Equals(Scope.CurrentEnum))
+			else if (Scope.CurrentEnum != null && TypeRelations.IsIdenticalType(boundValue.Type, Scope.CurrentEnum))
 			{
 				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
 				return ImplicitCast(errorPosition, enumValue, targetType);

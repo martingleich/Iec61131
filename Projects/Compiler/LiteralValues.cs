@@ -65,7 +65,7 @@ namespace Compiler
 		public EnumTypeSymbol Type { get; }
 		IType ILiteralValue.Type => Type;
 
-		public bool Equals(EnumLiteralValue? other) => other != null && Type.Equals(other.Type) && InnerValue.Equals(other.InnerValue);
+		public bool Equals(EnumLiteralValue? other) => other != null && TypeRelations.IsIdenticalType(Type, other.Type) && InnerValue.Equals(other.InnerValue);
 		public bool Equals(ILiteralValue? other) => Equals(other as EnumLiteralValue);
 		public override bool Equals(object? obj) => Equals(obj as EnumLiteralValue);
 		public override int GetHashCode() => HashCode.Combine(Type, InnerValue);
