@@ -22,10 +22,12 @@ namespace Compiler
 	public sealed class BoundModuleInterface
 	{
 		public readonly SymbolSet<ITypeSymbol> DutTypes;
+		public readonly SymbolSet<FunctionSymbol> FunctionSymbols;
 
-		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes)
+		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes, SymbolSet<FunctionSymbol> functionSymbols)
 		{
 			DutTypes = dutTypes;
+			FunctionSymbol = functionSymbols;
 		}
 	}
 
@@ -33,17 +35,19 @@ namespace Compiler
 	{
 		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
 		private readonly MessageBag MessageBag = new();
+		private readonly PouSymbolCreatorT PouSymbolCreator;
 
-		private ProjectBinder(ImmutableArray<DutLanguageSource> duts)
+		private ProjectBinder(
+			ImmutableArray<DutLanguageSource> duts)
 		{
-			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(
-				MessageBag,
-				v => v.Syntax.TypeBody.Accept(SymbolCreator.Instance, v.Syntax));
+			PouSymbolCreator = new(this, MessageBag);
+			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
+				v => v.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, v.Syntax));
 		}
 
-		private sealed class SymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
+		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
 		{
-			public static readonly SymbolCreator Instance = new ();
+			public static readonly DutSymbolCreator Instance = new();
 			public ITypeSymbolInWork Visit(AliasTypeDeclarationBodySyntax aliasTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
 			{
 				throw new NotImplementedException();
@@ -55,6 +59,71 @@ namespace Compiler
 				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), true, unionTypeDeclarationBodySyntax.Fields);
 			public ITypeSymbolInWork Visit(EnumTypeDeclarationBodySyntax enumTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
 				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), enumTypeDeclarationBodySyntax);
+		}
+
+		private sealed class PouSymbolCreatorT : IPouKindToken.IVisitor<FunctionSymbol, PouInterfaceSyntax>
+		{
+			private readonly IScope Scope;
+			private readonly MessageBag Messages;
+
+			public PouSymbolCreatorT(IScope scope, MessageBag messages)
+			{
+				Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+				Messages = messages ?? throw new ArgumentNullException(nameof(messages));
+			}
+
+			public FunctionSymbol Visit(ProgramToken programToken, PouInterfaceSyntax context)
+			{
+				throw new NotImplementedException();
+			}
+
+			public FunctionSymbol Visit(FunctionToken functionToken, PouInterfaceSyntax context)
+			{
+				var allParameters = BindParameters(context.VariableDeclarations).Concat(BindReturnValue(context.Name.ToCaseInsensitive(), context.ReturnDeclaration));
+				var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
+				return new FunctionSymbol(
+					context.Name.ToCaseInsensitive(),
+					context.TokenName.SourcePosition,
+					uniqueParameters);
+			}
+
+			private IEnumerable<ParameterSymbol> BindParameters(IEnumerable<VarDeclBlockSyntax> vardecls)
+				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations));
+			private IEnumerable<ParameterSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls)
+			{
+				var mapped = ParameterKind.TryMap(kind);
+				if (mapped == null)
+					return Enumerable.Empty<ParameterSymbol>();
+				else
+					return vardecls.Select(v => BindVarDecl(mapped, v));
+			}
+			private ParameterSymbol BindVarDecl(ParameterKind kind, VarDeclSyntax syntax)
+			{
+				IType type = TypeCompiler.MapComplete(Scope, syntax.Type, Messages);
+				return new(
+					kind,
+					syntax.TokenIdentifiers.SourcePosition,
+					syntax.Identifiers.ToCaseInsensitive(),
+					type);
+			}
+			private IEnumerable<ParameterSymbol> BindReturnValue(CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
+			{
+				if (syntax != null)
+				{
+					IType type = TypeCompiler.MapComplete(Scope, syntax.Type, Messages);
+					yield return new ParameterSymbol(ParameterKind.Output, syntax.Type.SourcePosition, functionName, type);
+				}
+			}
+
+			public FunctionSymbol Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context)
+			{
+				throw new NotImplementedException();
+			}
+
+			public FunctionSymbol Visit(MethodToken methodToken, PouInterfaceSyntax context)
+			{
+				throw new NotImplementedException();
+			}
 		}
 
 		private interface ITypeSymbolInWork : ISymbol
@@ -154,11 +223,13 @@ namespace Compiler
 			ImmutableArray<GlobalVariableLanguageSource> gvls,
 			ImmutableArray<DutLanguageSource> duts)
 		{
+			if (gvls.Any())
+				throw new NotImplementedException();
 			var binder = new ProjectBinder(duts);
-			return binder.Bind();
+			return binder.Bind(pous);
 		}
 
-		private LazyBoundModule Bind()
+		private LazyBoundModule Bind(ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource> pous)
 		{
 			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
 			foreach (var typeSymbol in typeSymbols)
@@ -166,7 +237,11 @@ namespace Compiler
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
 				enumTypeSymbol.RecursiveInitializers(MessageBag);
 
-			var itf = new BoundModuleInterface(typeSymbols);
+			// All types are done.
+			var functionSymbols = pous.ToSymbolSetWithDuplicates(MessageBag,
+				x => x.Interface.TokenPouKind.Accept(PouSymbolCreator, x.Interface));
+
+			var itf = new BoundModuleInterface(typeSymbols, functionSymbols);
 			return new LazyBoundModule(MessageBag.ToImmutable(), itf);
 		}
 

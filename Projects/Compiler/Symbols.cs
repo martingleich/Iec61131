@@ -111,4 +111,71 @@ namespace Compiler
 			return _value = new EnumLiteralValue(Type, literalValue!);
 		}
 	}
+
+
+	public sealed class FunctionSymbol : ISymbol
+	{
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public readonly OrderedSymbolSet<ParameterSymbol> Parameters;
+
+		public FunctionSymbol(CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
+		{
+			Name = name;
+			DeclaringPosition = declaringPosition;
+			Parameters = parameters;
+		}
+
+		public override string ToString() => $"{Name}";
+	}
+
+	public sealed class ParameterSymbol : IVariableSymbol
+	{
+		public ParameterSymbol(ParameterKind kind, SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
+		{
+			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+			DeclaringPosition = declaringPosition;
+			Name = name;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public ParameterKind Kind { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public CaseInsensitiveString Name { get; }
+		public IType Type { get; }
+
+		public override string ToString() => $"{Kind} {Name} : {Type}";
+
+	}
+
+	public sealed class ParameterKind : IEquatable<ParameterKind>
+	{
+		public readonly static ParameterKind Input = new("VAR_INPUT");
+		public readonly static ParameterKind Output = new("VAR_OUTPUT");
+		public readonly static ParameterKind InOut = new("VAR_IN_OUT");
+
+		private ParameterKind(string code)
+		{
+			Code = code ?? throw new ArgumentNullException(nameof(code));
+		}
+
+		public string Code { get; }
+
+		public bool Equals(ParameterKind? other) => other != null && other.Code == Code;
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Code.GetHashCode();
+		public override string ToString() => Code;
+
+		public static ParameterKind? TryMap(IVarDeclKindToken token) => token.Accept(ParameterKindMapper.Instance);
+		private sealed class ParameterKindMapper : IVarDeclKindToken.IVisitor<ParameterKind?>
+		{
+			public static readonly ParameterKindMapper Instance = new();
+			public ParameterKind? Visit(VarToken varToken) => null;
+			public ParameterKind? Visit(VarInputToken varInputToken) => Input;
+			public ParameterKind? Visit(VarGlobalToken varGlobalToken) => null;
+			public ParameterKind? Visit(VarOutToken varOutToken) => Output;
+			public ParameterKind? Visit(VarInOutToken varInOutToken) => InOut;
+			public ParameterKind? Visit(VarTempToken varTempToken) => null;
+		}
+	}
 }

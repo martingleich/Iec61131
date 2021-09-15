@@ -9,6 +9,8 @@ using System.Linq;
 
 namespace Compiler
 {
+
+
 	[DebuggerDisplay("Count = {Count}")]
 	public struct SymbolSet<T> : IEnumerable<T> where T : ISymbol
 	{
@@ -37,25 +39,27 @@ namespace Compiler
 		public T this[CaseInsensitiveString key] => Values[key];
 		public T this[string key] => Values[key.ToCaseInsensitive()];
 		public bool TryGetValue(CaseInsensitiveString key, [NotNullWhen(true)] out T? value) => Values.TryGetValue(key, out value);
-		public IEnumerator<T> GetEnumerator() => Values.Values.GetEnumerator();
+		public IEnumerator<T> GetEnumerator() => Values.Values.DebugShuffle().GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		public bool IsDefault => Values == null;
 
-		public static SymbolSet<T> Create(IEnumerable<T> allSymbols)
+		public static SymbolSet<T> Create(IEnumerable<T> symbols)
+			=> CreateWithDuplicatesInternal(symbols, null);
+		public static SymbolSet<T> CreateWithDuplicates(IEnumerable<T> symbols, MessageBag messages)
+			=> CreateWithDuplicatesInternal(symbols, messages);
+		private static SymbolSet<T> CreateWithDuplicatesInternal(IEnumerable<T> symbols, MessageBag? messages)
 		{
 			var builder = ImmutableDictionary.CreateBuilder<CaseInsensitiveString, T>();
-			foreach (var sym in allSymbols)
-				builder.Add(sym.Name, sym);
-			return new (builder.ToImmutable());
-		}
-		public static SymbolSet<T> CreateWithDuplicates(IEnumerable<T> allSymbols, MessageBag messages)
-		{
-			var builder = ImmutableDictionary.CreateBuilder<CaseInsensitiveString, T>();
-			foreach (var sym in allSymbols)
+			foreach (var sym in symbols)
 			{
 				if (!builder.TryAdd(sym.Name, sym))
-					messages.Add(new SymbolAlreadyExistsMessage(sym.Name, builder[sym.Name].DeclaringPosition, sym.DeclaringPosition));
+				{
+					if(messages != null)
+						messages.Add(new SymbolAlreadyExistsMessage(sym.Name, builder[sym.Name].DeclaringPosition, sym.DeclaringPosition));
+					else
+						throw new ArgumentException($"The symbol {sym} already exists.", nameof(symbols));
+				}
 			}
 			return new (builder.ToImmutable());
 		}
@@ -70,7 +74,7 @@ namespace Compiler
 			=> allValues.Select(map).ToSymbolSet();
 		public static SymbolSet<T> ToSymbolSetWithDuplicates<T>(this IEnumerable<T> allSymbols, MessageBag messageBag) where T : ISymbol
 			=> SymbolSet<T>.CreateWithDuplicates(allSymbols, messageBag);
-		public static SymbolSet<TSymbol> ToSymbolSetWithDuplicates<T, TSymbol>(this IEnumerable<T> allValues, MessageBag messageBag, Func<T, TSymbol> map) where TSymbol : ISymbol
+		public static SymbolSet<TSymbol> ToOrderedSymbolSetWithDuplicates<T, TSymbol>(this IEnumerable<T> allValues, MessageBag messageBag, Func<T, TSymbol> map) where TSymbol : ISymbol
 			=> allValues.Select(map).ToSymbolSetWithDuplicates(messageBag);
 	}
 }
