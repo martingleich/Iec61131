@@ -1,6 +1,8 @@
-﻿namespace Compiler.Types
+﻿using System;
+
+namespace Compiler.Types
 {
-	public sealed class BuiltInType : IType
+	public sealed class BuiltInType : IType, IEquatable<BuiltInType>
 	{
 		public static readonly BuiltInType Char = new("Char", 1, 1);
 		public static readonly BuiltInType LReal = new("LReal", 8, 8);
@@ -44,6 +46,11 @@
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 
 		public override string ToString() => Name.ToString();
+
+		public bool Equals(BuiltInType? other) => other != null && other.Name == Name;
+		public override int GetHashCode() => Name.GetHashCode();
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+
 		private sealed class TypeMapper : IBuiltInTypeToken.IVisitor<BuiltInType>
 		{
 			public static readonly TypeMapper Instance = new();

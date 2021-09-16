@@ -74,7 +74,7 @@ namespace Compiler
 			=> allValues.Select(map).ToSymbolSet();
 		public static SymbolSet<T> ToSymbolSetWithDuplicates<T>(this IEnumerable<T> allSymbols, MessageBag messageBag) where T : ISymbol
 			=> SymbolSet<T>.CreateWithDuplicates(allSymbols, messageBag);
-		public static SymbolSet<TSymbol> ToOrderedSymbolSetWithDuplicates<T, TSymbol>(this IEnumerable<T> allValues, MessageBag messageBag, Func<T, TSymbol> map) where TSymbol : ISymbol
+		public static SymbolSet<TSymbol> ToSymbolSetWithDuplicates<T, TSymbol>(this IEnumerable<T> allValues, MessageBag messageBag, Func<T, TSymbol> map) where TSymbol : ISymbol
 			=> allValues.Select(map).ToSymbolSetWithDuplicates(messageBag);
 	}
 }

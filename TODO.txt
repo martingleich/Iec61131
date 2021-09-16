@@ -1,0 +1,4 @@
+Add Type Factory, so there are no arbitrary hardcoded values in the types.
+Generalize binary operators to arbitrary functions.
+Make functions callable.
+Create roslyn typerules for equatable.

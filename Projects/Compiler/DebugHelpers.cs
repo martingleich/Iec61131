@@ -14,6 +14,8 @@ namespace Compiler
 		/// <returns></returns>
 		public static IEnumerable<T> DebugShuffle<T>(this IEnumerable<T> input)
 		{
+			if (input is null)
+				throw new ArgumentNullException(nameof(input));
 #if DEBUG
 			return input.Shuffle(new Random());
 #else

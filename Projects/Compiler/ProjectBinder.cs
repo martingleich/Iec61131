@@ -27,18 +27,18 @@ namespace Compiler
 		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes, SymbolSet<FunctionSymbol> functionSymbols)
 		{
 			DutTypes = dutTypes;
-			FunctionSymbol = functionSymbols;
+			FunctionSymbols = functionSymbols;
 		}
 	}
 
-	public sealed class ProjectBinder : IScope
+	public sealed class ProjectBinder : AInnerScope
 	{
 		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
 		private readonly MessageBag MessageBag = new();
 		private readonly PouSymbolCreatorT PouSymbolCreator;
 
 		private ProjectBinder(
-			ImmutableArray<DutLanguageSource> duts)
+			ImmutableArray<ParsedDutLanguageSource> duts) : base(EmptyScope.Instance)
 		{
 			PouSymbolCreator = new(this, MessageBag);
 			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
@@ -71,6 +71,8 @@ namespace Compiler
 				Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 				Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			}
+
+			public FunctionSymbol ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
 			public FunctionSymbol Visit(ProgramToken programToken, PouInterfaceSyntax context)
 			{
@@ -216,12 +218,10 @@ namespace Compiler
 			}
 		}
 
-		public EnumTypeSymbol? CurrentEnum => null;
-
 		public static LazyBoundModule Bind(
-			ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource> pous,
+			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
 			ImmutableArray<GlobalVariableLanguageSource> gvls,
-			ImmutableArray<DutLanguageSource> duts)
+			ImmutableArray<ParsedDutLanguageSource> duts)
 		{
 			if (gvls.Any())
 				throw new NotImplementedException();
@@ -229,7 +229,7 @@ namespace Compiler
 			return binder.Bind(pous);
 		}
 
-		private LazyBoundModule Bind(ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource> pous)
+		private LazyBoundModule Bind(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous)
 		{
 			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
 			foreach (var typeSymbol in typeSymbols)
@@ -237,25 +237,15 @@ namespace Compiler
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
 				enumTypeSymbol.RecursiveInitializers(MessageBag);
 
-			// All types are done.
-			var functionSymbols = pous.ToSymbolSetWithDuplicates(MessageBag,
-				x => x.Interface.TokenPouKind.Accept(PouSymbolCreator, x.Interface));
+			var functionSymbols = pous.ToSymbolSetWithDuplicates(MessageBag, x => PouSymbolCreator.ConvertToSymbol(x.Interface));
 
 			var itf = new BoundModuleInterface(typeSymbols, functionSymbols);
 			return new LazyBoundModule(MessageBag.ToImmutable(), itf);
 		}
 
-
-		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
 			WorkingTypeSymbols.TryGetValue(identifier, out var symbolInWork)
 				? ErrorsAnd.Create(symbolInWork.Symbol)
-				: ErrorsAnd.Create(
-					ITypeSymbol.CreateError(sourcePosition, identifier),
-					new TypeNotFoundMessage(identifier.Original, sourcePosition));
-
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
-			ErrorsAnd.Create(
-				IVariableSymbol.CreateError(sourcePosition, identifier),
-				new VariableNotFoundMessage(identifier.Original, sourcePosition));
+				: base.LookupType(identifier, sourcePosition);
 	}
 }

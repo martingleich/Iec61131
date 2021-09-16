@@ -77,7 +77,7 @@ namespace Compiler.Types
 				if (Inside_GetLayoutInfo)
 				{
 					messageBag.Add(new TypeNotCompleteMessage(position));
-					MaybeLayoutInfo = LayoutInfo.Zero;
+					return LayoutInfo.Zero;
 				}
 				else
 				{

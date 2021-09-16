@@ -23,14 +23,17 @@ namespace Compiler.Messages
 			Messages.AddRange(messages);
 		}
 
-		public ImmutableArray<IMessage> ToImmutable() => Messages.ToImmutableArray();
+		public ImmutableArray<IMessage> ToImmutable() => Messages.DebugShuffle().ToImmutableArray();
 
-		public IEnumerator<IMessage> GetEnumerator() => Messages.GetEnumerator();
+		public IEnumerator<IMessage> GetEnumerator() => Messages.DebugShuffle().GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		public void Clear() => Messages.Clear();
 		public bool Contains(IMessage item) => Messages.Contains(item);
-		public void CopyTo(IMessage[] array, int arrayIndex) => Messages.CopyTo(array, arrayIndex);
+		public void CopyTo(IMessage[] array, int arrayIndex)
+		{
+			Messages.CopyTo(array, arrayIndex);
+		}
 		public bool Remove(IMessage item) => Messages.Remove(item);
 	}
 }

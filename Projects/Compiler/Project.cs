@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Compiler.Messages;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -7,62 +7,49 @@ namespace Compiler
 {
 	public sealed class Project
 	{
-		private readonly ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource> Pous;
+		private readonly ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> Pous;
 		private readonly ImmutableArray<GlobalVariableLanguageSource> Gvls;
-		private readonly ImmutableArray<DutLanguageSource> Duts;
+		private readonly ImmutableArray<ParsedDutLanguageSource> Duts;
 
 		public readonly Lazy<LazyBoundModule> LazyBoundModule;
+		public readonly Lazy<ImmutableArray<IMessage>> LazyParseMessages;
 
-		private Project(ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<DutLanguageSource> duts)
+		private Project(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
 		{
 			Pous = pous;
 			Gvls = gvls;
 			Duts = duts;
 
 			LazyBoundModule = new Lazy<LazyBoundModule>(() => ProjectBinder.Bind(Pous, Gvls, Duts));
+			LazyParseMessages = new Lazy<ImmutableArray<IMessage>>(() =>
+				Enumerable.Concat(
+					Duts.SelectMany(d => d.Messages),
+					Pous.SelectMany(d => d.Messages)).ToImmutableArray());
 		}
 
 		public static readonly Project Empty = new (
-			ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource>.Empty,
+			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource>.Empty,
 			ImmutableArray<GlobalVariableLanguageSource>.Empty,
-			ImmutableArray<DutLanguageSource>.Empty);
+			ImmutableArray<ParsedDutLanguageSource>.Empty);
 
-		public Project Add(DutLanguageSource source) => new (Pous, Gvls, Duts.Add(source));
-		
-		public Project Add(params ILanguageSource[] sources) => Add(sources.AsEnumerable());
-		public Project Add(IEnumerable<ILanguageSource> sources) => ProjectBuilder.Build(this, sources);
-
-		private sealed class ProjectBuilder : ILanguageSource.IVisitor
+		public Project Add(ParsedDutLanguageSource source) => new (Pous, Gvls, Duts.Add(source));
+		public Project Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource source) => new (Pous.Add(source), Gvls, Duts);
+		public Project Add(DutLanguageSource source)
 		{
-			private readonly ImmutableArray<TopLevelInterfaceAndBodyPouLanguageSource>.Builder Pous = ImmutableArray.CreateBuilder<TopLevelInterfaceAndBodyPouLanguageSource>();
-			private readonly ImmutableArray<GlobalVariableLanguageSource>.Builder Gvls = ImmutableArray.CreateBuilder<GlobalVariableLanguageSource>();
-			private readonly ImmutableArray<DutLanguageSource>.Builder Duts = ImmutableArray.CreateBuilder<DutLanguageSource>();
-
-			public void Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource)
-			{
-				Pous.Add(topLevelInterfaceAndBodyPouLanguageSource);
-			}
-
-			public void Visit(GlobalVariableLanguageSource globalVariableLanguageSource)
-			{
-				Gvls.Add(globalVariableLanguageSource);
-			}
-
-			public void Visit(DutLanguageSource dutLanguageSource)
-			{
-				Duts.Add(dutLanguageSource);
-			}
-
-			public static Project Build(Project project, IEnumerable<ILanguageSource> sources)
-			{
-				var builder = new ProjectBuilder();
-				foreach (var source in sources)
-					source.Accept(builder);
-				return new(
-					project.Pous.AddRange(builder.Pous),
-					project.Gvls.AddRange(builder.Gvls),
-					project.Duts.AddRange(builder.Duts));
-			}
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var parsed = Parser.ParseTypeDeclaration(source.Source, msg);
+			return Add(new ParsedDutLanguageSource(source, parsed, msg.ToImmutable()));
+		}
+		public Project Add(TopLevelInterfaceAndBodyPouLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var itf = Parser.ParsePouInterface(source.Interface, msg);
+			var body = Parser.ParsePouBody(source.Body, msg);
+			return Add(new ParsedTopLevelInterfaceAndBodyPouLanguageSource(source, itf, body, msg.ToImmutable()));
 		}
 	}
 }
