@@ -46,11 +46,5 @@ namespace Compiler
 				return false;
 			}
 		}
-
-		public static IEnumerable<T> NullableSingleton<T>(T? value) where T : class
-		{
-			if (value != null)
-				yield return value;
-		}
 	}
 }
