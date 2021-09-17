@@ -16,6 +16,7 @@ namespace Compiler
 			T Visit(VariableBoundExpression variableBoundExpression);
 			T Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression);
 			T Accept(AddBoundExpression addBoundExpression);
+			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
 		}
 	}
 
@@ -83,6 +84,25 @@ namespace Compiler
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Left = left ?? throw new ArgumentNullException(nameof(left));
 			Right = right ?? throw new ArgumentNullException(nameof(right));
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+
+	public sealed class BinaryOperatorBoundExpression : IBoundExpression
+	{
+		public IType Type { get; }
+		public readonly IBoundExpression Left;
+		public readonly IBoundExpression Right;
+		public readonly FunctionSymbol Function;
+
+		public BinaryOperatorBoundExpression(IType type, IBoundExpression left, IBoundExpression right, FunctionSymbol function)
+		{
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			Left = left ?? throw new ArgumentNullException(nameof(left));
+			Right = right ?? throw new ArgumentNullException(nameof(right));
+			Function = function ?? throw new ArgumentNullException(nameof(function));
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);

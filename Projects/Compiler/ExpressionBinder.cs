@@ -134,13 +134,84 @@ namespace Compiler
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
 		{
-			if (binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
-			{
-				var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, BuiltInType.DInt);
-				var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, BuiltInType.DInt);
-				return new AddBoundExpression(boundLeft.Type, boundLeft, boundRight);
-			}
+			if (binaryOperatorExpressionSyntax.TokenOperator.Accept(MapBinaryToArithmeticName.Instance) is string opName)
+				return BindBinaryArithmetic(binaryOperatorExpressionSyntax, context, opName);
 			throw new NotImplementedException();
+		}
+
+		private IBoundExpression BindBinaryArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context, string opName)
+		{
+			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
+			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
+			var maxArithmeticType = GetPromotedArithmeticType(boundLeft.Type, boundRight.Type);
+			FunctionSymbol operatorFunction;
+			if (maxArithmeticType is BuiltInType b)
+			{
+				operatorFunction = Scope.SystemScope.GetOperatorFunction(opName, b);
+			}
+			else
+			{
+				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
+				maxArithmeticType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
+				operatorFunction = FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition);
+			}
+
+			var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.Left.SourcePosition, boundLeft, maxArithmeticType);
+			var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.Right.SourcePosition, boundRight, maxArithmeticType);
+			return ImplicitCast(
+				binaryOperatorExpressionSyntax.SourcePosition,
+				new BinaryOperatorBoundExpression(maxArithmeticType, castedLeft, castedRight, operatorFunction),
+				context);
+		}
+
+		private sealed class MapBinaryToArithmeticName : IBinaryOperatorToken.IVisitor<string?>
+		{
+			public static readonly MapBinaryToArithmeticName Instance = new();
+			public string? Visit(EqualToken equalToken) => null;
+			public string? Visit(LessEqualToken lessEqualToken) => null;
+			public string? Visit(LessToken lessToken) => null;
+			public string? Visit(GreaterToken greaterToken) => null;
+			public string? Visit(GreaterEqualToken greaterEqualToken) => null;
+			public string? Visit(UnEqualToken unEqualToken) => null;
+			public string? Visit(PlusToken plusToken) => "ADD";
+			public string? Visit(MinusToken minusToken) => "SUB";
+			public string? Visit(StarToken starToken) => "MUL";
+			public string? Visit(SlashToken slashToken) => "DIV";
+			public string? Visit(PowerToken powerToken) => null;
+			public string? Visit(AndToken andToken) => null;
+			public string? Visit(XorToken xorToken) => null;
+			public string? Visit(OrToken orToken) => null;
+			public string? Visit(ModToken modToken) => null;
+		}
+
+		private static IType? GetPromotedArithmeticType(IType a, IType b)
+		{
+			// Enum + Anyting => BaseType(Enum) + Anything
+			// LREAL + Anything => LREAL
+			// REAL + Anything => REAL
+			// Signed + Signed => The bigger one
+			// Unsigned + Unsigned => The bigger one
+			// Signed + Unsigned => The next signed type that is bigger than both.
+			if (a is EnumTypeSymbol enumA)
+				return GetPromotedArithmeticType(enumA.BaseType, b);
+			if (b is EnumTypeSymbol enumB)
+				return GetPromotedArithmeticType(a, enumB.BaseType);
+			if (a is BuiltInType builtInA && b is BuiltInType builtInB && builtInA.IsArithmetic && builtInB.IsArithmetic)
+			{
+				if (builtInA.Equals(BuiltInType.LReal) || builtInB.Equals(BuiltInType.LReal))
+					return BuiltInType.LReal;
+				if (builtInA.Equals(BuiltInType.Real) || builtInB.Equals(BuiltInType.Real))
+					return BuiltInType.Real;
+				if (builtInA.IsUnsigned == builtInB.IsUnsigned)
+					return builtInB.Size > builtInA.Size ? builtInB : builtInA;
+				if (BuiltInType.Int.Size > builtInA.Size && BuiltInType.Int.Size > builtInB.Size)
+					return BuiltInType.Int;
+				if (BuiltInType.DInt.Size > builtInA.Size && BuiltInType.DInt.Size > builtInB.Size)
+					return BuiltInType.DInt;
+				if (BuiltInType.LInt.Size > builtInA.Size && BuiltInType.LInt.Size > builtInB.Size)
+					return BuiltInType.LInt;
+			}
+			return null;
 		}
 
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)

@@ -16,7 +16,7 @@ namespace Compiler
 			Value = value;
 		}
 
-		public IType Type => BuiltInType.UDInt;
+		public IType Type => BuiltInType.DInt;
 
 		public bool Equals(DIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as DIntLiteralValue);

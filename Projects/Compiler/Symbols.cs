@@ -127,6 +127,9 @@ namespace Compiler
 		}
 
 		public override string ToString() => $"{Name}";
+
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
+			=> new ("__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Empty);
 	}
 
 	public sealed class ParameterSymbol : IVariableSymbol
@@ -150,9 +153,9 @@ namespace Compiler
 
 	public sealed class ParameterKind : IEquatable<ParameterKind>
 	{
-		public readonly static ParameterKind Input = new("VAR_INPUT");
-		public readonly static ParameterKind Output = new("VAR_OUTPUT");
-		public readonly static ParameterKind InOut = new("VAR_IN_OUT");
+		public readonly static ParameterKind Input = new(VarInputToken.DefaultGenerating);
+		public readonly static ParameterKind Output = new(VarOutToken.DefaultGenerating);
+		public readonly static ParameterKind InOut = new(VarInOutToken.DefaultGenerating);
 
 		private ParameterKind(string code)
 		{

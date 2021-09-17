@@ -75,6 +75,8 @@ namespace Compiler
 	public static class OrderedSymbolSet
 	{
 		public static T? TryGetValue<T>(this OrderedSymbolSet<T> self, CaseInsensitiveString key) where T : class, ISymbol => self.TryGetValue(key, out var value) ? value : null;
+		public static OrderedSymbolSet<T> ToOrderedSymbolSet<T>(params T[] symbols) where T : ISymbol
+			=> symbols.AsEnumerable().ToOrderedSymbolSet();
 		public static OrderedSymbolSet<T> ToOrderedSymbolSet<T>(this IEnumerable<T> symbols) where T : ISymbol
 			=> OrderedSymbolSet<T>.Create(symbols);
 		public static OrderedSymbolSet<TSymbol> ToOrderedSymbolSet<T, TSymbol>(this IEnumerable<T> values, Func<T, TSymbol> map) where TSymbol : ISymbol

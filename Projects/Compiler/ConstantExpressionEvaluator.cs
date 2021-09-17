@@ -31,6 +31,22 @@ namespace Compiler
 				return null;
 		}
 
+		public ILiteralValue? Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
+		{
+			var leftValue = binaryOperatorBoundExpression.Left.Accept(this);
+			var rightValue = binaryOperatorBoundExpression.Right.Accept(this);
+			if (leftValue == null || rightValue == null)
+				return null;
+			switch (binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant())
+			{
+				case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value);
+				case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value);
+				case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value);
+				case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value);
+				default: return null;
+			}
+		}
+
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
 		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new DIntLiteralValue(
 			DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.Type, Messages, default).Size);

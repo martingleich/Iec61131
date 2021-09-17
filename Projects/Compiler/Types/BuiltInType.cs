@@ -4,42 +4,47 @@ namespace Compiler.Types
 {
 	public sealed class BuiltInType : IType, IEquatable<BuiltInType>
 	{
-		public static readonly BuiltInType Char = new("Char", 1, 1);
-		public static readonly BuiltInType LReal = new("LReal", 8, 8);
-		public static readonly BuiltInType Real = new("Real", 4, 4);
-		public static readonly BuiltInType LInt = new("LInt", 8, 8);
-		public static readonly BuiltInType DInt = new("DInt", 4, 4);
-		public static readonly BuiltInType Int = new("Int", 2, 2);
-		public static readonly BuiltInType SInt = new("SInt", 2, 2);
-		public static readonly BuiltInType ULInt = new("ULInt", 8, 8);
-		public static readonly BuiltInType UDInt = new("UDInt", 4, 4);
-		public static readonly BuiltInType UInt = new("UInt", 2, 2);
-		public static readonly BuiltInType USInt = new("USInt", 1, 1);
-		public static readonly BuiltInType LWord = new("LWord", 8, 8);
-		public static readonly BuiltInType DWord = new("DWord", 4, 4);
-		public static readonly BuiltInType Word = new("Word", 2, 2);
-		public static readonly BuiltInType Byte = new("Byte", 1, 1);
-		public static readonly BuiltInType Bool = new("Bool", 1, 1);
-		public static readonly BuiltInType LTime = new("LTime", 8, 8);
-		public static readonly BuiltInType Time = new("Time", 4, 4);
-		public static readonly BuiltInType LDT = new("LDT", 8, 8);
-		public static readonly BuiltInType DT = new("DT", 4, 4);
-		public static readonly BuiltInType LDate = new("LDate", 8, 8);
-		public static readonly BuiltInType Date = new("Date", 4, 4);
-		public static readonly BuiltInType LTOD = new("LTOD", 8, 8);
-		public static readonly BuiltInType TOD = new("TOD", 4, 4);
+		public static readonly BuiltInType Char = new(1, 1, "Char", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType LReal = new(8, 8, "LReal", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType Real = new(4, 4, "Real", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType LInt = new(8, 8, "LInt", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType DInt = new(4, 4, "DInt", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType Int = new(2, 2, "Int", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType SInt = new(2, 2, "SInt", isArithmetic: true, isUnsigned: false);
+		public static readonly BuiltInType ULInt = new(8, 8, "ULInt", isArithmetic: true, isUnsigned: true);
+		public static readonly BuiltInType UDInt = new(4, 4, "UDInt", isArithmetic: true, isUnsigned: true);
+		public static readonly BuiltInType UInt = new(2, 2, "UInt", isArithmetic: true, isUnsigned: true);
+		public static readonly BuiltInType USInt = new(1, 1, "USInt", isArithmetic: true, isUnsigned: true);
+		public static readonly BuiltInType LWord = new(8, 8, "LWord", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType DWord = new(4, 4, "DWord", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType Word = new(2, 2, "Word", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType Byte = new(1, 1, "Byte", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType Bool = new(1, 1, "Bool", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType LTime = new(8, 8, "LTime", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType Time = new(4, 4, "Time", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType LDT = new(8, 8, "LDT", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType DT = new(4, 4, "DT", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType LDate = new(8, 8, "LDate", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType Date = new(4, 4, "Date", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType LTOD = new(8, 8, "LTOD", isArithmetic: false, isUnsigned: false);
+		public static readonly BuiltInType TOD = new(4, 4, "TOD", isArithmetic: false, isUnsigned: false);
 
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.ToString();
-		private BuiltInType(string name, int size, int alignment)
+		private BuiltInType(int size, int alignment, string name, bool isArithmetic, bool isUnsigned)
 		{
 			Name = name.ToCaseInsensitive();
 			Size = size;
 			Alignment = alignment;
+			IsArithmetic = isArithmetic;
+			IsUnsigned = isUnsigned;
 		}
 
 		public int Size { get; }
 		public int Alignment { get; }
+		public bool IsArithmetic { get; }
+		public bool IsUnsigned { get; }
+
 		public LayoutInfo LayoutInfo => new(Size, Alignment);
 
 		public static BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(TypeMapper.Instance);

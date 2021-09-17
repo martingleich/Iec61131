@@ -78,8 +78,8 @@ namespace Compiler.Messages
 		public IToken ReceivedToken { get; }
 		public ImmutableArray<Type> ExpectedTokenTypes { get; }
 		public override string Text => ExpectedTokenTypes.TryGetSingle(out var single)
-					? $"Expected a {single.Name} but received a {ReceivedToken}."
-					: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(x => x.Name))} but received a {ReceivedToken}.";
+					? $"Expected a {single.Name} but received '{ReceivedToken.Generating}'."
+					: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(x => x.Name))} but received '{ReceivedToken.Generating}'.";
 	}
 	public sealed class ExpectedExpressionMessage : ACriticalMessage
 	{
@@ -164,7 +164,7 @@ namespace Compiler.Messages
 			From = from;
 			To = to;
 		}
-		public override string Text => $"Cannot convert from {From} to {To}.";
+		public override string Text => $"Cannot convert from {From.Code} to {To.Code}.";
 	}
 	public sealed class NotAConstantMessage : ACriticalMessage
 	{
@@ -179,5 +179,18 @@ namespace Compiler.Messages
 		{
 		}
 		public override string Text => $"Recursive constant declaration";
+	}
+	public sealed class CannotPerformArithmeticOnTypesMessage : ACriticalMessage
+	{
+		private readonly IType Type1;
+		private readonly IType Type2;
+
+		public CannotPerformArithmeticOnTypesMessage(SourcePosition position, IType type1, IType type2) : base(position)
+		{
+			this.Type1 = type1;
+			this.Type2 = type2;
+		}
+
+		public override string Text => $"Cannot perform arithmetic on the types {Type1.Code} and {Type2.Code}.";
 	}
 }

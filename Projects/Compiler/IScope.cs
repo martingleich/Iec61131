@@ -9,5 +9,6 @@ namespace Compiler
 		ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition);
 
 		EnumTypeSymbol? CurrentEnum { get; }
+		SystemScope SystemScope { get; }
 	}
 }

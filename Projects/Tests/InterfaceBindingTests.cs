@@ -154,27 +154,18 @@ namespace Tests
 
 	public sealed class TypeCompilerTests
 	{
-		private sealed class NaiveScope : IScope
+		private sealed class NaiveScope : AInnerScope
 		{
 			private readonly StructuredTypeSymbol MyType = new (default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
 
-			public EnumTypeSymbol CurrentEnum => throw new NotImplementedException();
-
-			public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+			public NaiveScope() : base(EmptyScope.Instance)
 			{
-				if (identifier == "MyType".ToCaseInsensitive())
-					return MyType;
-				else
-					return ErrorsAnd.Create(ITypeSymbol.CreateError(sourcePosition, identifier), new TypeNotFoundMessage(identifier.Original, sourcePosition));
 			}
 
-			public ErrorsAnd<ITypeSymbol> LookupTypeIncomplete(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-				=> LookupType(identifier, sourcePosition);
-
-			public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-			{
-				throw new NotImplementedException();
-			}
+			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+				=> identifier == MyType.Name
+					? MyType
+					: base.LookupType(identifier, sourcePosition);
 		}
 		
 		private static void AssertTypeCompiler(string input, Action<IType> check)

@@ -13,6 +13,7 @@ namespace Compiler
 		}
 
 		public virtual EnumTypeSymbol? CurrentEnum => OuterScope.CurrentEnum;
+		public SystemScope SystemScope => OuterScope.SystemScope;
 		public virtual ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupType(identifier, sourcePosition);
 		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupVariable(identifier, sourcePosition);
 	}

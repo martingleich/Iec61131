@@ -8,6 +8,9 @@ namespace Compiler
 		public static readonly EmptyScope Instance = new();
 
 		public EnumTypeSymbol? CurrentEnum => null;
+
+		public SystemScope SystemScope { get; } = new SystemScope();
+
 		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
 			=> ErrorsAnd.Create(
 				ITypeSymbol.CreateError(sourcePosition, identifier),
