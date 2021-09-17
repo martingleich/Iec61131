@@ -75,15 +75,15 @@ namespace Compiler
 			public FunctionSymbol ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
 			public FunctionSymbol Visit(ProgramToken programToken, PouInterfaceSyntax context)
-			{
-				throw new NotImplementedException();
-			}
-
+				=> TypifyFunctionOrProgram(isProgram: true, context);
 			public FunctionSymbol Visit(FunctionToken functionToken, PouInterfaceSyntax context)
+				=> TypifyFunctionOrProgram(isProgram: false, context);
+			private FunctionSymbol TypifyFunctionOrProgram(bool isProgram, PouInterfaceSyntax context)
 			{
 				var allParameters = BindParameters(context.VariableDeclarations).Concat(BindReturnValue(context.Name.ToCaseInsensitive(), context.ReturnDeclaration));
 				var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
 				return new FunctionSymbol(
+					isProgram,
 					context.Name.ToCaseInsensitive(),
 					context.TokenName.SourcePosition,
 					uniqueParameters);

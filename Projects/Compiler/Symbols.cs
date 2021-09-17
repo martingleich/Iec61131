@@ -112,15 +112,16 @@ namespace Compiler
 		}
 	}
 
-
 	public sealed class FunctionSymbol : ISymbol
 	{
+		public bool IsProgram { get; }
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
 		public readonly OrderedSymbolSet<ParameterSymbol> Parameters;
 
-		public FunctionSymbol(CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
+		public FunctionSymbol(bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
 		{
+			IsProgram = isProgram;
 			Name = name;
 			DeclaringPosition = declaringPosition;
 			Parameters = parameters;
@@ -129,7 +130,7 @@ namespace Compiler
 		public override string ToString() => $"{Name}";
 
 		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
-			=> new ("__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Empty);
+			=> new (false, "__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Empty);
 	}
 
 	public sealed class ParameterSymbol : IVariableSymbol

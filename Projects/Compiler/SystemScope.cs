@@ -8,7 +8,7 @@ namespace Compiler
 	public sealed class SystemScope
 	{
 		private static FunctionSymbol BinaryOperator(string name, IType leftType, IType rightType, IType returnType)
-			=> new(name.ToCaseInsensitive(), default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
+			=> new(isProgram: false, name.ToCaseInsensitive(), default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
 				new(ParameterKind.Input, default, "LEFT_VALUE".ToCaseInsensitive(), leftType),
 				new(ParameterKind.Input, default, "RIGHT_VALUE".ToCaseInsensitive(), rightType),
 				new(ParameterKind.Output, default, name.ToCaseInsensitive(), returnType)));
