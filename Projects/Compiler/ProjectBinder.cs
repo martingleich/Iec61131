@@ -38,7 +38,7 @@ namespace Compiler
 		private readonly PouSymbolCreatorT PouSymbolCreator;
 
 		private ProjectBinder(
-			ImmutableArray<ParsedDutLanguageSource> duts) : base(EmptyScope.Instance)
+			ImmutableArray<ParsedDutLanguageSource> duts) : base(RootScope.Instance)
 		{
 			PouSymbolCreator = new(this, MessageBag);
 			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
@@ -182,7 +182,7 @@ namespace Compiler
 			{
 				var baseType = BodySyntax.EnumBaseType != null
 					? TypeCompiler.MapSymbolic(projectBinder, BodySyntax.EnumBaseType, projectBinder.MessageBag)
-					: BuiltInType.DInt;
+					: projectBinder.SystemScope.DInt;
 				Symbol._SetBaseType(baseType);
 				List<EnumValueSymbol> allValueSymbols = new List<EnumValueSymbol>();
 				EnumValueSymbol? prevSymbol = null;

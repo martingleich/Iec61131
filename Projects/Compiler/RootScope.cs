@@ -3,9 +3,9 @@ using Compiler.Types;
 
 namespace Compiler
 {
-	public sealed class EmptyScope : IScope
+	public sealed class RootScope : IScope
 	{
-		public static readonly EmptyScope Instance = new();
+		public static readonly RootScope Instance = new();
 
 		public EnumTypeSymbol? CurrentEnum => null;
 

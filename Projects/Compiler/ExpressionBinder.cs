@@ -17,16 +17,16 @@ namespace Compiler
 			}
 
 			public IBoundExpression Visit(TrueToken trueToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(trueToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(true)), context);
+				=> ExpressionBinder.ImplicitCast(trueToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(true, ExpressionBinder.SystemScope.Bool)), context);
 
 			public IBoundExpression Visit(FalseToken falseToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(falseToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(false)), context);
+				=> ExpressionBinder.ImplicitCast(falseToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(false, ExpressionBinder.SystemScope.Bool)), context);
 			public IBoundExpression Visit(BooleanLiteralToken booleanLiteralToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(booleanLiteralToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(booleanLiteralToken.Value)), context);
+				=> ExpressionBinder.ImplicitCast(booleanLiteralToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(booleanLiteralToken.Value, ExpressionBinder.SystemScope.Bool)), context);
 
 			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
 			{
-				var type = BuiltInType.MapTokenToType(typedLiteralToken.Value.Type);
+				var type = ExpressionBinder.SystemScope.MapTokenToType(typedLiteralToken.Value.Type);
 				var boundValue = typedLiteralToken.Value.LiteralToken.Accept(this, type);
 				return ExpressionBinder.ImplicitCast(typedLiteralToken.SourcePosition, boundValue, context);
 			}
@@ -35,7 +35,7 @@ namespace Compiler
 			{
 				if (context != null)
 				{
-					if (TypeRelations.IsIdenticalType(context, BuiltInType.DInt))
+					if (TypeRelations.IsIdenticalType(context, ExpressionBinder.SystemScope.DInt))
 					{
 						ILiteralValue value;
 						if (!integerLiteralToken.Value.TryGetInt(out int intValue))
@@ -45,7 +45,7 @@ namespace Compiler
 						}
 						else
 						{
-							value = new DIntLiteralValue(intValue);
+							value = new DIntLiteralValue(intValue, ExpressionBinder.SystemScope.DInt);
 						}
 						return new LiteralBoundExpression(value);
 					}
@@ -54,12 +54,14 @@ namespace Compiler
 				// Try int, uint, long, ulong
 				if (integerLiteralToken.Value.TryGetInt(out int intValue2))
 				{
-					return ExpressionBinder.ImplicitCast(integerLiteralToken.SourcePosition, new LiteralBoundExpression(new DIntLiteralValue(intValue2)), context);
+					return ExpressionBinder.ImplicitCast(integerLiteralToken.SourcePosition,
+						new LiteralBoundExpression(new DIntLiteralValue(intValue2, ExpressionBinder.SystemScope.DInt))
+						, context);
 				}
 				else
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, BuiltInType.LInt));
-					return new LiteralBoundExpression(new UnknownLiteralValue(context ?? BuiltInType.DInt));
+					MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, ExpressionBinder.SystemScope.LInt));
+					return new LiteralBoundExpression(new UnknownLiteralValue(context ?? ExpressionBinder.SystemScope.DInt));
 				}
 			}
 
@@ -97,6 +99,7 @@ namespace Compiler
 		private readonly MessageBag MessageBag;
 		private readonly LiteralTokenBinderT LiteralTokenBinder;
 		private readonly IScope Scope;
+		private SystemScope SystemScope => Scope.SystemScope;
 
 		private ExpressionBinder(IScope scope, MessageBag messageBag)
 		{
@@ -147,7 +150,7 @@ namespace Compiler
 			FunctionSymbol operatorFunction;
 			if (maxArithmeticType is BuiltInType b)
 			{
-				operatorFunction = Scope.SystemScope.GetOperatorFunction(opName, b);
+				operatorFunction = SystemScope.GetOperatorFunction(opName, b);
 			}
 			else
 			{
@@ -184,7 +187,7 @@ namespace Compiler
 			public string? Visit(ModToken modToken) => null;
 		}
 
-		private static IType? GetPromotedArithmeticType(IType a, IType b)
+		private IType? GetPromotedArithmeticType(IType a, IType b)
 		{
 			// Enum + Anyting => BaseType(Enum) + Anything
 			// LREAL + Anything => LREAL
@@ -198,18 +201,18 @@ namespace Compiler
 				return GetPromotedArithmeticType(a, enumB.BaseType);
 			if (a is BuiltInType builtInA && b is BuiltInType builtInB && builtInA.IsArithmetic && builtInB.IsArithmetic)
 			{
-				if (builtInA.Equals(BuiltInType.LReal) || builtInB.Equals(BuiltInType.LReal))
-					return BuiltInType.LReal;
-				if (builtInA.Equals(BuiltInType.Real) || builtInB.Equals(BuiltInType.Real))
-					return BuiltInType.Real;
+				if (builtInA.Equals(SystemScope.LReal) || builtInB.Equals(SystemScope.LReal))
+					return SystemScope.LReal;
+				if (builtInA.Equals(SystemScope.Real) || builtInB.Equals(SystemScope.Real))
+					return SystemScope.Real;
 				if (builtInA.IsUnsigned == builtInB.IsUnsigned)
 					return builtInB.Size > builtInA.Size ? builtInB : builtInA;
-				if (BuiltInType.Int.Size > builtInA.Size && BuiltInType.Int.Size > builtInB.Size)
-					return BuiltInType.Int;
-				if (BuiltInType.DInt.Size > builtInA.Size && BuiltInType.DInt.Size > builtInB.Size)
-					return BuiltInType.DInt;
-				if (BuiltInType.LInt.Size > builtInA.Size && BuiltInType.LInt.Size > builtInB.Size)
-					return BuiltInType.LInt;
+				if (SystemScope.Int.Size > builtInA.Size && SystemScope.Int.Size > builtInB.Size)
+					return SystemScope.Int;
+				if (SystemScope.DInt.Size > builtInA.Size && SystemScope.DInt.Size > builtInB.Size)
+					return SystemScope.DInt;
+				if (SystemScope.LInt.Size > builtInA.Size && SystemScope.LInt.Size > builtInB.Size)
+					return SystemScope.LInt;
 			}
 			return null;
 		}
@@ -247,7 +250,7 @@ namespace Compiler
 		public IBoundExpression Visit(SizeOfExpressionSyntax sizeOfExpressionSyntax, IType? context)
 		{
 			var type = TypeCompiler.MapSymbolic(Scope, sizeOfExpressionSyntax.Argument, MessageBag);
-			return ImplicitCast(sizeOfExpressionSyntax.SourcePosition, new SizeOfTypeBoundExpression(type), context);
+			return ImplicitCast(sizeOfExpressionSyntax.SourcePosition, new SizeOfTypeBoundExpression(type, Scope.SystemScope.DInt), context);
 		}
 
 		public IBoundExpression Visit(CallExpressionSyntax callExpressionSyntax, IType? context)

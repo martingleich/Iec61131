@@ -1,3 +1,5 @@
-Add Type Factory, so there are no arbitrary hardcoded values in the types.
-Make functions callable.
+Add Programs
+Bind bodys
+Add GVLs
 Create roslyn typerules for equatable.
+Pretty print expression nodes in debug mode

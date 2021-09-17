@@ -11,12 +11,13 @@ namespace Compiler
 	{
 		public readonly int Value;
 
-		public DIntLiteralValue(int value)
+		public DIntLiteralValue(int value, IType type)
 		{
 			Value = value;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
-		public IType Type => BuiltInType.DInt;
+		public IType Type { get; }
 
 		public bool Equals(DIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as DIntLiteralValue);
@@ -27,12 +28,13 @@ namespace Compiler
 	public sealed class BooleanLiteralValue : ILiteralValue, IEquatable<BooleanLiteralValue>
 	{
 		public readonly bool Value;
-		public BooleanLiteralValue(bool value)
+		public BooleanLiteralValue(bool value, IType type)
 		{
 			Value = value;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
-		public IType Type => BuiltInType.Bool;
+		public IType Type { get; }
 		public bool Equals(BooleanLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as BooleanLiteralValue);
 		public override bool Equals(object? obj) => Equals(obj as BooleanLiteralValue);

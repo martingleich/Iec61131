@@ -21,16 +21,6 @@ namespace Compiler
 			return EvaluateConstant(boundExpr, messageBag);
 		}
 
-		public ILiteralValue? Accept(AddBoundExpression addBoundExpression)
-		{
-			var leftValue = addBoundExpression.Left.Accept(this);
-			var rightValue = addBoundExpression.Right.Accept(this);
-			if (leftValue is DIntLiteralValue leftLiteral && rightValue is DIntLiteralValue rightLiteral)
-				return new DIntLiteralValue(leftLiteral.Value + rightLiteral.Value);
-			else
-				return null;
-		}
-
 		public ILiteralValue? Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
 		{
 			var leftValue = binaryOperatorBoundExpression.Left.Accept(this);
@@ -39,17 +29,17 @@ namespace Compiler
 				return null;
 			switch (binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant())
 			{
-				case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value);
-				case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value);
-				case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value);
-				case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value);
+				case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+				case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+				case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+				case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
 				default: return null;
 			}
 		}
 
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
 		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new DIntLiteralValue(
-			DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.Type, Messages, default).Size);
+			DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, Messages, default).Size, sizeOfTypeBoundExpression.Type);
 		public ILiteralValue? Visit(VariableBoundExpression variableBoundExpression)
 		{
 			if (variableBoundExpression.Variable is EnumValueSymbol enumValueSymbol)

@@ -13,6 +13,7 @@ namespace Tests
 
 	public sealed class InterfaceBindingTests
 	{
+		private static readonly SystemScope SystemScope = new ();
 		[Fact]
 		public void EmptyModule()
 		{
@@ -43,8 +44,8 @@ namespace Tests
 			Assert.Equal(8, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInType.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInType.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(SystemScope.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(SystemScope.Real, b.Type); });
 		}
 
 		[Fact]
@@ -58,8 +59,8 @@ namespace Tests
 			Assert.Equal(4, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(BuiltInType.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(BuiltInType.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(SystemScope.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(SystemScope.Real, b.Type); });
 		}
 		[Fact]
 		public void FieldOfUserdefinedType()
@@ -154,11 +155,12 @@ namespace Tests
 
 	public sealed class TypeCompilerTests
 	{
+		private static readonly SystemScope SystemScope = new ();
 		private sealed class NaiveScope : AInnerScope
 		{
 			private readonly StructuredTypeSymbol MyType = new (default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
 
-			public NaiveScope() : base(EmptyScope.Instance)
+			public NaiveScope() : base(RootScope.Instance)
 			{
 			}
 
@@ -181,18 +183,18 @@ namespace Tests
 		public static IEnumerable<object[]> TypeCompiler_Data() => TypeCompilerData_Typed().Select(v => new object[] { v.Item1, v.Item2 });
 		public static IEnumerable<(string, IType)> TypeCompilerData_Typed()
 		{
-			yield return ("INT", BuiltInType.Int);
-			yield return ("BOOL", BuiltInType.Bool);
-			yield return ("ARRAY[0..1] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, 1))));
-			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayType(BuiltInType.Date, ImmutableArray.Create(new ArrayType.Range(0, 1), new ArrayType.Range(2, 5))));
-			yield return ("ARRAY[0..0] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, 0))));
-			yield return ("ARRAY[0..-1] OF LREAL", new ArrayType(BuiltInType.LReal, ImmutableArray.Create(new ArrayType.Range(0, -1))));
+			yield return ("INT", SystemScope.Int);
+			yield return ("BOOL", SystemScope.Bool);
+			yield return ("ARRAY[0..1] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, 1))));
+			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayType(SystemScope.Date, ImmutableArray.Create(new ArrayType.Range(0, 1), new ArrayType.Range(2, 5))));
+			yield return ("ARRAY[0..0] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, 0))));
+			yield return ("ARRAY[0..-1] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, -1))));
 			yield return ("MyType", new StructuredTypeSymbol(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, default));
 			yield return ("STRING[17]", new StringType(17));
 			yield return ("STRING", new StringType(80));
 			yield return ("STRING[SIZEOF(MyType)]", new StringType(23));
-			yield return ("POINTER TO BYTE", new PointerType(BuiltInType.Byte));
-			yield return ("POINTER TO POINTER TO SINT", new PointerType(new PointerType(BuiltInType.SInt)));
+			yield return ("POINTER TO BYTE", new PointerType(SystemScope.Byte));
+			yield return ("POINTER TO POINTER TO SINT", new PointerType(new PointerType(SystemScope.SInt)));
 		}
 		[Theory]
 		[MemberData(nameof(TypeCompiler_Data))]
@@ -204,6 +206,7 @@ namespace Tests
 
 	public sealed class EnumBindingTests
 	{
+		private static readonly SystemScope SystemScope = new ();
 		[Fact]
 		public void EmptyEnum()
 		{
@@ -213,7 +216,7 @@ namespace Tests
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
 			Assert.Empty(myEnum.Values);
-			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -228,7 +231,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -243,7 +246,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -258,7 +261,7 @@ namespace Tests
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(BuiltInType.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -272,6 +275,7 @@ namespace Tests
 
 	public sealed class FunctionBindingTests
 	{
+		private static readonly SystemScope SystemScope = new ();
 		[Fact]
 		public void EmptyFunction()
 		{
@@ -290,7 +294,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Input, p.Kind); Assert.Equal("myInput".ToCaseInsensitive(), p.Name); Assert.Equal(BuiltInType.Int, p.Type); });
+				p => { Assert.Equal(ParameterKind.Input, p.Kind); Assert.Equal("myInput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Int, p.Type); });
 		}
 
 		[Fact]
@@ -301,7 +305,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("myOutput".ToCaseInsensitive(), p.Name); Assert.Equal(BuiltInType.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("myOutput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void Function_WithInOut()
@@ -311,7 +315,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.InOut, p.Kind); Assert.Equal("myInOut".ToCaseInsensitive(), p.Name); Assert.Equal(BuiltInType.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.InOut, p.Kind); Assert.Equal("myInOut".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void Function_TempIsIgnored()
@@ -353,7 +357,7 @@ namespace Tests
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("firstOutput".ToCaseInsensitive(), p.Name); },
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(BuiltInType.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void Function_ExplicitReturnOutput()
@@ -363,7 +367,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(BuiltInType.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void Function_ComplexTypeArg()

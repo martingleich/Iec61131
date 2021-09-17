@@ -116,7 +116,7 @@ namespace Compiler.Types
 				return new Range(0, 0);
 		}
 		private static ImmutableArray<Range> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax)
-			=> arraySyntax.Ranges.Select(r => BindRange<DIntLiteralValue>(scope, messageBag, r, BuiltInType.DInt)).Select(x => BoundRangeToArrayRange(messageBag, x)).ToImmutableArray();
+			=> arraySyntax.Ranges.Select(r => BindRange<DIntLiteralValue>(scope, messageBag, r, scope.SystemScope.DInt)).Select(x => BoundRangeToArrayRange(messageBag, x)).ToImmutableArray();
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

@@ -28,7 +28,7 @@ namespace Compiler
 			=> Scope.LookupType(identifierTypeSyntax.Identifier.ToCaseInsensitive(), identifierTypeSyntax.SourcePosition).Extract(MessageBag);
 
 		public IType Visit(BuiltInTypeSyntax builtInTypeSyntax) =>
-			BuiltInType.MapTokenToType(builtInTypeSyntax.TokenType);
+			Scope.SystemScope.MapTokenToType(builtInTypeSyntax.TokenType);
 
 		public IType Visit(ArrayTypeSyntax arrayTypeSyntax)
 		{
