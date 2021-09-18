@@ -46,6 +46,19 @@ namespace Compiler
 			IsOverflown = isOverflown;
 		}
 		public static readonly OverflowingInteger Overflown = new (default, false, true);
+		public static OverflowingInteger FromLong(long value)
+		{
+			if (value < 0)
+			{
+				ulong x = unchecked(~(ulong)value + 1ul);
+				return new(x, true, false);
+			}
+			else
+			{
+				return new((ulong)value, false, false);
+			}
+		}
+		public static OverflowingInteger FromULong(ulong value) => new(value, false, false);
 		public static OverflowingInteger FromUlong(ulong value, bool isNegative) => new (value, isNegative, false);
 
 		public static OverflowingInteger Parse(string input, bool isNegative)
@@ -67,18 +80,96 @@ namespace Compiler
 		}
 		public override string ToString() => IsOverflown ? "Overflown" : ((IsNegative ? "-" : "") + Value.ToString());
 
+		public bool TryGetSByte(out sbyte value)
+		{
+			if (TryGetInt(out int iValue) && iValue <= sbyte.MaxValue && iValue >= sbyte.MinValue)
+			{
+				value = (sbyte)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetByte(out byte value)
+		{
+			if (TryGetUInt(out var iValue) && iValue <= byte.MaxValue)
+			{
+				value = (byte)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetShort(out short value)
+		{
+			if (TryGetInt(out int iValue) && iValue <= short.MaxValue && iValue >= short.MinValue)
+			{
+				value = (short)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetUShort(out ushort value)
+		{
+			if (TryGetUInt(out var iValue) && iValue <= ushort.MaxValue)
+			{
+				value = (ushort)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
 		public bool TryGetInt(out int value)
+		{
+			if (TryGetLong(out var iValue) && iValue <= int.MaxValue && iValue >= int.MinValue)
+			{
+				value = (int)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetUInt(out uint value)
+		{
+			if (TryGetULong(out var iValue) && iValue <= uint.MaxValue)
+			{
+				value = (uint)iValue;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetLong(out long value)
 		{
 			if (!IsOverflown)
 			{
-				if (!IsNegative && Value <= int.MaxValue)
+				if (!IsNegative && Value <= long.MaxValue)
 				{
-					value = (int)Value;
+					value = (long)Value;
 					return true;
 				}
-				else if (IsNegative && Value <= -((long)int.MinValue))
+				else if (IsNegative && Value <= (ulong)long.MaxValue + 1)
 				{
-					value = (int)(-(long)Value);
+					value = unchecked(-(long)Value);
 					return true;
 				}
 				else
@@ -93,6 +184,23 @@ namespace Compiler
 				return false;
 			}
 		}
+		public bool TryGetULong(out ulong value)
+		{
+			if (!IsOverflown && !IsNegative && Value <= ulong.MaxValue)
+			{
+				value = Value;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		
+		public bool IsZero => TryGetInt(out var value) && value == 0;
+
+		public bool IsOne => TryGetInt(out var value) && value == 1;
 	}
 
 	public struct OverflowingReal

@@ -22,30 +22,51 @@ namespace Compiler
 				return false;
 			}
 		}
-		
-		public static bool IsIdenticalType(IType a, IType b)
+
+		private sealed class IdenticalVisitor : IType.IVisitor<bool, IType>
+		{
+			public static readonly IdenticalVisitor Instance = new ();
+			public bool Visit(StructuredTypeSymbol structuredTypeSymbol, IType context)
+				=> context is StructuredTypeSymbol other && structuredTypeSymbol.Name == other.Name;
+			public bool Visit(BuiltInType builtInTypeSymbol, IType context)
+				=> context is BuiltInType other && builtInTypeSymbol.Name == other.Name;
+			public bool Visit(PointerType pointerTypeSymbol, IType context)
+				=> context is PointerType other && IsIdentical(pointerTypeSymbol.BaseType, other.BaseType);
+			public bool Visit(StringType stringTypeSymbol, IType context)
+				=> context is StringType other && stringTypeSymbol.Size == other.Size;
+			public bool Visit(ArrayType arrayTypeSymbol, IType context)
+				=> context is ArrayType other && IsIdentical(arrayTypeSymbol.BaseType, other.BaseType) && Equal(arrayTypeSymbol.Ranges, other.Ranges);
+			public bool Visit(EnumTypeSymbol enumTypeSymbol, IType context)
+				=> context is EnumTypeSymbol other && enumTypeSymbol.Name == other.Name;
+			public bool VisitError(IType context) => true;
+		}
+
+		public static bool IsIdentical(IType a, IType b)
 		{
 			if (a is null)
 				throw new ArgumentNullException(nameof(a));
 			if (b is null)
 				throw new ArgumentNullException(nameof(b));
 
-			if (a is ArrayType arrayA && b is ArrayType arrayB)
-				return IsIdenticalType(arrayA.BaseType, arrayB.BaseType) && Equal(arrayA.Ranges, arrayB.Ranges);
-			else if (a is StringType stringA && b is StringType stringB)
-				return stringA.Size == stringB.Size;
-			else if (a is PointerType pointerA && b is PointerType pointerB)
-				return IsIdenticalType(pointerA.BaseType, pointerB.BaseType);
-			else if (a is BuiltInType builtInA && b is BuiltInType builtInB)
-				return builtInA.Name == builtInB.Name;
-			else if (a is EnumTypeSymbol enumA && b is EnumTypeSymbol enumB)
-				return enumA.Name == enumB.Name;
-			else if (a is StructuredTypeSymbol structA && b is StructuredTypeSymbol structB)
-				return structA.Name == structB.Name;
-			else if (a is ErrorTypeSymbol || b is ErrorTypeSymbol)
+			if (a is ErrorTypeSymbol || b is ErrorTypeSymbol)
 				return true;
 			else
-				return false;
+				return a.Accept(IdenticalVisitor.Instance, b);
+		}
+
+		public static bool IsAssignableTo(IType from, IType to)
+		{
+			if (IsIdentical(from, to))
+			{
+				return true;
+			}
+			else
+			{
+				if (from is PointerType && to is PointerType) // Implicit conversion between pointers
+					return true;
+				else
+					return false;
+			}
 		}
 	}
 }

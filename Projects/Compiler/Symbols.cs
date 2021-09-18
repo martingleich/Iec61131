@@ -48,6 +48,22 @@ namespace Compiler
 		public override string ToString() => $"{Name} : {Type}";
 	}
 
+	public sealed class LocalVariableSymbol : IVariableSymbol
+	{
+		public LocalVariableSymbol(CaseInsensitiveString name, SourcePosition declaringPosition, IType type)
+		{
+			Name = name;
+			DeclaringPosition = declaringPosition;
+			Type = type;
+		}
+
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public IType Type { get; }
+
+		public override string ToString() => $"VAR {Name} : {Type}";
+	}
+
 	public sealed class ErrorVariableSymbol : IVariableSymbol
 	{
 		public ErrorVariableSymbol(SourcePosition declaringPosition, IType type, CaseInsensitiveString name)
@@ -105,10 +121,10 @@ namespace Compiler
 			}
 
 			InGetConstantValue = true;
-			var boundExpression = ExpressionBinder.BindExpression(MaybeScope!, messageBag, MaybeValueSyntax!, Type.BaseType);
-			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, messageBag);
+			var boundExpression = ExpressionBinder.Bind(MaybeValueSyntax!, MaybeScope!, messageBag, Type.BaseType);
+			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, messageBag) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
 			InGetConstantValue = false;
-			return _value = new EnumLiteralValue(Type, literalValue!);
+			return _value = new EnumLiteralValue(Type, literalValue);
 		}
 	}
 

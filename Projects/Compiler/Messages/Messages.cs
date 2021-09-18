@@ -103,6 +103,18 @@ namespace Compiler.Messages
 
 		public override string Text => $"The constant '{Token.Generating}' does not fit into the type {TargetType.Code}.";
 	}
+	public sealed class ConstantDoesNotFitIntoAnyType : ACriticalMessage
+	{
+		public readonly ILiteralToken Token;
+
+		public ConstantDoesNotFitIntoAnyType(ILiteralToken token) : base(token.SourcePosition)
+		{
+			Token = token ?? throw new ArgumentNullException(nameof(token));
+		}
+
+		public override string Text => $"There is not type that can contain the value '{Token.Generating}'";
+	}
+	
 	public sealed class InvalidArrayRangesMessages : ACriticalMessage
 	{
 		public InvalidArrayRangesMessages(SourcePosition position) : base(position)
@@ -192,5 +204,25 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"Cannot perform arithmetic on the types {Type1.Code} and {Type2.Code}.";
+	}
+	public sealed class CannotAssignToSyntaxMessage : ACriticalMessage
+	{
+		public CannotAssignToSyntaxMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => $"Cannot assign to this syntax.";
+	}
+	public sealed class ConstantValueIsToLargeForTargetMessage : ACriticalMessage
+	{
+		public readonly OverflowingInteger Value;
+		public readonly IType Type;
+
+		public ConstantValueIsToLargeForTargetMessage(OverflowingInteger value, IType type, SourcePosition position) : base(position)
+		{
+			Value = value;
+			Type = type;
+		}
+		public override string Text => $"The value '{Value}' is to large for the type '{Type.Code}'.";
 	}
 }

@@ -7,15 +7,17 @@ using Compiler.Types;
 
 namespace Compiler
 {
-	public sealed class LazyBoundModule
+	public sealed class BoundModule
 	{
 		public readonly ImmutableArray<IMessage> InterfaceMessages;
 		public readonly BoundModuleInterface Interface;
+		public readonly ImmutableDictionary<FunctionSymbol, BoundPou> Pous;
 
-		public LazyBoundModule(ImmutableArray<IMessage> interfaceMessages, BoundModuleInterface @interface)
+		public BoundModule(ImmutableArray<IMessage> interfaceMessages, BoundModuleInterface @interface, ImmutableDictionary<FunctionSymbol, BoundPou> pous)
 		{
 			InterfaceMessages = interfaceMessages;
-			Interface = @interface;
+			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
+			Pous = pous ?? throw new ArgumentNullException(nameof(pous));
 		}
 	}
 
@@ -28,6 +30,90 @@ namespace Compiler
 		{
 			DutTypes = dutTypes;
 			FunctionSymbols = functionSymbols;
+		}
+	}
+
+	public sealed class GlobalModuleScope : AInnerScope
+	{
+		private readonly BoundModuleInterface Interface;
+
+		public GlobalModuleScope(BoundModuleInterface @interface, IScope inner) : base(inner)
+		{
+			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
+		}
+
+		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.DutTypes.TryGetValue(identifier, out var dutType)
+			? ErrorsAnd.Create(dutType)
+			: base.LookupType(identifier, sourcePosition);
+	}
+
+	public sealed class BoundPou
+	{
+		private readonly IScope Scope;
+		private readonly FunctionSymbol Symbol;
+		private readonly PouInterfaceSyntax Interface;
+		private readonly StatementListSyntax Body;
+		public Lazy<(IBoundStatement, ImmutableArray<IMessage>)> LazyBoundBody;
+
+		public BoundPou(IScope scope, FunctionSymbol symbol, PouInterfaceSyntax @interface, StatementListSyntax body)
+		{
+			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
+			Body = body ?? throw new ArgumentNullException(nameof(body));
+			LazyBoundBody = new Lazy<(IBoundStatement, ImmutableArray<IMessage>)>(Bind);
+		}
+
+		private (IBoundStatement, ImmutableArray<IMessage>) Bind()
+		{
+			var messageBag = new MessageBag();
+			// Step 1: Create a scope for the body.
+			//		a) Create a symbol set for the remaining variables.
+			var localVariables = BindLocalVariables(Interface.VariableDeclarations, Scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
+			//		b) Create a statement scope A for the Symbol
+			//		c) Create a statement scope B(A) with the remaining variables.
+			var scope = new InsideFunctionScope(Scope, Symbol, localVariables);
+			// Step 2: Bind the body
+			var bound = StatementBinder.Bind(Body, scope, messageBag);
+			return (bound, messageBag.ToImmutable());
+		}
+
+		private static IEnumerable<LocalVariableSymbol> BindLocalVariables(IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
+			=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations, scope, messages));
+		private static IEnumerable<LocalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
+		{
+			if (kind is not VarToken && kind is not VarTempToken)
+				return Enumerable.Empty<LocalVariableSymbol>();
+			else
+				return vardecls.Select(v => BindVarDecl(v, scope, messages));
+		}
+		private static LocalVariableSymbol BindVarDecl(VarDeclSyntax syntax, IScope scope, MessageBag messages)
+		{
+			IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+			return new(
+				syntax.Identifiers.ToCaseInsensitive(),
+				syntax.TokenIdentifiers.SourcePosition,
+				type);
+		}
+	}
+
+	public sealed class InsideFunctionScope : AInnerScope
+	{
+		private readonly FunctionSymbol Symbol;
+		private readonly SymbolSet<LocalVariableSymbol> LocalVariables;
+		public InsideFunctionScope(IScope outerScope, FunctionSymbol symbol, SymbolSet<LocalVariableSymbol> localVariables) : base(outerScope)
+		{
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+			LocalVariables = localVariables;
+		}
+
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+		{
+			if (LocalVariables.TryGetValue(identifier, out var localVariableSymbol))
+				return localVariableSymbol;
+			if (Symbol.Parameters.TryGetValue(identifier, out var parameterSymbol))
+				return parameterSymbol;
+			return base.LookupVariable(identifier, sourcePosition);
 		}
 	}
 
@@ -218,7 +304,7 @@ namespace Compiler
 			}
 		}
 
-		public static LazyBoundModule Bind(
+		public static BoundModule Bind(
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
 			ImmutableArray<GlobalVariableLanguageSource> gvls,
 			ImmutableArray<ParsedDutLanguageSource> duts)
@@ -229,7 +315,7 @@ namespace Compiler
 			return binder.Bind(pous);
 		}
 
-		private LazyBoundModule Bind(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous)
+		private BoundModule Bind(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous)
 		{
 			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
 			foreach (var typeSymbol in typeSymbols)
@@ -240,7 +326,7 @@ namespace Compiler
 			var functionSymbols = pous.ToSymbolSetWithDuplicates(MessageBag, x => PouSymbolCreator.ConvertToSymbol(x.Interface));
 
 			var itf = new BoundModuleInterface(typeSymbols, functionSymbols);
-			return new LazyBoundModule(MessageBag.ToImmutable(), itf);
+			return new BoundModule(MessageBag.ToImmutable(), itf, ImmutableDictionary<FunctionSymbol, BoundPou>.Empty);
 		}
 
 		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>

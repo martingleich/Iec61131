@@ -68,9 +68,9 @@ namespace Compiler.Types
 		{
 			if (MaybeLayoutInfo is LayoutInfo layoutInfo)
 				return layoutInfo;
-			DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
+			var baseTypeLayout = DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
 			Ranges = CalculateArrayRanges(MaybeScope!, messageBag, MaybeSyntax!);
-			MaybeLayoutInfo = LayoutInfo.Array(BaseType.LayoutInfo, ElementCount);
+			MaybeLayoutInfo = LayoutInfo.Array(baseTypeLayout, ElementCount);
 			return MaybeLayoutInfo.Value;
 		}
 		LayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)

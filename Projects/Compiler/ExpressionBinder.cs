@@ -33,36 +33,44 @@ namespace Compiler
 
 			public IBoundExpression Visit(IntegerLiteralToken integerLiteralToken, IType? context)
 			{
+				ILiteralValue finalValue;
 				if (context != null)
 				{
-					if (TypeRelations.IsIdenticalType(context, ExpressionBinder.SystemScope.DInt))
+					if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Bool))
 					{
-						ILiteralValue value;
-						if (!integerLiteralToken.Value.TryGetInt(out int intValue))
-						{
-							value = new UnknownLiteralValue(context);
-							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
-						}
+						if (integerLiteralToken.Value.IsZero)
+							finalValue = new BooleanLiteralValue(false, context);
+						else if (integerLiteralToken.Value.IsOne)
+							finalValue = new BooleanLiteralValue(true, context);
 						else
 						{
-							value = new DIntLiteralValue(intValue, ExpressionBinder.SystemScope.DInt);
+							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
+							finalValue = new BooleanLiteralValue(false, context);
 						}
-						return new LiteralBoundExpression(value);
 					}
-				}
-
-				// Try int, uint, long, ulong
-				if (integerLiteralToken.Value.TryGetInt(out int intValue2))
-				{
-					return ExpressionBinder.ImplicitCast(integerLiteralToken.SourcePosition,
-						new LiteralBoundExpression(new DIntLiteralValue(intValue2, ExpressionBinder.SystemScope.DInt))
-						, context);
+					else
+					{
+						var value = ExpressionBinder.SystemScope.TryCreateIntLiteral(integerLiteralToken.Value, context);
+						if (value == null)
+						{
+							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
+							value = new UnknownLiteralValue(context);
+						}
+						finalValue = value;
+					}
 				}
 				else
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, ExpressionBinder.SystemScope.LInt));
-					return new LiteralBoundExpression(new UnknownLiteralValue(context ?? ExpressionBinder.SystemScope.DInt));
+					var value = ExpressionBinder.SystemScope.TryCreateIntLiteral(integerLiteralToken.Value);
+					if (value == null)
+					{
+						MessageBag.Add(new ConstantDoesNotFitIntoAnyType(integerLiteralToken));
+						value = new UnknownLiteralValue(ExpressionBinder.SystemScope.DInt);
+					}
+					finalValue = value;
 				}
+
+				return new LiteralBoundExpression(finalValue);
 			}
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
@@ -108,30 +116,47 @@ namespace Compiler
 			LiteralTokenBinder = new LiteralTokenBinderT(this);
 		}
 
-		public static IBoundExpression BindExpression(IScope scope, MessageBag messageBag, IExpressionSyntax syntax, IType? targetType)
+		public static IBoundExpression Bind(IExpressionSyntax syntax, IScope scope, MessageBag messageBag, IType? targetType)
 			=> syntax.Accept(new ExpressionBinder(scope, messageBag), targetType);
 
 		private IBoundExpression ImplicitCast(SourcePosition errorPosition, IBoundExpression boundValue, IType? targetType)
 		{
-			if (targetType == null || TypeRelations.IsIdenticalType(boundValue.Type, targetType))
+			if (targetType == null || TypeRelations.IsIdentical(boundValue.Type, targetType))
 			{
 				return boundValue;
 			}
-			else if (Scope.CurrentEnum != null && TypeRelations.IsIdenticalType(boundValue.Type, Scope.CurrentEnum))
+			else if (Scope.CurrentEnum != null && TypeRelations.IsIdentical(boundValue.Type, Scope.CurrentEnum))
 			{
 				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
 				return ImplicitCast(errorPosition, enumValue, targetType);
-
 			}
-			else
+			else if (targetType is PointerType targetPointerType && boundValue.Type is PointerType)
 			{
-				MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, errorPosition));
-				return boundValue;
+				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
+			else if (SystemScope.IsIntegerType(targetType) && boundValue is LiteralBoundExpression literalBoundExpression && literalBoundExpression.Value is IAnyIntLiteralValue anyIntValue)
+			{
+				var resultValue = SystemScope.TryCreateIntLiteral(anyIntValue.Value, targetType);
+				if (resultValue == null)
+				{
+					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue.Value, targetType, errorPosition));
+					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
+				}
+				else
+				{
+					return new LiteralBoundExpression(resultValue);
+				}
+			}
+			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, errorPosition));
+			return boundValue;
 		}
 
 		public IBoundExpression Visit(LiteralExpressionSyntax literalExpressionSyntax, IType? context)
 		{
+			// "0" can be converted to every pointer type
+			if (context is PointerType targetPointerType && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
+				return new LiteralBoundExpression(new NullPointerLiteralValue(targetPointerType));
+
 			return literalExpressionSyntax.TokenValue.Accept(LiteralTokenBinder, context);
 		}
 

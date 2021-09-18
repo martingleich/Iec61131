@@ -17,6 +17,7 @@ namespace Compiler
 
 		public readonly ImmutableArray<BuiltInType> AllBuiltInTypes;
 		public readonly ImmutableArray<BuiltInType> ArithmeticTypes;
+		public readonly ImmutableArray<BuiltInType> IntegerTypes;
 		public readonly BuiltInType Char = new(1, 1, "Char");
 		public readonly BuiltInType LReal = new(8, 8, "LReal", BuiltInType.Flag.Arithmetic);
 		public readonly BuiltInType Real = new(4, 4, "Real", BuiltInType.Flag.Arithmetic);
@@ -44,10 +45,13 @@ namespace Compiler
 
 		private readonly TypeMapper BuiltInTypeMapper;
 
+		public static readonly SystemScope Instance = new();
+
 		public SystemScope()
 		{
 			AllBuiltInTypes = ImmutableArray.Create(Char, LReal, Real, LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt, LWord, DWord, Word, Byte, Bool, LTime, Time, LDT, DT, LDate, Date, LTOD, TOD);
 			ArithmeticTypes = AllBuiltInTypes.Where(t => t.IsArithmetic).ToImmutableArray();
+			IntegerTypes = ImmutableArray.Create(LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt);
 			BuiltInTypeMapper = new TypeMapper(this);
 
 			var numericOperators = new[] { "ADD", "SUB", "MUL", "DIV" };
@@ -59,6 +63,83 @@ namespace Compiler
 		public FunctionSymbol GetOperatorFunction(string op, BuiltInType type)
 			=> AllBuiltInFunctions[$"{op}_{type.Name}"];
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
+
+		public ILiteralValue GetDefaultValue(IType targetType)
+		{
+			if (TypeRelations.IsIdentical(targetType, SInt)) return new SIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, USInt)) return new USIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, Int)) return new IntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, UInt)) return new UIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, DInt)) return new DIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, UDInt)) return new UDIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, LInt)) return new LIntLiteralValue(0, targetType);
+			else if (TypeRelations.IsIdentical(targetType, ULInt)) return new ULIntLiteralValue(0, targetType);
+			else throw new NotImplementedException();
+		}
+		public ILiteralValue? TryCreateIntLiteral(OverflowingInteger value, IType targetType)
+		{
+			if (TypeRelations.IsIdentical(targetType, SInt))
+			{
+				if (value.TryGetSByte(out var x))
+					return new SIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, USInt))
+			{
+				if (value.TryGetByte(out var x))
+					return new USIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, Int))
+			{
+				if (value.TryGetShort(out var x))
+					return new IntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, UInt))
+			{
+				if (value.TryGetUShort(out var x))
+					return new UIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, DInt))
+			{
+				if (value.TryGetInt(out var x))
+					return new DIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, UDInt))
+			{
+				if (value.TryGetUInt(out var x))
+					return new UDIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, LInt))
+			{
+				if (value.TryGetLong(out var x))
+					return new LIntLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, ULInt))
+			{
+				if (value.TryGetULong(out var x))
+					return new ULIntLiteralValue(x, targetType);
+			}
+			return null;
+		}
+
+		public bool IsIntegerType(IType targetType) => IntegerTypes.Any(it => TypeRelations.IsIdentical(it, targetType));
+
+		public ILiteralValue? TryCreateIntLiteral(OverflowingInteger value)
+		{
+			if (value.TryGetShort(out short shortValue))
+				return new IntLiteralValue(shortValue, Int);
+			else if (value.TryGetUShort(out ushort ushortValue))
+				return new UIntLiteralValue(ushortValue, UInt);
+			else if (value.TryGetInt(out int intValue))
+				return new DIntLiteralValue(intValue, DInt);
+			else if (value.TryGetUInt(out uint uintValue))
+				return new UDIntLiteralValue(uintValue, UDInt);
+			else if (value.TryGetLong(out long longValue))
+				return new LIntLiteralValue(longValue, LInt);
+			else if (value.TryGetULong(out ulong ulongValue))
+				return new ULIntLiteralValue(ulongValue, ULInt);
+			else
+				return null;
+		}
 
 		private sealed class TypeMapper : IBuiltInTypeToken.IVisitor<BuiltInType>
 		{

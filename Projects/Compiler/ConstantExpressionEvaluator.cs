@@ -17,7 +17,7 @@ namespace Compiler
 			=> expression.Accept(new ConstantExpressionEvaluator(messages));
 		public static ILiteralValue? EvaluateConstant(IScope scope, MessageBag messageBag, IType type, IExpressionSyntax expression)
 		{
-			var boundExpr = ExpressionBinder.BindExpression(scope, messageBag, expression, type);
+			var boundExpr = ExpressionBinder.Bind(expression, scope, messageBag, type);
 			return EvaluateConstant(boundExpr, messageBag);
 		}
 
@@ -27,13 +27,20 @@ namespace Compiler
 			var rightValue = binaryOperatorBoundExpression.Right.Accept(this);
 			if (leftValue == null || rightValue == null)
 				return null;
-			switch (binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant())
+			try
 			{
-				case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-				case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-				case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-				case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-				default: return null;
+				switch (binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant())
+				{
+					case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+					case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+					case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+					case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
+					default: return null;
+				}
+			}
+			catch (InvalidCastException) // The values have the wrong type, i.e. The expression binder must already reported an error for this
+			{
+				return null;
 			}
 		}
 
@@ -57,6 +64,12 @@ namespace Compiler
 			return x is EnumLiteralValue enumLiteralValue
 				? enumLiteralValue.InnerValue
 				: null; // No error necessary, typify already generates one.
+		}
+
+		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression)
+		{
+			Messages.Add(new NotAConstantMessage(default));
+			return null;
 		}
 	}
 }

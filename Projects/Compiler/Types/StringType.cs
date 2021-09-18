@@ -37,7 +37,7 @@ namespace Compiler.Types
 				return 80;
 			else
 			{
-				var boundSizeExpr = ExpressionBinder.BindExpression(scope, messageBag, sizeExpr, scope.SystemScope.DInt);
+				var boundSizeExpr = ExpressionBinder.Bind(sizeExpr, scope, messageBag, scope.SystemScope.DInt);
 				var sizeValue = ConstantExpressionEvaluator.EvaluateConstant(boundSizeExpr, messageBag);
 				if (sizeValue is DIntLiteralValue dintLiteralValue)
 					return dintLiteralValue.Value;

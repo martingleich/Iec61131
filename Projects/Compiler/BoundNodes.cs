@@ -1,5 +1,6 @@
 ﻿using Compiler.Types;
 using System;
+using System.Collections.Immutable;
 
 namespace Compiler
 {
@@ -16,6 +17,18 @@ namespace Compiler
 			T Visit(VariableBoundExpression variableBoundExpression);
 			T Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression);
 			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
+			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
+		}
+	}
+
+	public interface IBoundStatement
+	{
+		T Accept<T>(IVisitor<T> visitor);
+		interface IVisitor<T>
+		{
+			T Accept(SequenceBoundStatement sequenceBoundStatement);
+			T Accept(ExpressionBoundStatement expressionBoundStatement);
+			T Accept(AssignBoundStatement assignToExpressionBoundStatement);
 		}
 	}
 
@@ -72,6 +85,20 @@ namespace Compiler
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
+	public sealed class ImplicitPointerTypeCastBoundExpression : IBoundExpression
+	{
+		public ImplicitPointerTypeCastBoundExpression(IBoundExpression value, PointerType targetType)
+		{
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			Type = targetType ?? throw new ArgumentNullException(nameof(targetType));
+		}
+
+		public readonly IBoundExpression Value;
+		public readonly PointerType Type;
+		IType IBoundExpression.Type => Type;
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
+	}
 
 	public sealed class BinaryOperatorBoundExpression : IBoundExpression
 	{
@@ -89,5 +116,42 @@ namespace Compiler
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class SequenceBoundStatement : IBoundStatement
+	{
+		public readonly ImmutableArray<IBoundStatement> Statements;
+
+		public SequenceBoundStatement(ImmutableArray<IBoundStatement> statements)
+		{
+			Statements = statements;
+		}
+
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class ExpressionBoundStatement : IBoundStatement
+	{
+		public readonly IBoundExpression Expression;
+
+		public ExpressionBoundStatement(IBoundExpression expression)
+		{
+			Expression = expression ?? throw new ArgumentNullException(nameof(expression));
+		}
+
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class AssignBoundStatement : IBoundStatement
+	{
+		public readonly IBoundExpression LeftSide;
+		public readonly IBoundExpression RightSide;
+
+		public AssignBoundStatement(IBoundExpression leftSide, IBoundExpression rightSide)
+		{
+			LeftSide = leftSide ?? throw new ArgumentNullException(nameof(leftSide));
+			RightSide = rightSide ?? throw new ArgumentNullException(nameof(rightSide));
+		}
+
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
 	}
 }

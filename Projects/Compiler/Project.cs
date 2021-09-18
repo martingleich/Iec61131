@@ -11,7 +11,7 @@ namespace Compiler
 		private readonly ImmutableArray<GlobalVariableLanguageSource> Gvls;
 		private readonly ImmutableArray<ParsedDutLanguageSource> Duts;
 
-		public readonly Lazy<LazyBoundModule> LazyBoundModule;
+		public readonly Lazy<BoundModule> LazyBoundModule;
 		public readonly Lazy<ImmutableArray<IMessage>> LazyParseMessages;
 
 		private Project(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
@@ -20,7 +20,7 @@ namespace Compiler
 			Gvls = gvls;
 			Duts = duts;
 
-			LazyBoundModule = new Lazy<LazyBoundModule>(() => ProjectBinder.Bind(Pous, Gvls, Duts));
+			LazyBoundModule = new Lazy<BoundModule>(() => ProjectBinder.Bind(Pous, Gvls, Duts));
 			LazyParseMessages = new Lazy<ImmutableArray<IMessage>>(() =>
 				Enumerable.Concat(
 					Duts.SelectMany(d => d.Messages),
