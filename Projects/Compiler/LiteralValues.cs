@@ -219,6 +219,40 @@ namespace Compiler
 		public override string ToString() => $"{Type}({InnerValue})";
 	}
 
+	public sealed class RealLiteralValue : ILiteralValue, IEquatable<RealLiteralValue>
+	{
+		public readonly float Value;
+
+		public RealLiteralValue(float value, IType type)
+		{
+			Value = value;
+			Type = type;
+		}
+
+		public IType Type { get; }
+
+		public bool Equals(RealLiteralValue? other) => other != null && BitConverter.SingleToInt32Bits(other.Value) == BitConverter.SingleToInt32Bits(Value);
+		public bool Equals(ILiteralValue? other) => Equals(other as RealLiteralValue);
+		public override int GetHashCode() => BitConverter.SingleToInt32Bits(Value).GetHashCode();
+	}
+
+
+	public sealed class LRealLiteralValue : ILiteralValue, IEquatable<LRealLiteralValue>
+	{
+		public readonly double Value;
+
+		public LRealLiteralValue(double value, IType type)
+		{
+			Value = value;
+			Type = type;
+		}
+
+		public IType Type { get; }
+
+		public bool Equals(LRealLiteralValue? other) => other != null && BitConverter.DoubleToInt64Bits(other.Value) == BitConverter.DoubleToInt64Bits(Value);
+		public bool Equals(ILiteralValue? other) => Equals(other as LRealLiteralValue);
+		public override int GetHashCode() => BitConverter.DoubleToInt64Bits(Value).GetHashCode();
+	}
 	public sealed class NullPointerLiteralValue : ILiteralValue, IEquatable<NullPointerLiteralValue>
 	{
 		public readonly PointerType Type;

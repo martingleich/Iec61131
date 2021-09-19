@@ -12,7 +12,6 @@ namespace Compiler.Messages
 		string Text { get; }
 		bool Critical { get; }
 	}
-
 	public abstract class ACriticalMessage : IMessage
 	{
 		protected ACriticalMessage(SourcePosition position)
@@ -26,7 +25,6 @@ namespace Compiler.Messages
 		[ExcludeFromCodeCoverage]
 		public override string ToString() => $"{Position} {Text}";
 	}
-
 	public abstract class AUncriticalMessage : IMessage
 	{
 		protected AUncriticalMessage(SourcePosition position)
@@ -40,8 +38,6 @@ namespace Compiler.Messages
 		[ExcludeFromCodeCoverage]
 		public override string ToString() => $"{Position} {Text}";
 	}
-
-
 	public sealed class InvalidBooleanLiteralMessage : ACriticalMessage
 	{
 		public InvalidBooleanLiteralMessage(SourcePosition position) : base(position)
@@ -89,7 +85,6 @@ namespace Compiler.Messages
 
 		public override string Text => "Expected a expression.";
 	}
-
 	public sealed class ConstantDoesNotFitIntoType : ACriticalMessage
 	{
 		public readonly ILiteralToken Token;
@@ -114,7 +109,6 @@ namespace Compiler.Messages
 
 		public override string Text => $"There is not type that can contain the value '{Token.Generating}'";
 	}
-	
 	public sealed class InvalidArrayRangesMessages : ACriticalMessage
 	{
 		public InvalidArrayRangesMessages(SourcePosition position) : base(position)
@@ -122,7 +116,6 @@ namespace Compiler.Messages
 		}
 		public override string Text => $"The array ranges are invalid";
 	}
-
 	public sealed class TypeNotFoundMessage : ACriticalMessage
 	{
 		public readonly string Identifier;
@@ -145,7 +138,6 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot find a variable named '{Identifier}'.";
 	}
-	
 	public sealed class TypeNotCompleteMessage : ACriticalMessage
 	{
 		public TypeNotCompleteMessage(SourcePosition position) : base(position)
@@ -154,7 +146,6 @@ namespace Compiler.Messages
 
 		public override string Text => $"Type not complete yet.";
 	}
-
 	public sealed class SymbolAlreadyExistsMessage : ACriticalMessage
 	{
 		public readonly CaseInsensitiveString Name;

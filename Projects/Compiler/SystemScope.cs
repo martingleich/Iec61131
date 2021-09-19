@@ -24,7 +24,7 @@ namespace Compiler
 		public readonly BuiltInType LInt = new(8, 8, "LInt", BuiltInType.Flag.Arithmetic);
 		public readonly BuiltInType DInt = new(4, 4, "DInt", BuiltInType.Flag.Arithmetic);
 		public readonly BuiltInType Int = new(2, 2, "Int", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType SInt = new(2, 2, "SInt", BuiltInType.Flag.Arithmetic);
+		public readonly BuiltInType SInt = new(1, 1, "SInt", BuiltInType.Flag.Arithmetic);
 		public readonly BuiltInType ULInt = new(8, 8, "ULInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
 		public readonly BuiltInType UDInt = new(4, 4, "UDInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
 		public readonly BuiltInType UInt = new(2, 2, "UInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);

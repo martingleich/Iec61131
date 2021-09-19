@@ -21,8 +21,6 @@ namespace Compiler
 
 			public IBoundExpression Visit(FalseToken falseToken, IType? context)
 				=> ExpressionBinder.ImplicitCast(falseToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(false, ExpressionBinder.SystemScope.Bool)), context);
-			public IBoundExpression Visit(BooleanLiteralToken booleanLiteralToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(booleanLiteralToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(booleanLiteralToken.Value, ExpressionBinder.SystemScope.Bool)), context);
 
 			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
 			{
@@ -46,6 +44,30 @@ namespace Compiler
 						{
 							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
 							finalValue = new BooleanLiteralValue(false, context);
+						}
+					}
+					else if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Real))
+					{
+						if (integerLiteralToken.Value.TryGetSingle(out var x))
+						{
+							finalValue = new RealLiteralValue(x, context);
+						}
+						else
+						{
+							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
+							finalValue = new RealLiteralValue(0, context);
+						}
+					}
+					else if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.LReal))
+					{
+						if (integerLiteralToken.Value.TryGetDouble(out var x))
+						{
+							finalValue = new LRealLiteralValue(x, context);
+						}
+						else
+						{
+							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
+							finalValue = new LRealLiteralValue(0, context);
 						}
 					}
 					else
@@ -75,7 +97,19 @@ namespace Compiler
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
 			{
-				throw new NotImplementedException();
+				if (realLiteralToken.Value.TryGetDouble(out var x))
+				{
+					return ExpressionBinder.ImplicitCast(realLiteralToken.SourcePosition,
+						new LiteralBoundExpression(new LRealLiteralValue(x, ExpressionBinder.SystemScope.LReal)),
+						context);
+				}
+				else
+				{
+					MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.LReal));
+					return ExpressionBinder.ImplicitCast(realLiteralToken.SourcePosition,
+						new LiteralBoundExpression(new LRealLiteralValue(0, ExpressionBinder.SystemScope.LReal)),
+						context);
+				}
 			}
 
 			public IBoundExpression Visit(SingleByteStringLiteralToken singleByteStringLiteralToken, IType? context)
@@ -147,6 +181,35 @@ namespace Compiler
 					return new LiteralBoundExpression(resultValue);
 				}
 			}
+			else if (TypeRelations.IsIdentical(targetType, SystemScope.Real) && boundValue is LiteralBoundExpression literalBoundExpression2 && literalBoundExpression2.Value is IAnyIntLiteralValue anyIntValue2)
+			{
+				if (anyIntValue2.Value.TryGetSingle(out float value))
+				{
+					return new LiteralBoundExpression(new RealLiteralValue(value, targetType));
+				}
+				else
+				{
+					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue2.Value, targetType, errorPosition));
+					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
+				}
+			}
+			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && boundValue is LiteralBoundExpression literalBoundExpression3 && literalBoundExpression3.Value is IAnyIntLiteralValue anyIntValue3)
+			{
+				if (anyIntValue3.Value.TryGetDouble(out double value))
+				{
+					return new LiteralBoundExpression(new LRealLiteralValue(value, targetType));
+				}
+				else
+				{
+					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue3.Value, targetType, errorPosition));
+					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
+				}
+			}
+			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && boundValue is LiteralBoundExpression literalBoundExpression4 && literalBoundExpression4.Value is RealLiteralValue realLiteralValue)
+			{
+				return new LiteralBoundExpression(new LRealLiteralValue(realLiteralValue.Value, targetType));
+			}
+
 			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, errorPosition));
 			return boundValue;
 		}

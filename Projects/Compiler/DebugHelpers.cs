@@ -17,7 +17,7 @@ namespace Compiler
 			if (input is null)
 				throw new ArgumentNullException(nameof(input));
 #if DEBUG
-			return input.Shuffle(new Random());
+			return input.Shuffle(new Random(9));
 #else
 			return input;
 #endif

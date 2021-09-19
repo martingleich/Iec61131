@@ -197,9 +197,38 @@ namespace Compiler
 				return false;
 			}
 		}
+		public bool TryGetSingle(out float value)
+		{
+			value = Value;
+			if (float.IsFinite(value))
+			{
+				if (IsNegative)
+					value = -value;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
+		public bool TryGetDouble(out double value)
+		{
+			value = Value;
+			if (double.IsFinite(value))
+			{
+				if (IsNegative)
+					value = -value;
+				return true;
+			}
+			else
+			{
+				value = 0;
+				return false;
+			}
+		}
 		
 		public bool IsZero => TryGetInt(out var value) && value == 0;
-
 		public bool IsOne => TryGetInt(out var value) && value == 1;
 	}
 
@@ -215,6 +244,19 @@ namespace Compiler
 		}
 		public static readonly OverflowingReal Overflown = new (default, true);
 		public static OverflowingReal FromDouble(double value) => new (value, false);
+		public bool TryGetDouble(out double value)
+		{
+			if (IsOverflown)
+			{
+				value = 0;
+				return false;
+			}
+			else
+			{
+				value = Value;
+				return true;
+			}
+		}
 
 		public static OverflowingReal Parse(string pureValue)
 		{

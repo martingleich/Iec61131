@@ -525,12 +525,6 @@
       <Interface>ILiteralToken</Interface>
     </TokenWithValueClass>
     <TokenWithValueClass>
-      <Name>BooleanLiteralToken</Name>
-      <ValueType>bool</ValueType>
-      <Interface>ILiteralToken</Interface>
-      <DefaultValue>default</DefaultValue>
-    </TokenWithValueClass>
-    <TokenWithValueClass>
       <Name>IntegerLiteralToken</Name>
       <ValueType>OverflowingInteger</ValueType>
       <Interface>ILiteralToken</Interface>

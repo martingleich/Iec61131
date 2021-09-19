@@ -54,4 +54,12 @@ namespace Tests
 		
 		public static readonly TestProject NewProject = new (Project.Empty);
 	}
+
+	public static class AssertEx
+	{
+		public static void EqualType(IType expected, IType passed)
+		{
+			Assert.Equal(expected.Code, passed.Code);
+		}
+	}
 }
