@@ -22,7 +22,8 @@ namespace Tests
 				new object[]{long.MinValue.ToString(), SystemScope.LInt },
 				new object[]{"TRUE", SystemScope.Bool },
 				new object[]{"FALSE", SystemScope.Bool },
-				// Typedliteral
+				new object[]{"1.5", SystemScope.LReal },
+				// Typed boolean
 				new object[]{"BOOL#FALSE", SystemScope.Bool },
 				new object[]{"BOOL#TRUE", SystemScope.Bool },
 				new object[]{"BOOL#0", SystemScope.Bool },
@@ -36,6 +37,11 @@ namespace Tests
 				new object[]{"UDINT#1", SystemScope.UDInt },
 				new object[]{"LINT#1", SystemScope.LInt },
 				new object[]{"ULINT#1", SystemScope.ULInt },
+				// Typed real
+				new object[]{"REAL#1", SystemScope.Real },
+				new object[]{"REAL#1.5", SystemScope.Real },
+				new object[]{"LREAL#1", SystemScope.LReal },
+				new object[]{"LREAL#1.5", SystemScope.LReal },
 			};
 			public static readonly object[][] TargetType_DoesNotFit_Values = {
 				new object[]{"BOOL#7" },

@@ -257,6 +257,19 @@ namespace Compiler
 				return true;
 			}
 		}
+		public bool TryGetSingle(out float value)
+		{
+			value = (float)Value;
+			if (IsOverflown || !float.IsFinite(value))
+			{
+				value = 0;
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
 
 		public static OverflowingReal Parse(string pureValue)
 		{

@@ -97,18 +97,31 @@ namespace Compiler
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
 			{
-				if (realLiteralToken.Value.TryGetDouble(out var x))
+				if (context == null || TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.LReal))
 				{
-					return ExpressionBinder.ImplicitCast(realLiteralToken.SourcePosition,
-						new LiteralBoundExpression(new LRealLiteralValue(x, ExpressionBinder.SystemScope.LReal)),
-						context);
+					if (!realLiteralToken.Value.TryGetDouble(out var x))
+					{
+						MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.LReal));
+						x = 0;
+					}
+					return new LiteralBoundExpression(new LRealLiteralValue(x, ExpressionBinder.SystemScope.LReal));
 				}
 				else
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.LReal));
-					return ExpressionBinder.ImplicitCast(realLiteralToken.SourcePosition,
-						new LiteralBoundExpression(new LRealLiteralValue(0, ExpressionBinder.SystemScope.LReal)),
-						context);
+					if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Real))
+					{
+						if (!realLiteralToken.Value.TryGetSingle(out var x))
+						{
+							MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.Real));
+							x = 0;
+						}
+						return new LiteralBoundExpression(new RealLiteralValue(x, ExpressionBinder.SystemScope.Real));
+					}
+					else
+					{
+						MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.Real));
+						return new LiteralBoundExpression(new UnknownLiteralValue(context));
+					}
 				}
 			}
 
