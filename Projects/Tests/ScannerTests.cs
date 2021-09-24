@@ -1,3 +1,4 @@
+using Compiler.Messages;
 using System;
 using Xunit;
 
@@ -277,6 +278,41 @@ namespace Tests
 			AssertAllTokens_WithError("/*Hallo*)\nWelt*",
 				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfMultilineCommentMessage>()),
 				EndToken.Leading(CommentToken("Hallo*)\nWelt*")));
+		}
+		[Theory]
+		[InlineData("5")]
+		[InlineData("ident")]
+		[InlineData("IDENT")]
+		[InlineData("_")]
+		[InlineData("*")]
+		[InlineData(":")]
+		[InlineData("<")]
+		public void UnknownToken_AnyEnd(string end)
+		{
+			AssertAllTokens("$|" + end,
+				 UnknownToken("$|"),
+				 tok => Assert.Equal(end, tok.Generating));
+		}
+		[Fact]
+		public void UnknownToken_Whitespace()
+		{
+			AssertAllTokens("$| ",
+				 UnknownToken("$|"));
+		}
+		[Fact]
+		public void Error_BadBooleanLiteral()
+		{
+			AssertAllTokens_WithError("BOOL#IF",
+				ExactlyMessages(ErrorOfType<InvalidBooleanLiteralMessage>()),
+				TypedLiteralToken(type => { }, token => { }),
+				IfToken);
+		}
+		[Fact]
+		public void Error_BadBooleanLiteral_EndOfFile()
+		{
+			AssertAllTokens_WithError("BOOL#",
+				ExactlyMessages(ErrorOfType<InvalidBooleanLiteralMessage>()),
+				TypedLiteralToken(type => { }, token => { }));
 		}
 	}
 }
