@@ -4,8 +4,11 @@ using Compiler.Types;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Text;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Tests
 {
@@ -14,6 +17,7 @@ namespace Tests
 	public sealed class InterfaceBindingTests
 	{
 		private static readonly SystemScope SystemScope = new ();
+
 		[Fact]
 		public void EmptyModule()
 		{
@@ -106,14 +110,14 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddDut("TYPE MySimpleType : STRUCT field : MissingType; END_STRUCT; END_TYPE")
-				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType", msg.Identifier)));
+				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public void Error_FieldOfMissingIncompletType()
 		{
 			BindHelper.NewProject
 				.AddDut("TYPE MySimpleType : STRUCT field : POINTER TO MissingType; END_STRUCT; END_TYPE")
-				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType", msg.Identifier)));
+				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public void Error_FieldOfIncompleteSelf()
@@ -123,17 +127,14 @@ namespace Tests
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 		}
 
-		/*
-		 * TODO: Make this test stable.
 		[Fact]
 		public void Error_ArrayOfIncompleteSelf()
 		{
 			BindHelper.NewProject
 				.AddDut("TYPE MyDut : STRUCT field : ARRAY[0..1] OF MyDut2; END_STRUCT; END_TYPE")
 				.AddDut("TYPE MyDut2 : STRUCT field : MyDut; END_STRUCT; END_TYPE")
-				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>(), ErrorOfType<TypeNotCompleteMessage>());
+				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 		}
-		*/
 		[Fact]
 		public void Error_ArrayOfSizeOfIncompleteSelf()
 		{

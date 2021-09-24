@@ -6,19 +6,21 @@ namespace Compiler
 {
 	public sealed class ConstantExpressionEvaluator : IBoundExpression.IVisitor<ILiteralValue?>
 	{
-		private readonly MessageBag Messages;
+		private readonly MessageBag MessageBag;
+		private readonly SystemScope SystemScope;
 
-		public ConstantExpressionEvaluator(MessageBag messages)
+		public ConstantExpressionEvaluator(MessageBag messages, SystemScope systemScope)
 		{
-			Messages = messages ?? throw new ArgumentNullException(nameof(messages));
+			MessageBag = messages ?? throw new ArgumentNullException(nameof(messages));
+			SystemScope = systemScope ?? throw new ArgumentNullException(nameof(systemScope));
 		}
 
-		public static ILiteralValue? EvaluateConstant(IBoundExpression expression, MessageBag messages)
-			=> expression.Accept(new ConstantExpressionEvaluator(messages));
+		public static ILiteralValue? EvaluateConstant(IBoundExpression expression, MessageBag messages, SystemScope systemScope)
+			=> expression.Accept(new ConstantExpressionEvaluator(messages, systemScope));
 		public static ILiteralValue? EvaluateConstant(IScope scope, MessageBag messageBag, IType type, IExpressionSyntax expression)
 		{
 			var boundExpr = ExpressionBinder.Bind(expression, scope, messageBag, type);
-			return EvaluateConstant(boundExpr, messageBag);
+			return EvaluateConstant(boundExpr, messageBag, scope.SystemScope);
 		}
 
 		public ILiteralValue? Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
@@ -44,16 +46,54 @@ namespace Compiler
 			}
 		}
 
+		public ILiteralValue? Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCastBoundExpression)
+		{
+			var value = implicitArithmeticCastBoundExpression.Value.Accept(this);
+			if (value == null)
+				return null;
+
+			IType targetType = implicitArithmeticCastBoundExpression.Type;
+			if (value is IAnyIntLiteralValue intLiteralValue)
+			{
+				// Integer to Integer|Real|LReal
+				var resultValue = SystemScope.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
+				if (resultValue == null)
+				{
+					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(intLiteralValue.Value, targetType, default));
+					return new UnknownLiteralValue(targetType);
+				}
+				else
+				{
+					return resultValue;
+				}
+			}
+			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && value is RealLiteralValue realLiteralValue)
+			{
+				return new LRealLiteralValue(realLiteralValue.Value, targetType);
+			}
+			else
+			{
+				MessageBag.Add(new NotAConstantMessage(default));
+				return null;
+			}
+		}
+
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
-		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new DIntLiteralValue(
-			DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, Messages, default).Size, sizeOfTypeBoundExpression.Type);
+		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression)
+		{
+			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, default);
+			if (undefinedLayoutInf.TryGet(out var layoutInfo))
+				return new DIntLiteralValue(layoutInfo.Size, sizeOfTypeBoundExpression.Type);
+			else
+				return null;
+		}
 		public ILiteralValue? Visit(VariableBoundExpression variableBoundExpression)
 		{
 			if (variableBoundExpression.Variable is EnumValueSymbol enumValueSymbol)
-				return enumValueSymbol._GetConstantValue(Messages);
+				return enumValueSymbol._GetConstantValue(MessageBag);
 			else
 			{
-				Messages.Add(new NotAConstantMessage(variableBoundExpression.OriginalSyntax?.SourcePosition ?? default));
+				MessageBag.Add(new NotAConstantMessage(variableBoundExpression.OriginalSyntax?.SourcePosition ?? default));
 				return null;
 			}
 		}
@@ -68,7 +108,7 @@ namespace Compiler
 
 		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression)
 		{
-			Messages.Add(new NotAConstantMessage(default));
+			MessageBag.Add(new NotAConstantMessage(default));
 			return null;
 		}
 	}

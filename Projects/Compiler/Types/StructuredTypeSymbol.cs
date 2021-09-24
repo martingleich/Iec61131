@@ -10,8 +10,8 @@ namespace Compiler.Types
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.Original;
 
-		public LayoutInfo? MaybeLayoutInfo { get; private set; }
-		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value;
+		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }
+		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
 
 		private SymbolSet<FieldSymbol> _fields;
 		public SymbolSet<FieldSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized");
@@ -29,7 +29,7 @@ namespace Compiler.Types
 			Name = name;
 			_fields = fields;
 			MaybeLayoutInfo = layoutInfo;
-			HasRecusiveLayout = true;
+			RecursiveLayoutWasDone = true;
 		}
 
 		public override string ToString() => Name.ToString();
@@ -42,7 +42,7 @@ namespace Compiler.Types
 			DeclaringPosition = declaringPosition;
 			IsUnion = isUnion;
 			Name = name;
-			HasRecusiveLayout = false;
+			RecursiveLayoutWasDone = false;
 		}
 		internal void _SetFields(SymbolSet<FieldSymbol> fields)
 		{
@@ -51,14 +51,14 @@ namespace Compiler.Types
 			_fields = fields;
 		}
 
-		private bool HasRecusiveLayout;
+		private bool RecursiveLayoutWasDone;
 		private bool Inside_RecusiveLayout;
-		LayoutInfo _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
 		{
-			if (HasRecusiveLayout)
-				return LayoutInfo;
+			if (RecursiveLayoutWasDone)
+				return;
 
-			var layoutInfo = ((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
 
 			if (!Inside_RecusiveLayout)
 			{
@@ -67,30 +67,36 @@ namespace Compiler.Types
 					DelayedLayoutType.RecursiveLayout(field.Type, messageBag, field.DeclaringPosition);
 				Inside_RecusiveLayout = false;
 			}
-			HasRecusiveLayout = true;
-			return layoutInfo;
+			RecursiveLayoutWasDone = true;
 		}
 		private bool Inside_GetLayoutInfo;
-		LayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 		{
 			if (!MaybeLayoutInfo.HasValue)
+			{
 				if (Inside_GetLayoutInfo)
 				{
-					messageBag.Add(new TypeNotCompleteMessage(position));
-					return LayoutInfo.Zero;
+					MaybeLayoutInfo = UndefinedLayoutInfo.Undefined;
 				}
 				else
 				{
+					bool isUndefined = false;
 					Inside_GetLayoutInfo = true;
 					var fieldLayouts = new List<LayoutInfo>();
 					foreach (var field in _fields)
 					{
-						var layoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringPosition);
-						fieldLayouts.Add(layoutInfo);
+						var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringPosition);
+						if (undefinedLayoutInfo.TryGet(out var layoutInfo))
+							fieldLayouts.Add(layoutInfo);
+						else
+							isUndefined = true;
 					}
 					Inside_GetLayoutInfo = false;
 					MaybeLayoutInfo = IsUnion ? LayoutInfo.Union(fieldLayouts) : LayoutInfo.Struct(fieldLayouts);
+					if(isUndefined == true)
+						messageBag.Add(new TypeNotCompleteMessage(DeclaringPosition));
 				}
+			}
 			return MaybeLayoutInfo.Value;
 		}
 

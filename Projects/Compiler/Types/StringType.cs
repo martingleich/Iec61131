@@ -25,11 +25,9 @@ namespace Compiler.Types
 
 		public override string ToString() => Code;
 
-		LayoutInfo _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
 		{
-			if (!MaybeSize.HasValue)
-				MaybeSize = CalculateStringSize(MaybeScope!, messageBag, MaybeSyntax!.Size?.Size);
-			return LayoutInfo;
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
 		}
 		private static int CalculateStringSize(IScope scope, MessageBag messageBag, IExpressionSyntax? sizeExpr)
 		{
@@ -38,16 +36,18 @@ namespace Compiler.Types
 			else
 			{
 				var boundSizeExpr = ExpressionBinder.Bind(sizeExpr, scope, messageBag, scope.SystemScope.DInt);
-				var sizeValue = ConstantExpressionEvaluator.EvaluateConstant(boundSizeExpr, messageBag);
+				var sizeValue = ConstantExpressionEvaluator.EvaluateConstant(boundSizeExpr, messageBag, scope.SystemScope);
 				if (sizeValue is DIntLiteralValue dintLiteralValue)
 					return dintLiteralValue.Value;
 				else
 					return 0;
 			}
 		}
-		LayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 		{
-			return ((_IDelayedLayoutType)this).RecursiveLayout(messageBag, position);
+			if (!MaybeSize.HasValue)
+				MaybeSize = CalculateStringSize(MaybeScope!, messageBag, MaybeSyntax!.Size?.Size);
+			return LayoutInfo;
 		}
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

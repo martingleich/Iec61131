@@ -41,14 +41,14 @@ namespace Compiler.Types
 
 		public override string ToString() => Name.ToString();
 
-		public LayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		public UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 		{
 			return DelayedLayoutType.GetLayoutInfo(BaseType, messageBag, position);
 		}
 
-		public LayoutInfo RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		public void RecursiveLayout(MessageBag messageBag, SourcePosition position)
 		{
-			return DelayedLayoutType.RecursiveLayout(BaseType, messageBag, position);
+			GetLayoutInfo(messageBag, position);
 		}
 
 		public void RecursiveInitializers(MessageBag messageBag)

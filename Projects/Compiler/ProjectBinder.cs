@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using Compiler.Messages;
 using Compiler.Types;
@@ -70,6 +71,11 @@ namespace Compiler
 			// Step 1: Create a scope for the body.
 			//		a) Create a symbol set for the remaining variables.
 			var localVariables = BindLocalVariables(Interface.VariableDeclarations, Scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
+			foreach (var local in localVariables)
+			{
+				if (Symbol.Parameters.TryGetValue(local.Name, out var existing))
+					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringPosition, local.DeclaringPosition));
+			}
 			//		b) Create a statement scope A for the Symbol
 			//		c) Create a statement scope B(A) with the remaining variables.
 			var scope = new InsideFunctionScope(Scope, Symbol, localVariables);
@@ -323,10 +329,22 @@ namespace Compiler
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
 				enumTypeSymbol.RecursiveInitializers(MessageBag);
 
-			var functionSymbols = pous.ToSymbolSetWithDuplicates(MessageBag, x => PouSymbolCreator.ConvertToSymbol(x.Interface));
+			var symbolsWithDuplicate = new List<FunctionSymbol>();
+			var dictionary = ImmutableDictionary.CreateBuilder<FunctionSymbol, BoundPou>(SymbolByNameComparer<FunctionSymbol>.Instance);
+			foreach (var pou in pous)
+			{
+				var symbol = PouSymbolCreator.ConvertToSymbol(pou.Interface);
+				symbolsWithDuplicate.Add(symbol);
+				var boundPou = new BoundPou(this, symbol, pou.Interface, pou.Body);
+				dictionary.TryAdd(symbol, boundPou);
+			}
+			var functionSymbols = symbolsWithDuplicate.ToSymbolSetWithDuplicates(MessageBag);
 
 			var itf = new BoundModuleInterface(typeSymbols, functionSymbols);
-			return new BoundModule(MessageBag.ToImmutable(), itf, ImmutableDictionary<FunctionSymbol, BoundPou>.Empty);
+			return new BoundModule(
+				MessageBag.ToImmutable(),
+				itf,
+				dictionary.ToImmutable());
 		}
 
 		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>

@@ -8,7 +8,7 @@ namespace Tests
 	using static ErrorTestHelper;
 	public static class ExpressionBinderTests
 	{
-		private static readonly SystemScope SystemScope = SystemScope.Instance;
+		private static readonly SystemScope SystemScope = new();
 		public static class Literal
 		{
 			public static readonly object[][] NoTargetTypeValues = {
@@ -69,7 +69,7 @@ namespace Tests
 			public static void TargetType_DoesNotFit(string value)
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression(value, null, ErrorOfType<ConstantDoesNotFitIntoType>());
+					.BindGlobalExpression(value, null, ErrorOfType<IntegerIsToLargeForTypeMessage>());
 			}
 
 			[Fact]
@@ -77,6 +77,12 @@ namespace Tests
 			{
 				BindHelper.NewProject
 					.BindGlobalExpression("99999999999999999999999999999999999999", null, ErrorOfType<ConstantDoesNotFitIntoAnyType>());
+			}
+			[Fact]
+			public static void LReal_NoTargetType_ToBig()
+			{
+				BindHelper.NewProject
+					.BindGlobalExpression(new string('9', 500) + ".0", null, ErrorOfType<RealIsToLargeForTypeMessage>());
 			}
 
 			[Fact]
@@ -90,8 +96,18 @@ namespace Tests
 			public static void Error_Pointer_OneAsPointer()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression("1", new PointerType(SystemScope.Int), ErrorOfType<ConstantDoesNotFitIntoType>());
+					.BindGlobalExpression("1", new PointerType(SystemScope.Int), ErrorOfType<IntegerIsToLargeForTypeMessage>());
 			}
+		}
+
+		[Fact]
+		public static void ConvertPointerToPointer()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO INT")
+				.BindGlobalExpression("ptr", new PointerType(SystemScope.Real));
+			var pointerCast = Assert.IsType<ImplicitPointerTypeCastBoundExpression>(boundExpression);
+			AssertEx.EqualType(pointerCast.Type, new PointerType(SystemScope.Real));
 		}
 
 		[Theory]
@@ -145,6 +161,68 @@ namespace Tests
 				.BindGlobalExpression(expr, null);
 			var binaryExpression = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
 			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
+		}
+		[Theory]
+		[InlineData("enumValue + 1", "ADD_DINT")]
+		[InlineData("LREAL#5 + enumValue", "ADD_LREAL")]
+		public static void BinaryArithemtic_Enums(string expr, string op)
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE MyEnum : (First, Second); END_TYPE")
+				.WithGlobalVar("enumValue", "MyEnum")
+				.BindGlobalExpression(expr, null);
+			var binaryExpression = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
+			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
+		}
+
+		[Fact]
+		public static void Error_BinaryArithemtic_UnsupportedTypes_ToLarge_LINT_USINT()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("LINT#0 + USINT#0", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+		[Fact]
+		public static void Error_BinaryArithemtic_UnsupportedTypes_NoArithmetic_LINT_BOOL()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("LINT#0 + TRUE", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+		[Fact]
+		public static void Error_BinaryArithemtic_UnsupportedTypes_NoArithmetic_BOOL_DINT()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("FALSE + DINT#0", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+		[Fact]
+		public static void Error_BinaryArithemtic_UnsupportedTypes_NoArithmetic_Dut()
+		{
+			BindHelper.NewProject
+				.AddDut("TYPE MyType : STRUCT END_STRUCT; END_TYPE")
+				.WithGlobalVar("dutVar", "MyType")
+				.BindGlobalExpression("INT#0 + dutVar", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+
+		[Fact]
+		public static void Error_TypeNotConvertible_INT_TO_BOOL()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("TRUE", SystemScope.Int, ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
+		[Fact]
+		public static void ParenthesisedExpression()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("(TRUE)", null);
+			var literalBound = Assert.IsType<LiteralBoundExpression>(boundExpression);
+			AssertEx.EqualType(SystemScope.Bool, literalBound.Type);
+		}
+		[Fact]
+		public static void ParenthesisedExpression_KeepContext()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("(0)", SystemScope.DInt);
+			var literalBound = Assert.IsType<LiteralBoundExpression>(boundExpression);
+			AssertEx.EqualType(SystemScope.DInt, literalBound.Type);
 		}
 	}
 }

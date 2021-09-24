@@ -29,57 +29,19 @@ namespace Compiler
 				return ExpressionBinder.ImplicitCast(typedLiteralToken.SourcePosition, boundValue, context);
 			}
 
+			
 			public IBoundExpression Visit(IntegerLiteralToken integerLiteralToken, IType? context)
 			{
 				ILiteralValue finalValue;
 				if (context != null)
 				{
-					if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Bool))
+					var value = ExpressionBinder.SystemScope.TryCreateLiteralFromIntValue(integerLiteralToken.Value, context);
+					if(value == null)
 					{
-						if (integerLiteralToken.Value.IsZero)
-							finalValue = new BooleanLiteralValue(false, context);
-						else if (integerLiteralToken.Value.IsOne)
-							finalValue = new BooleanLiteralValue(true, context);
-						else
-						{
-							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
-							finalValue = new BooleanLiteralValue(false, context);
-						}
+						MessageBag.Add(new IntegerIsToLargeForTypeMessage(integerLiteralToken.Value, context, integerLiteralToken.SourcePosition));
+						value = new UnknownLiteralValue(context);
 					}
-					else if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Real))
-					{
-						if (integerLiteralToken.Value.TryGetSingle(out var x))
-						{
-							finalValue = new RealLiteralValue(x, context);
-						}
-						else
-						{
-							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
-							finalValue = new RealLiteralValue(0, context);
-						}
-					}
-					else if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.LReal))
-					{
-						if (integerLiteralToken.Value.TryGetDouble(out var x))
-						{
-							finalValue = new LRealLiteralValue(x, context);
-						}
-						else
-						{
-							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
-							finalValue = new LRealLiteralValue(0, context);
-						}
-					}
-					else
-					{
-						var value = ExpressionBinder.SystemScope.TryCreateIntLiteral(integerLiteralToken.Value, context);
-						if (value == null)
-						{
-							MessageBag.Add(new ConstantDoesNotFitIntoType(integerLiteralToken, context));
-							value = new UnknownLiteralValue(context);
-						}
-						finalValue = value;
-					}
+					finalValue = value;
 				}
 				else
 				{
@@ -97,32 +59,16 @@ namespace Compiler
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
 			{
-				if (context == null || TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.LReal))
+				if (context == null)
+					context = ExpressionBinder.SystemScope.LReal;
+
+				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromRealValue(realLiteralToken.Value, context);
+				if (value == null)
 				{
-					if (!realLiteralToken.Value.TryGetDouble(out var x))
-					{
-						MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.LReal));
-						x = 0;
-					}
-					return new LiteralBoundExpression(new LRealLiteralValue(x, ExpressionBinder.SystemScope.LReal));
+					MessageBag.Add(new RealIsToLargeForTypeMessage(realLiteralToken.Value, context, realLiteralToken.SourcePosition));
+					value = new UnknownLiteralValue(context);
 				}
-				else
-				{
-					if (TypeRelations.IsIdentical(context, ExpressionBinder.SystemScope.Real))
-					{
-						if (!realLiteralToken.Value.TryGetSingle(out var x))
-						{
-							MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.Real));
-							x = 0;
-						}
-						return new LiteralBoundExpression(new RealLiteralValue(x, ExpressionBinder.SystemScope.Real));
-					}
-					else
-					{
-						MessageBag.Add(new ConstantDoesNotFitIntoType(realLiteralToken, ExpressionBinder.SystemScope.Real));
-						return new LiteralBoundExpression(new UnknownLiteralValue(context));
-					}
-				}
+				return new LiteralBoundExpression(value);
 			}
 
 			public IBoundExpression Visit(SingleByteStringLiteralToken singleByteStringLiteralToken, IType? context)
@@ -172,7 +118,7 @@ namespace Compiler
 			{
 				return boundValue;
 			}
-			else if (Scope.CurrentEnum != null && TypeRelations.IsIdentical(boundValue.Type, Scope.CurrentEnum))
+			else if (boundValue.Type is EnumTypeSymbol)
 			{
 				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
 				return ImplicitCast(errorPosition, enumValue, targetType);
@@ -181,46 +127,14 @@ namespace Compiler
 			{
 				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
-			else if (SystemScope.IsIntegerType(targetType) && boundValue is LiteralBoundExpression literalBoundExpression && literalBoundExpression.Value is IAnyIntLiteralValue anyIntValue)
+			else if ((SystemScope.IsIntegerType(targetType) || TypeRelations.IsIdentical(targetType, SystemScope.Real) || TypeRelations.IsIdentical(targetType, SystemScope.LReal)) &&
+				SystemScope.IsIntegerType(boundValue.Type))
 			{
-				var resultValue = SystemScope.TryCreateIntLiteral(anyIntValue.Value, targetType);
-				if (resultValue == null)
-				{
-					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue.Value, targetType, errorPosition));
-					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
-				}
-				else
-				{
-					return new LiteralBoundExpression(resultValue);
-				}
-			}
-			else if (TypeRelations.IsIdentical(targetType, SystemScope.Real) && boundValue is LiteralBoundExpression literalBoundExpression2 && literalBoundExpression2.Value is IAnyIntLiteralValue anyIntValue2)
-			{
-				if (anyIntValue2.Value.TryGetSingle(out float value))
-				{
-					return new LiteralBoundExpression(new RealLiteralValue(value, targetType));
-				}
-				else
-				{
-					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue2.Value, targetType, errorPosition));
-					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
-				}
-			}
-			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && boundValue is LiteralBoundExpression literalBoundExpression3 && literalBoundExpression3.Value is IAnyIntLiteralValue anyIntValue3)
-			{
-				if (anyIntValue3.Value.TryGetDouble(out double value))
-				{
-					return new LiteralBoundExpression(new LRealLiteralValue(value, targetType));
-				}
-				else
-				{
-					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(anyIntValue3.Value, targetType, errorPosition));
-					return new LiteralBoundExpression(new UnknownLiteralValue(targetType));
-				}
+				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
 			}
 			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && boundValue is LiteralBoundExpression literalBoundExpression4 && literalBoundExpression4.Value is RealLiteralValue realLiteralValue)
 			{
-				return new LiteralBoundExpression(new LRealLiteralValue(realLiteralValue.Value, targetType));
+				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
 			}
 
 			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, errorPosition));

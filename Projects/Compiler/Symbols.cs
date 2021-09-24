@@ -1,6 +1,8 @@
 ﻿using Compiler.Messages;
 using Compiler.Types;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Compiler
 {
@@ -8,6 +10,13 @@ namespace Compiler
 	{
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
+	}
+
+	public sealed class SymbolByNameComparer<T> : IEqualityComparer<T> where T : ISymbol
+	{
+		public static readonly SymbolByNameComparer<T> Instance = new();
+		public bool Equals(T? x, T? y) => !ReferenceEquals(x, y) && x is not null && y is not null && x.Name == y.Name;
+		public int GetHashCode(T obj) => obj.Name.GetHashCode();
 	}
 
 	public interface IVariableSymbol : ISymbol
@@ -122,7 +131,7 @@ namespace Compiler
 
 			InGetConstantValue = true;
 			var boundExpression = ExpressionBinder.Bind(MaybeValueSyntax!, MaybeScope!, messageBag, Type.BaseType);
-			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, messageBag) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
+			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, messageBag, MaybeScope!.SystemScope) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
 			InGetConstantValue = false;
 			return _value = new EnumLiteralValue(Type, literalValue);
 		}

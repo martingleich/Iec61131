@@ -52,4 +52,31 @@ namespace Compiler
 		public static bool operator ==(LayoutInfo left, LayoutInfo right) => left.Equals(right);
 		public static bool operator !=(LayoutInfo left, LayoutInfo right) => !(left == right);
 	}
+
+	public readonly struct UndefinedLayoutInfo
+	{
+		public static readonly UndefinedLayoutInfo Undefined = default;
+		private readonly LayoutInfo? Value;
+
+		private UndefinedLayoutInfo(LayoutInfo value)
+		{
+			Value = value;
+		}
+
+		public static implicit operator UndefinedLayoutInfo(LayoutInfo info) => new UndefinedLayoutInfo(info);
+
+		public bool TryGet(out LayoutInfo value)
+		{
+			if (Value is LayoutInfo result)
+			{
+				value = result;
+				return true;
+			}
+			else
+			{
+				value = LayoutInfo.Zero;
+				return false;
+			}
+		}
+	}
 }

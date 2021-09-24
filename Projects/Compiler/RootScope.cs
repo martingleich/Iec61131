@@ -14,11 +14,11 @@ namespace Compiler
 		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
 			=> ErrorsAnd.Create(
 				ITypeSymbol.CreateError(sourcePosition, identifier),
-				new TypeNotFoundMessage(identifier.Original, sourcePosition));
+				new TypeNotFoundMessage(identifier, sourcePosition));
 
 		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
 			ErrorsAnd.Create(
 				IVariableSymbol.CreateError(sourcePosition, identifier),
-				new VariableNotFoundMessage(identifier.Original, sourcePosition));
+				new VariableNotFoundMessage(identifier, sourcePosition));
 	}
 }

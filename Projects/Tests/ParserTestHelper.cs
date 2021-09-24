@@ -1,5 +1,6 @@
 ﻿using Compiler;
 using Compiler.Messages;
+using System;
 using Xunit;
 
 namespace Tests
@@ -20,5 +21,16 @@ namespace Tests
 			Assert.Empty(parseMessages);
 			return source;
 		}
+		public static IStatementSyntax ParseStatements(string input)
+		{
+			var parseMessages = new MessageBag();
+			var source = Parser.ParsePouBody(input, parseMessages);
+			Assert.Empty(parseMessages);
+			return source;
+		}
+		public static Action<SyntaxArray<T>> SyntaxArray<T>(params Action<T>[] checkes) where T : ISyntax => arr =>
+		{
+			Assert.Collection(arr.Values, checkes);
+		};
 	}
 }

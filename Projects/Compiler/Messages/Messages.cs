@@ -85,18 +85,31 @@ namespace Compiler.Messages
 
 		public override string Text => "Expected a expression.";
 	}
-	public sealed class ConstantDoesNotFitIntoType : ACriticalMessage
+	public sealed class IntegerIsToLargeForTypeMessage : ACriticalMessage
 	{
-		public readonly ILiteralToken Token;
+		public readonly OverflowingInteger Value;
 		public readonly IType TargetType;
 
-		public ConstantDoesNotFitIntoType(ILiteralToken token, IType targetType) : base(token.SourcePosition)
+		public IntegerIsToLargeForTypeMessage(OverflowingInteger value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Token = token ?? throw new ArgumentNullException(nameof(token));
+			Value = value;
 			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
 		}
 
-		public override string Text => $"The constant '{Token.Generating}' does not fit into the type {TargetType.Code}.";
+		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
+	}
+	public sealed class RealIsToLargeForTypeMessage : ACriticalMessage
+	{
+		public readonly OverflowingReal Value;
+		public readonly IType TargetType;
+
+		public RealIsToLargeForTypeMessage(OverflowingReal value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Value = value;
+			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
+		}
+
+		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
 	}
 	public sealed class ConstantDoesNotFitIntoAnyType : ACriticalMessage
 	{
@@ -118,9 +131,9 @@ namespace Compiler.Messages
 	}
 	public sealed class TypeNotFoundMessage : ACriticalMessage
 	{
-		public readonly string Identifier;
+		public readonly CaseInsensitiveString Identifier;
 
-		public TypeNotFoundMessage(string identifier, SourcePosition position) : base(position)
+		public TypeNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
 		{
 			Identifier = identifier;
 		}
@@ -129,9 +142,9 @@ namespace Compiler.Messages
 	}
 	public sealed class VariableNotFoundMessage : ACriticalMessage
 	{
-		public readonly string Identifier;
+		public readonly CaseInsensitiveString Identifier;
 
-		public VariableNotFoundMessage(string identifier, SourcePosition position) : base(position)
+		public VariableNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
 		{
 			Identifier = identifier;
 		}

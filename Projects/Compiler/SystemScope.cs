@@ -45,8 +45,6 @@ namespace Compiler
 
 		private readonly TypeMapper BuiltInTypeMapper;
 
-		public static readonly SystemScope Instance = new();
-
 		public SystemScope()
 		{
 			AllBuiltInTypes = ImmutableArray.Create(Char, LReal, Real, LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt, LWord, DWord, Word, Byte, Bool, LTime, Time, LDT, DT, LDate, Date, LTOD, TOD);
@@ -76,8 +74,41 @@ namespace Compiler
 			else if (TypeRelations.IsIdentical(targetType, ULInt)) return new ULIntLiteralValue(0, targetType);
 			else throw new NotImplementedException();
 		}
-		public ILiteralValue? TryCreateIntLiteral(OverflowingInteger value, IType targetType)
+
+
+		public ILiteralValue? TryCreateLiteralFromRealValue(OverflowingReal value, IType targetType)
 		{
+			if (TypeRelations.IsIdentical(targetType, Real))
+			{
+				if (value.TryGetSingle(out var x))
+					return new RealLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, LReal))
+			{
+				if (value.TryGetDouble(out var x))
+					return new LRealLiteralValue(x, targetType);
+			}
+			return null;
+		}
+		public ILiteralValue? TryCreateLiteralFromIntValue(OverflowingInteger value, IType targetType)
+		{
+			if (TypeRelations.IsIdentical(targetType, Bool))
+			{
+				if (value.IsZero)
+					return new BooleanLiteralValue(false, Bool);
+				else if (value.IsOne)
+					return new BooleanLiteralValue(true, Bool);
+			}
+			else if (TypeRelations.IsIdentical(targetType, Real))
+			{
+				if (value.TryGetSingle(out var x))
+					return new RealLiteralValue(x, Real);
+			}
+			else if (TypeRelations.IsIdentical(targetType, LReal))
+			{
+				if (value.TryGetDouble(out var x))
+					return new LRealLiteralValue(x, LReal);
+			}
 			if (TypeRelations.IsIdentical(targetType, SInt))
 			{
 				if (value.TryGetSByte(out var x))

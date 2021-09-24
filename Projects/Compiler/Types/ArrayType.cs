@@ -44,8 +44,8 @@ namespace Compiler.Types
 		public CaseInsensitiveString Name => ToString().ToCaseInsensitive();
 		public readonly IType BaseType;
 		public ImmutableArray<Range> Ranges { get; private set; }
-		public LayoutInfo? MaybeLayoutInfo { get; private set; }
-		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value;
+		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }
+		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
 		public int ElementCount => Ranges.Aggregate(1, (x, r) => x * r.Size);
 		public string Code => $"ARRAY[{string.Join(", ", Ranges)}] OF {BaseType.Code}";
 
@@ -64,19 +64,22 @@ namespace Compiler.Types
 			MaybeScope = scope ?? throw new ArgumentNullException(nameof(scope));
 			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 		}
-		LayoutInfo _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
 		{
-			if (MaybeLayoutInfo is LayoutInfo layoutInfo)
-				return layoutInfo;
-			var baseTypeLayout = DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
-			Ranges = CalculateArrayRanges(MaybeScope!, messageBag, MaybeSyntax!);
-			MaybeLayoutInfo = LayoutInfo.Array(baseTypeLayout, ElementCount);
-			return MaybeLayoutInfo.Value;
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
+			DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
 		}
-		LayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 		{
-			((_IDelayedLayoutType)this).RecursiveLayout(messageBag, position);
-			return LayoutInfo;
+			if (MaybeLayoutInfo is UndefinedLayoutInfo layoutInfo)
+				return layoutInfo;
+			Ranges = CalculateArrayRanges(MaybeScope!, messageBag, MaybeSyntax!, out var isValid);
+			var baseTypeLayout = DelayedLayoutType.GetLayoutInfo(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
+			if (baseTypeLayout.TryGet(out var x) && isValid)
+				MaybeLayoutInfo = LayoutInfo.Array(x, ElementCount);
+			else
+				MaybeLayoutInfo = UndefinedLayoutInfo.Undefined;
+			return MaybeLayoutInfo.Value;
 		}
 
 		private struct BoundRange<T> where T : class, ILiteralValue
@@ -115,8 +118,19 @@ namespace Compiler.Types
 			else
 				return new Range(0, 0);
 		}
-		private static ImmutableArray<Range> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax)
-			=> arraySyntax.Ranges.Select(r => BindRange<DIntLiteralValue>(scope, messageBag, r, scope.SystemScope.DInt)).Select(x => BoundRangeToArrayRange(messageBag, x)).ToImmutableArray();
+		private static ImmutableArray<Range> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax, out bool isValid)
+		{
+			var builder = ImmutableArray.CreateBuilder<Range>();
+			isValid = true;
+			foreach (var rangeSyntax in arraySyntax.Ranges)
+			{
+				var boundRange = BindRange<DIntLiteralValue>(scope, messageBag, rangeSyntax, scope.SystemScope.DInt);
+				isValid &= boundRange.Lower != null && boundRange.Upper != null;
+				var range =  BoundRangeToArrayRange(messageBag, boundRange);
+				builder.Add(range);
+			}
+			return builder.ToImmutable();
+		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

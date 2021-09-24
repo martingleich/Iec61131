@@ -18,6 +18,7 @@ namespace Compiler
 			T Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression);
 			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
 			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
+			T Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
 		}
 	}
 
@@ -99,6 +100,19 @@ namespace Compiler
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
+	public sealed class ImplicitArithmeticCastBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Value;
+
+		public ImplicitArithmeticCastBoundExpression(IBoundExpression value, IType type)
+		{
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
 
 	public sealed class BinaryOperatorBoundExpression : IBoundExpression
 	{
@@ -129,6 +143,7 @@ namespace Compiler
 
 		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
 	}
+	
 	public sealed class ExpressionBoundStatement : IBoundStatement
 	{
 		public readonly IBoundExpression Expression;
