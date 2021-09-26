@@ -13,7 +13,7 @@ namespace Compiler
 				new(ParameterKind.Input, default, "RIGHT_VALUE".ToCaseInsensitive(), rightType),
 				new(ParameterKind.Output, default, name.ToCaseInsensitive(), returnType)));
 
-		public readonly SymbolSet<FunctionSymbol> AllBuiltInFunctions;
+		public readonly BuiltInFunctionTable BuiltInFunctionTable; 
 
 		public readonly ImmutableArray<BuiltInType> AllBuiltInTypes;
 		public readonly ImmutableArray<BuiltInType> ArithmeticTypes;
@@ -54,15 +54,10 @@ namespace Compiler
 			RealTypes = ImmutableArray.Create(LReal, Real);
 			BuiltInTypeMapper = new TypeMapper(this);
 
-			AllBuiltInFunctions = (from type in ArithmeticTypes
-						 from op in BinaryOperatorMap.ArithmeticOperatorNames
-						 select BinaryOperator( $"{op}_{type.Name}", type, type, type)).ToSymbolSet();
+			BuiltInFunctionTable = new BuiltInFunctionTable(this);
 		}
 
-		public FunctionSymbol GetOperatorFunction(string op, BuiltInType type)
-			=> AllBuiltInFunctions[$"{op}_{type.Name}"];
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
-		public string? MapBinaryOperatorToOpName(IBinaryOperatorToken token) => token.Accept(BinaryOperatorMap.Instance);
 
 		public ILiteralValue GetDefaultValue(IType targetType)
 		{
@@ -266,28 +261,5 @@ namespace Compiler
 			public BuiltInType Visit(TODToken tODToken) => SystemScope.TOD;
 		}
 	
-		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<string?>
-		{
-			public static readonly ImmutableArray<string> ArithmeticOperatorNames = ImmutableArray.Create("ADD", "SUB", "MUL", "DIV", "MOD");
-			public static readonly BinaryOperatorMap Instance = new();
-
-			public string? Visit(EqualToken equalToken) => null;
-			public string? Visit(LessEqualToken lessEqualToken) => null;
-			public string? Visit(LessToken lessToken) => null;
-			public string? Visit(GreaterToken greaterToken) => null;
-			public string? Visit(GreaterEqualToken greaterEqualToken) => null;
-			public string? Visit(UnEqualToken unEqualToken) => null;
-
-			public string? Visit(PlusToken plusToken) => ArithmeticOperatorNames[0];
-			public string? Visit(MinusToken minusToken) => ArithmeticOperatorNames[1];
-			public string? Visit(StarToken starToken) => ArithmeticOperatorNames[2];
-			public string? Visit(SlashToken slashToken) => ArithmeticOperatorNames[3];
-			public string? Visit(ModToken modToken) => ArithmeticOperatorNames[4];
-			public string? Visit(PowerToken powerToken) => null;
-
-			public string? Visit(AndToken andToken) => null;
-			public string? Visit(XorToken xorToken) => null;
-			public string? Visit(OrToken orToken) => null;
-		}
 	}
 }

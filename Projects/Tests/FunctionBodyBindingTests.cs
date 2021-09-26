@@ -8,7 +8,7 @@
 	public sealed class FunctionBodyBindingTests
 	{
 		private static T AssertNthStatement<T>(IBoundStatement statement, int n) where T : IBoundStatement
-			=> Assert.IsType<T>(Assert.IsType<SequenceBoundStatement>(statement).Statements[0]);
+			=> Assert.IsType<T>(Assert.IsType<SequenceBoundStatement>(statement).Statements[n]);
 		private static void AssertStatementBlockMarker(IBoundStatement block, string varName)
 			=> AssertVariableExpression(
 				AssertNthStatement<ExpressionBoundStatement>(block, 0).Expression,

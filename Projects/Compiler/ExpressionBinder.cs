@@ -148,12 +148,12 @@ namespace Compiler
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
 		{
-			if (SystemScope.MapBinaryOperatorToOpName(binaryOperatorExpressionSyntax.TokenOperator) is string opName)
-				return BindBinaryArithmetic(binaryOperatorExpressionSyntax, context, opName);
+			if (SystemScope.BuiltInFunctionTable.MapBinaryOperatorToOpId(binaryOperatorExpressionSyntax.TokenOperator) is BuiltInFunctionTable.BuiltInId opId)
+				return BindBinaryArithmetic(binaryOperatorExpressionSyntax, context, opId);
 			throw new NotImplementedException();
 		}
 
-		private IBoundExpression BindBinaryArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context, string opName)
+		private IBoundExpression BindBinaryArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context, BuiltInFunctionTable.BuiltInId opName)
 		{
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
@@ -161,7 +161,7 @@ namespace Compiler
 			FunctionSymbol operatorFunction;
 			if (maxArithmeticType is BuiltInType b)
 			{
-				operatorFunction = SystemScope.GetOperatorFunction(opName, b);
+				operatorFunction = SystemScope.BuiltInFunctionTable.GetOperatorFunction(opName, b);
 			}
 			else
 			{

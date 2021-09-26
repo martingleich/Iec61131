@@ -237,4 +237,20 @@ namespace Compiler.Messages
 		}
 		public override string Text => $"This syntax is not allowed outside of a loop.";
 	}
+	public sealed class OverflowInConstantContextMessage : ACriticalMessage
+	{
+		public OverflowInConstantContextMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		{
+		}
+
+		public override string Text => $"Overflow in constant context.";
+	}
+	public sealed class DivsionByZeroInConstantContextMessage : ACriticalMessage
+	{
+		public DivsionByZeroInConstantContextMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		{
+		}
+
+		public override string Text => $"Division by zero in constant context.";
+	}
 }
