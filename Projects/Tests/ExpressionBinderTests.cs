@@ -163,6 +163,126 @@ namespace Tests
 			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
 		}
 		[Theory]
+		[InlineData("INT#0 = INT#1", "EQUAL_INT", false)]
+		[InlineData("INT#0 <> INT#1", "NOT_EQUAL_INT", true)]
+		[InlineData("INT#0 < INT#1", "LESS_INT", true)]
+		[InlineData("INT#2 <= INT#2", "LESS_EQUAL_INT", true)]
+		[InlineData("INT#1 >= INT#5", "GREATER_EQUAL_INT", false)]
+		[InlineData("INT#7 > INT#5", "GREATER_INT", true)]
+		[InlineData("SINT#3 > LINT#5", "GREATER_LINT", false)]
+		[InlineData("USINT#5 > INT#5", "GREATER_DINT", false)]
+		[InlineData("BOOL#TRUE = BOOL#FALSE", "EQUAL_BOOL", false)]
+		[InlineData("BOOL#FALSE <> BOOL#TRUE", "NOT_EQUAL_BOOL", true)]
+		public static void Comparisions(string expr, string op, bool result)
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression(expr, null);
+			var binaryExpression = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
+			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
+			AssertEx.EqualType(SystemScope.Bool, binaryExpression.Type);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			Assert.Empty(bag);
+			Assert.Equal(result, Assert.IsType<BooleanLiteralValue>(actualResult).Value);
+		}
+		[Fact]
+		public static void Error_ConstantDivisionByZero()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("DINT#77 / DINT#0", null);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			ExactlyMessages(ErrorOfType<DivsionByZeroInConstantContextMessage>())(bag);
+			Assert.Null(actualResult);
+		}
+		[Fact]
+		public static void Error_Constant_Overflow()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("USINT#200 + USINT#200", null);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			ExactlyMessages(ErrorOfType<OverflowInConstantContextMessage>())(bag);
+			Assert.Null(actualResult);
+		}
+		[Fact]
+		public static void Error_Constant_NonConstantOperator_LREAL()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("LREAL#1 + LREAL#2", null);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
+			Assert.Null(actualResult);
+		}
+		[Fact]
+		public static void Error_Constant_NonConstantOperator_LREAL_NoCascading_Binary()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("LREAL#0 + (REAL#1 + REAL#2)", null);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
+			Assert.Null(actualResult);
+		}
+		[Fact]
+		public static void Error_Constant_NonConstantOperator_LREAL_NoCascading_Unary()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("NOT (LREAL#1 <> LREAL#2)", null);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
+			Assert.Null(actualResult);
+		}
+
+		[Theory]
+		[InlineData("NOT BOOL#FALSE", "NOT_BOOL", true)]
+		[InlineData("NOT BOOL#TRUE", "NOT_BOOL", false)]
+		public static void UnaryExpression_Boolean(string expr, string op, bool result)
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression(expr, null);
+			var unaryExpression = Assert.IsType<UnaryOperatorBoundExpression>(boundExpression);
+			Assert.Equal(op.ToCaseInsensitive(), unaryExpression.Function.Name);
+			var bag = new MessageBag();
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			Assert.Empty(bag);
+			Assert.Equal(result, Assert.IsType<BooleanLiteralValue>(actualResult).Value);
+		}
+		[Theory]
+		[InlineData("-(INT#7)", "NEG_INT")]
+		[InlineData("-(SINT#7)", "NEG_SINT")]
+		[InlineData("-(DINT#7)", "NEG_DINT")]
+		[InlineData("-(LINT#7)", "NEG_LINT")]
+		[InlineData("-(REAL#7)", "NEG_REAL")]
+		[InlineData("-(LREAL#7)", "NEG_LREAL")]
+		public static void UnaryExpression(string expr, string op)
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression(expr, null);
+			var unaryExpression = Assert.IsType<UnaryOperatorBoundExpression>(boundExpression);
+			Assert.Equal(op.ToCaseInsensitive(), unaryExpression.Function.Name);
+		}
+		[Theory]
+		[InlineData("-(UINT#7)")]
+		[InlineData("-(ULINT#7)")]
+		[InlineData("-(BOOL#FALSE)")]
+		public static void Error_UnaryExpression_NoNegAllowed(string expr)
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression(expr, null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+		[Fact]
+		public static void Error_NegateOnDUT()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE MyDut : STRUCT END_STRUCT; END_TYPE")
+				.WithGlobalVar("x", "MyDut")
+				.BindGlobalExpression("-x", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+
+		[Theory]
 		[InlineData("enumValue + 1", "ADD_INT")]
 		[InlineData("LREAL#5 + enumValue", "ADD_LREAL")]
 		public static void BinaryArithemtic_Enums(string expr, string op)

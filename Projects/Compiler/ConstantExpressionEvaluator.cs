@@ -30,11 +30,16 @@ namespace Compiler
 			var rightValue = binaryOperatorBoundExpression.Right.Accept(this);
 			if (leftValue == null || rightValue == null)
 				return null;
-			if (SystemScope.BuiltInFunctionTable.TryGetConstantEvaluator(binaryOperatorBoundExpression.Function, out var func))
+			return EvaluateConstantFunction(binaryOperatorBoundExpression.Type, binaryOperatorBoundExpression.Function, leftValue, rightValue);
+		}
+
+		private ILiteralValue? EvaluateConstantFunction(IType returnType, FunctionSymbol function, params ILiteralValue[] args)
+		{
+			if (SystemScope.BuiltInFunctionTable.TryGetConstantEvaluator(function, out var func))
 			{
 				try
 				{
-					return func(binaryOperatorBoundExpression.Type, new[] { leftValue, rightValue });
+					return func(returnType, args);
 				}
 				catch (InvalidCastException) // The values have the wrong type, i.e. The expression binder must already reported an error for this
 				{
@@ -88,6 +93,14 @@ namespace Compiler
 				MessageBag.Add(new NotAConstantMessage(default));
 				return null;
 			}
+		}
+
+		public ILiteralValue? Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
+		{
+			var value = unaryOperatorBoundExpression.Value.Accept(this);
+			if (value == null)
+				return null;
+			return EvaluateConstantFunction(unaryOperatorBoundExpression.Type, unaryOperatorBoundExpression.Function, value);
 		}
 
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;

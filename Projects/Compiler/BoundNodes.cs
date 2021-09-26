@@ -19,6 +19,7 @@ namespace Compiler
 			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
 			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
 			T Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
+			T Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
 		}
 	}
 
@@ -130,6 +131,21 @@ namespace Compiler
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Left = left ?? throw new ArgumentNullException(nameof(left));
 			Right = right ?? throw new ArgumentNullException(nameof(right));
+			Function = function ?? throw new ArgumentNullException(nameof(function));
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class UnaryOperatorBoundExpression : IBoundExpression
+	{
+		public IType Type { get; }
+		public readonly IBoundExpression Value;
+		public readonly FunctionSymbol Function;
+
+		public UnaryOperatorBoundExpression(IType type, IBoundExpression value, FunctionSymbol function)
+		{
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 		}
 

@@ -146,8 +146,13 @@ namespace Compiler
 
 		public override string ToString() => $"{Name}";
 
+		public IType? ReturnType => Parameters.TryGetValue(Name)?.Type;
+
 		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
 			=> new (false, "__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Empty);
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, IType returnType)
+			=> new(false, "__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Create(
+				new[] { new ParameterSymbol(ParameterKind.Output, sourcePosition, "__ERROR__".ToCaseInsensitive(), returnType) }));
 	}
 
 	public sealed class ParameterSymbol : IVariableSymbol

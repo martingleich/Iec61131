@@ -198,16 +198,21 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotPerformArithmeticOnTypesMessage : ACriticalMessage
 	{
-		private readonly IType Type1;
-		private readonly IType Type2;
+		private readonly ImmutableArray<IType> Types;
 
-		public CannotPerformArithmeticOnTypesMessage(SourcePosition position, IType type1, IType type2) : base(position)
+		public CannotPerformArithmeticOnTypesMessage(SourcePosition position, params IType[] types) : base(position)
 		{
-			this.Type1 = type1;
-			this.Type2 = type2;
+			this.Types = types.ToImmutableArray();
 		}
 
-		public override string Text => $"Cannot perform arithmetic on the types {Type1.Code} and {Type2.Code}.";
+		public override string Text
+		{
+			get
+			{
+				var list = MessageGrammarHelper.AndListing(Types.Select(t => $"'{t.Code}'"));
+				return $"Cannot perform this arithmetic operation on the types {list}.";
+			}
+		}
 	}
 	public sealed class CannotAssignToSyntaxMessage : ACriticalMessage
 	{

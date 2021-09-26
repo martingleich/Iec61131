@@ -148,40 +148,50 @@ namespace Compiler
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
 		{
-			if (SystemScope.BuiltInFunctionTable.MapBinaryOperatorToOpId(binaryOperatorExpressionSyntax.TokenOperator) is BuiltInFunctionTable.BuiltInId opId)
-				return BindBinaryArithmetic(binaryOperatorExpressionSyntax, context, opId);
-			throw new NotImplementedException();
-		}
-
-		private IBoundExpression BindBinaryArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context, BuiltInFunctionTable.BuiltInId opName)
-		{
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
-			var maxArithmeticType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
-			FunctionSymbol operatorFunction;
-			if (maxArithmeticType is BuiltInType b)
-			{
-				operatorFunction = SystemScope.BuiltInFunctionTable.GetOperatorFunction(opName, b);
-			}
+			// Perform naive overload resolution
+			// This function only works if the arguments for the target function both have the same type.
+			// i.e. ADD_DInt must take two DINTs, and so on.
+			var commonArgType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
+			FunctionSymbol? operatorFunction;
+			if (commonArgType is BuiltInType b)
+				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetBinaryOperatorFunction(binaryOperatorExpressionSyntax.TokenOperator, b);
 			else
+				operatorFunction = null;
+
+			if (operatorFunction == null)
 			{
 				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
-				maxArithmeticType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
-				operatorFunction = FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition);
+				commonArgType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
+				operatorFunction = FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: commonArgType);
 			}
 
-			var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.Left.SourcePosition, boundLeft, maxArithmeticType);
-			var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.Right.SourcePosition, boundRight, maxArithmeticType);
-			return ImplicitCast(
-				binaryOperatorExpressionSyntax.SourcePosition,
-				new BinaryOperatorBoundExpression(maxArithmeticType, castedLeft, castedRight, operatorFunction),
-				context);
+			var returnType = operatorFunction.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+			var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.Left.SourcePosition, boundLeft, commonArgType);
+			var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.Right.SourcePosition, boundRight, commonArgType);
+			var binaryOperatorExpression = new BinaryOperatorBoundExpression(returnType, castedLeft, castedRight, operatorFunction);
+			return ImplicitCast(binaryOperatorExpressionSyntax.SourcePosition, binaryOperatorExpression, context);
 		}
-
 
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			var boundValue = unaryOperatorExpressionSyntax.Value.Accept(this, null);
+			FunctionSymbol? operatorFunction;
+			if (boundValue.Type is BuiltInType b)
+				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetUnaryOperatorFunction(unaryOperatorExpressionSyntax.TokenOperator, b);
+			else
+				operatorFunction = null;
+
+			if (operatorFunction == null)
+			{
+				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundValue.Type));
+				operatorFunction = FunctionSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: boundValue.Type);
+			}
+
+			var returnType = operatorFunction.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+			var unaryOperatorExpression = new UnaryOperatorBoundExpression(returnType, boundValue, operatorFunction);
+			return ImplicitCast(unaryOperatorExpressionSyntax.SourcePosition, unaryOperatorExpression, context);
 		}
 
 		public IBoundExpression Visit(ParenthesisedExpressionSyntax parenthesisedExpressionSyntax, IType? context)

@@ -7,12 +7,6 @@ namespace Compiler
 {
 	public sealed class SystemScope
 	{
-		private static FunctionSymbol BinaryOperator(string name, IType leftType, IType rightType, IType returnType)
-			=> new(isProgram: false, name.ToCaseInsensitive(), default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
-				new(ParameterKind.Input, default, "LEFT_VALUE".ToCaseInsensitive(), leftType),
-				new(ParameterKind.Input, default, "RIGHT_VALUE".ToCaseInsensitive(), rightType),
-				new(ParameterKind.Output, default, name.ToCaseInsensitive(), returnType)));
-
 		public readonly BuiltInFunctionTable BuiltInFunctionTable; 
 
 		public readonly ImmutableArray<BuiltInType> AllBuiltInTypes;
@@ -202,12 +196,15 @@ namespace Compiler
 			if (a is null)
 				throw new ArgumentNullException(nameof(a));
 
+			// SAME + SAME = SAME
 			// Enum + Anyting => BaseType(Enum) + Anything
 			// LREAL + Anything => LREAL
 			// REAL + Anything => REAL
 			// Signed + Signed => The bigger one
 			// Unsigned + Unsigned => The bigger one
 			// Signed + Unsigned => The next signed type that is bigger than both.
+			if (TypeRelations.IsIdentical(a, b))
+				return a;
 			if (a is EnumTypeSymbol enumA)
 				return GetSmallestCommonImplicitCastType(enumA.BaseType, b);
 			if (b is EnumTypeSymbol enumB)

@@ -1,10 +1,8 @@
 Add GVLs
 Add Compoaccess
 Add Indexaccess
-Add unary expressions
 Allow function calls
 Add FBs
-Add comparisions
 Add initializers
 Create roslyn typerules for equatable.
 Pretty print expression nodes in debug mode
