@@ -1,5 +1,6 @@
 ﻿using Compiler;
 using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace Tests
 
 	public sealed class InterfaceBindingTests
 	{
-		private static readonly SystemScope SystemScope = new ();
+		private static readonly SystemScope SystemScope = new();
 
 		[Fact]
 		public void EmptyModule()
@@ -159,24 +160,26 @@ namespace Tests
 
 	public sealed class TypeCompilerTests
 	{
-		private static readonly SystemScope SystemScope = new ();
-		private sealed class NaiveScope : AInnerScope
+		private static readonly SystemScope SystemScope = new();
+		private static readonly StructuredTypeSymbol MyType = new(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
+		private sealed class TypeSetScope : AInnerScope<IScope>
 		{
-			private readonly StructuredTypeSymbol MyType = new (default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
+			private readonly SymbolSet<ITypeSymbol> Types;
 
-			public NaiveScope() : base(RootScope.Instance)
+			public TypeSetScope(SymbolSet<ITypeSymbol> types, IScope outerScope) : base(outerScope)
 			{
+				Types = types;
 			}
 
-			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-				=> identifier == MyType.Name
-					? MyType
-					: base.LookupType(identifier, sourcePosition);
+			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+				Types.TryGetValue(identifier, out var type)
+				? ErrorsAnd.Create(type)
+				: base.LookupType(identifier, sourcePosition);
 		}
-		
+
 		private static void AssertTypeCompiler(string input, Action<IType> check)
 		{
-			var naiveScope = new NaiveScope();
+			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), RootScope.Instance);
 			var source = ParserTestHelper.ParseType(input);
 			var bag = new MessageBag();
 			var bound = Compiler.TypeCompiler.MapComplete(naiveScope, source, bag);
@@ -210,7 +213,7 @@ namespace Tests
 
 	public sealed class EnumBindingTests
 	{
-		private static readonly SystemScope SystemScope = new ();
+		private static readonly SystemScope SystemScope = new();
 		[Fact]
 		public void EmptyEnum()
 		{
@@ -220,7 +223,7 @@ namespace Tests
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
 			Assert.Empty(myEnum.Values);
-			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.Int, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -232,10 +235,10 @@ namespace Tests
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
-				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
-				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
+				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
+				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.Int, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -247,10 +250,10 @@ namespace Tests
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
-				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
-				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
+				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
+				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.Int, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -262,10 +265,10 @@ namespace Tests
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
-				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(first.Value.InnerValue).Value); },
-				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<DIntLiteralValue>(second.Value.InnerValue).Value); }
+				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
+				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);
-			Assert.Equal(SystemScope.DInt, myEnum.BaseType);
+			Assert.Equal(SystemScope.Int, myEnum.BaseType);
 		}
 
 		[Fact]
@@ -279,7 +282,7 @@ namespace Tests
 
 	public sealed class FunctionBindingTests
 	{
-		private static readonly SystemScope SystemScope = new ();
+		private static readonly SystemScope SystemScope = new();
 		[Fact]
 		public void EmptyFunction()
 		{
@@ -370,7 +373,7 @@ namespace Tests
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("firstOutput".ToCaseInsensitive(), p.Name); },
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void Function_ExplicitReturnOutput()
@@ -380,7 +383,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = boundInterface.FunctionSymbols["MyFunction"];
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void Function_ComplexTypeArg()
@@ -428,7 +431,7 @@ namespace Tests
 
 	public sealed class ProgramBindingTests
 	{
-		private static readonly SystemScope SystemScope = new ();
+		private static readonly SystemScope SystemScope = new();
 		[Fact]
 		public void Empty()
 		{
@@ -519,7 +522,7 @@ namespace Tests
 			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("firstOutput".ToCaseInsensitive(), p.Name); },
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void ExplicitReturnOutput()
@@ -529,7 +532,7 @@ namespace Tests
 				.BindInterfaces();
 			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
 			Assert.Collection(myProgram.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name);  Assert.Equal(SystemScope.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void ComplexTypeArg()

@@ -1,18 +1,17 @@
 ﻿using Compiler.Messages;
 using Compiler.Types;
 
-namespace Compiler
+namespace Compiler.Scopes
 {
-	public abstract class AInnerScope : IScope
+	public abstract class AInnerScope<TScope> : IScope where TScope : IScope
 	{
-		protected readonly IScope OuterScope;
+		protected readonly TScope OuterScope;
 
-		protected AInnerScope(IScope outerScope)
+		protected AInnerScope(TScope outerScope)
 		{
 			OuterScope = outerScope;
 		}
 
-		public virtual EnumTypeSymbol? CurrentEnum => OuterScope.CurrentEnum;
 		public SystemScope SystemScope => OuterScope.SystemScope;
 		public virtual ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupType(identifier, sourcePosition);
 		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupVariable(identifier, sourcePosition);

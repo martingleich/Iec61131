@@ -1,13 +1,11 @@
 ﻿using Compiler.Messages;
 using Compiler.Types;
 
-namespace Compiler
+namespace Compiler.Scopes
 {
 	public sealed class RootScope : IScope
 	{
 		public static readonly RootScope Instance = new();
-
-		public EnumTypeSymbol? CurrentEnum => null;
 
 		public SystemScope SystemScope { get; } = new SystemScope();
 

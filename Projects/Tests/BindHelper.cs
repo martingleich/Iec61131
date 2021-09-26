@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using Compiler;
 using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 using System;
 using System.Collections.Immutable;
@@ -85,25 +86,11 @@ namespace Tests
 				var messageBag = new MessageBag();
 				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(x.Key, default, TypeCompiler.MapComplete(moduleScope, x.Value, messageBag)));
 				Assert.Empty(messageBag);
-				var realScope = new VariablesScope(variables, moduleScope);
+				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();
 				var boundExpression = ExpressionBinder.Bind(expressionSyntax, realScope, bindMessages, targetType);
 				ExactlyMessages(checks)(bindMessages.ToImmutable());
 				return boundExpression;
-			}
-
-			private sealed class VariablesScope : AInnerScope
-			{
-				public VariablesScope(SymbolSet<LocalVariableSymbol> variables, IScope outerScope) : base(outerScope)
-				{
-					Variables = variables;
-				}
-				public SymbolSet<LocalVariableSymbol> Variables { get; }
-
-				public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-					=> Variables.TryGetValue(identifier, out var value)
-					? ErrorsAnd.Create<IVariableSymbol>(value)
-					: base.LookupVariable(identifier, sourcePosition);
 			}
 		}
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 
 namespace Compiler
@@ -49,7 +50,7 @@ namespace Compiler
 					if (value == null)
 					{
 						MessageBag.Add(new ConstantDoesNotFitIntoAnyType(integerLiteralToken));
-						value = new UnknownLiteralValue(ExpressionBinder.SystemScope.DInt);
+						value = new UnknownLiteralValue(ExpressionBinder.SystemScope.Int);
 					}
 					finalValue = value;
 				}
@@ -127,12 +128,7 @@ namespace Compiler
 			{
 				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
-			else if ((SystemScope.IsIntegerType(targetType) || TypeRelations.IsIdentical(targetType, SystemScope.Real) || TypeRelations.IsIdentical(targetType, SystemScope.LReal)) &&
-				SystemScope.IsIntegerType(boundValue.Type))
-			{
-				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
-			}
-			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && boundValue is LiteralBoundExpression literalBoundExpression4 && literalBoundExpression4.Value is RealLiteralValue realLiteralValue)
+			else if (targetType is BuiltInType builtInTarget && boundValue.Type is BuiltInType builtInSource && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
 			{
 				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
 			}
@@ -152,7 +148,7 @@ namespace Compiler
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
 		{
-			if (binaryOperatorExpressionSyntax.TokenOperator.Accept(MapBinaryToArithmeticName.Instance) is string opName)
+			if (SystemScope.MapBinaryOperatorToOpName(binaryOperatorExpressionSyntax.TokenOperator) is string opName)
 				return BindBinaryArithmetic(binaryOperatorExpressionSyntax, context, opName);
 			throw new NotImplementedException();
 		}
@@ -161,7 +157,7 @@ namespace Compiler
 		{
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
-			var maxArithmeticType = GetPromotedArithmeticType(boundLeft.Type, boundRight.Type);
+			var maxArithmeticType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
 			FunctionSymbol operatorFunction;
 			if (maxArithmeticType is BuiltInType b)
 			{
@@ -182,55 +178,6 @@ namespace Compiler
 				context);
 		}
 
-		private sealed class MapBinaryToArithmeticName : IBinaryOperatorToken.IVisitor<string?>
-		{
-			public static readonly MapBinaryToArithmeticName Instance = new();
-			public string? Visit(EqualToken equalToken) => null;
-			public string? Visit(LessEqualToken lessEqualToken) => null;
-			public string? Visit(LessToken lessToken) => null;
-			public string? Visit(GreaterToken greaterToken) => null;
-			public string? Visit(GreaterEqualToken greaterEqualToken) => null;
-			public string? Visit(UnEqualToken unEqualToken) => null;
-			public string? Visit(PlusToken plusToken) => "ADD";
-			public string? Visit(MinusToken minusToken) => "SUB";
-			public string? Visit(StarToken starToken) => "MUL";
-			public string? Visit(SlashToken slashToken) => "DIV";
-			public string? Visit(PowerToken powerToken) => null;
-			public string? Visit(AndToken andToken) => null;
-			public string? Visit(XorToken xorToken) => null;
-			public string? Visit(OrToken orToken) => null;
-			public string? Visit(ModToken modToken) => null;
-		}
-
-		private IType? GetPromotedArithmeticType(IType a, IType b)
-		{
-			// Enum + Anyting => BaseType(Enum) + Anything
-			// LREAL + Anything => LREAL
-			// REAL + Anything => REAL
-			// Signed + Signed => The bigger one
-			// Unsigned + Unsigned => The bigger one
-			// Signed + Unsigned => The next signed type that is bigger than both.
-			if (a is EnumTypeSymbol enumA)
-				return GetPromotedArithmeticType(enumA.BaseType, b);
-			if (b is EnumTypeSymbol enumB)
-				return GetPromotedArithmeticType(a, enumB.BaseType);
-			if (a is BuiltInType builtInA && b is BuiltInType builtInB && builtInA.IsArithmetic && builtInB.IsArithmetic)
-			{
-				if (builtInA.Equals(SystemScope.LReal) || builtInB.Equals(SystemScope.LReal))
-					return SystemScope.LReal;
-				if (builtInA.Equals(SystemScope.Real) || builtInB.Equals(SystemScope.Real))
-					return SystemScope.Real;
-				if (builtInA.IsUnsigned == builtInB.IsUnsigned)
-					return builtInB.Size > builtInA.Size ? builtInB : builtInA;
-				if (SystemScope.Int.Size > builtInA.Size && SystemScope.Int.Size > builtInB.Size)
-					return SystemScope.Int;
-				if (SystemScope.DInt.Size > builtInA.Size && SystemScope.DInt.Size > builtInB.Size)
-					return SystemScope.DInt;
-				if (SystemScope.LInt.Size > builtInA.Size && SystemScope.LInt.Size > builtInB.Size)
-					return SystemScope.LInt;
-			}
-			return null;
-		}
 
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)
 		{
@@ -265,7 +212,7 @@ namespace Compiler
 		public IBoundExpression Visit(SizeOfExpressionSyntax sizeOfExpressionSyntax, IType? context)
 		{
 			var type = TypeCompiler.MapSymbolic(Scope, sizeOfExpressionSyntax.Argument, MessageBag);
-			return ImplicitCast(sizeOfExpressionSyntax.SourcePosition, new SizeOfTypeBoundExpression(type, Scope.SystemScope.DInt), context);
+			return ImplicitCast(sizeOfExpressionSyntax.SourcePosition, new SizeOfTypeBoundExpression(type, Scope.SystemScope.Int), context);
 		}
 
 		public IBoundExpression Visit(CallExpressionSyntax callExpressionSyntax, IType? context)

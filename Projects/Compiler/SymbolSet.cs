@@ -68,6 +68,8 @@ namespace Compiler
 	public static class SymbolSet
 	{
 		public static T? TryGetValue<T>(this SymbolSet<T> self, CaseInsensitiveString key) where T : class, ISymbol => self.TryGetValue(key, out var value) ? value : null;
+		public static SymbolSet<T> Create<T>(params T[] symbols) where T : ISymbol
+			=> SymbolSet<T>.Create(symbols);
 		public static SymbolSet<T> ToSymbolSet<T>(this IEnumerable<T> allSymbols) where T : ISymbol
 			=> SymbolSet<T>.Create(allSymbols);
 		public static SymbolSet<TSymbol> ToSymbolSet<T, TSymbol>(this IEnumerable<T> allValues, Func<T, TSymbol> map) where TSymbol : ISymbol

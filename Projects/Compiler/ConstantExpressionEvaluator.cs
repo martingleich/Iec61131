@@ -1,4 +1,5 @@
 ﻿using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 using System;
 
@@ -31,17 +32,28 @@ namespace Compiler
 				return null;
 			try
 			{
-				switch (binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant())
+				return binaryOperatorBoundExpression.Function.Name.Original.ToUpperInvariant() switch
 				{
-					case "ADD_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-					case "SUB_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-					case "MUL_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-					case "DIV_DINT": return new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type);
-					default: return null;
-				}
+					"ADD_DINT" => new DIntLiteralValue(((DIntLiteralValue)leftValue).Value + ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type),
+					"SUB_DINT" => new DIntLiteralValue(((DIntLiteralValue)leftValue).Value - ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type),
+					"MUL_DINT" => new DIntLiteralValue(((DIntLiteralValue)leftValue).Value * ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type),
+					"DIV_DINT" => new DIntLiteralValue(((DIntLiteralValue)leftValue).Value / ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type),
+					"MOD_DINT" => new DIntLiteralValue(((DIntLiteralValue)leftValue).Value % ((DIntLiteralValue)rightValue).Value, binaryOperatorBoundExpression.Type),
+					"ADD_INT" => new IntLiteralValue((short)(((IntLiteralValue)leftValue).Value + ((IntLiteralValue)rightValue).Value), binaryOperatorBoundExpression.Type),
+					"SUB_INT" => new IntLiteralValue((short)(((IntLiteralValue)leftValue).Value - ((IntLiteralValue)rightValue).Value), binaryOperatorBoundExpression.Type),
+					"MUL_INT" => new IntLiteralValue((short)(((IntLiteralValue)leftValue).Value * ((IntLiteralValue)rightValue).Value), binaryOperatorBoundExpression.Type),
+					"DIV_INT" => new IntLiteralValue((short)(((IntLiteralValue)leftValue).Value / ((IntLiteralValue)rightValue).Value), binaryOperatorBoundExpression.Type),
+					"MOD_INT" => new IntLiteralValue((short)(((IntLiteralValue)leftValue).Value % ((IntLiteralValue)rightValue).Value), binaryOperatorBoundExpression.Type),
+					_ => throw new NotImplementedException(),
+				};
 			}
 			catch (InvalidCastException) // The values have the wrong type, i.e. The expression binder must already reported an error for this
 			{
+				return null;
+			}
+			catch (NotImplementedException) // Operator is not a constant operator
+			{
+				MessageBag.Add(new NotAConstantMessage(default));
 				return null;
 			}
 		}

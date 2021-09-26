@@ -229,4 +229,12 @@ namespace Compiler.Messages
 		}
 		public override string Text => $"The value '{Value}' is to large for the type '{Type.Code}'.";
 	}
+
+	public sealed class SyntaxOnlyAllowedInLoopMessage : ACriticalMessage
+	{
+		public SyntaxOnlyAllowedInLoopMessage(SourcePosition position) : base(position)
+		{
+		}
+		public override string Text => $"This syntax is not allowed outside of a loop.";
+	}
 }

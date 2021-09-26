@@ -7,6 +7,14 @@
 	using static ErrorTestHelper;
 	public sealed class FunctionBodyBindingTests
 	{
+		private static T AssertNthStatement<T>(IBoundStatement statement, int n) where T : IBoundStatement
+			=> Assert.IsType<T>(Assert.IsType<SequenceBoundStatement>(statement).Statements[0]);
+		private static void AssertStatementBlockMarker(IBoundStatement block, string varName)
+			=> AssertVariableExpression(
+				AssertNthStatement<ExpressionBoundStatement>(block, 0).Expression,
+				varName);
+		private static void AssertVariableExpression(IBoundExpression expression, string varName)
+			=> Assert.Equal(varName.ToCaseInsensitive(), Assert.IsType<VariableBoundExpression>(expression).Variable.Name);
 		[Fact]
 		public void BindEmptyBody()
 		{
@@ -27,9 +35,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var seq = Assert.IsType<SequenceBoundStatement>(st);
-					var st2 = Assert.Single(seq.Statements);
-					var seq2 = Assert.IsType<SequenceBoundStatement>(st2);
+					var seq2 = AssertNthStatement<SequenceBoundStatement>(st, 0);
 					Assert.Empty(seq2.Statements);
 				});
 		}
@@ -45,8 +51,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var seqSt = Assert.IsType<SequenceBoundStatement>(st);
-					var exprSt = Assert.IsType<ExpressionBoundStatement>(Assert.Single(seqSt.Statements));
+					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					Assert.IsType(exprType, exprSt.Expression);
 				});
 		}
@@ -73,7 +78,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var exprSt = Assert.IsType<ExpressionBoundStatement>(Assert.Single(Assert.IsType<SequenceBoundStatement>(st).Statements));
+					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					var expr = Assert.IsType<VariableBoundExpression>(exprSt.Expression);
 					Assert.Equal("x".ToCaseInsensitive(), expr.Variable.Name);
 				});
@@ -86,7 +91,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var exprSt = Assert.IsType<ExpressionBoundStatement>(Assert.Single(Assert.IsType<SequenceBoundStatement>(st).Statements));
+					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					var expr = Assert.IsType<VariableBoundExpression>(exprSt.Expression);
 					Assert.Equal("y".ToCaseInsensitive(), expr.Variable.Name);
 				});
@@ -106,7 +111,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var boundSt = Assert.IsType<AssignBoundStatement>(Assert.Single(Assert.IsType<SequenceBoundStatement>(st).Statements));
+					var boundSt = AssertNthStatement<AssignBoundStatement>(st, 0);
 					var left = Assert.IsType<VariableBoundExpression>(boundSt.LeftSide);
 					var right = Assert.IsType<LiteralBoundExpression>(boundSt.RightSide);
 				});
@@ -127,7 +132,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var boundSt = Assert.IsType<AssignBoundStatement>(Assert.Single(Assert.IsType<SequenceBoundStatement>(st).Statements));
+					var boundSt = AssertNthStatement<AssignBoundStatement>(st, 0);
 					var left = Assert.IsType<VariableBoundExpression>(boundSt.LeftSide);
 					var right = Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundSt.RightSide);
 				});
@@ -139,6 +144,145 @@
 			BindHelper.NewProject
 				.AddPou("FUNCTION foo VAR x : BOOL; END_VAR", "x := 5;")
 				.BindBodies(ErrorOfType<IntegerIsToLargeForTypeMessage>());
+		}
+
+		[Fact]
+		public void IfStatement_IfOnly()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; END_VAR", "IF xc THEN xb; END_IF")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					var branch = Assert.Single(ifSt.Branches);
+					AssertVariableExpression(branch.Condition, "xc");
+					AssertStatementBlockMarker(branch.Body, "xb");
+				});
+		}
+		[Fact]
+		public void IfStatement_IfWithElse()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yb : INT; END_VAR", "IF xc THEN xb; ELSE yb; END_IF")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					Assert.Collection(ifSt.Branches,
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "xc");
+							AssertStatementBlockMarker(b.Body, "xb");
+						},
+						b =>
+						{
+							Assert.Null(b.Condition);
+							AssertStatementBlockMarker(b.Body, "yb");
+						});
+				});
+		}
+		[Fact]
+		public void IfStatement_IfWithMultipleElsIf()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yc : BOOL; yb : INT; zc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSIF zc THEN zb; END_IF")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					Assert.Collection(ifSt.Branches,
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "xc");
+							AssertStatementBlockMarker(b.Body, "xb");
+						},
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "yc");
+							AssertStatementBlockMarker(b.Body, "yb");
+						},
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "zc");
+							AssertStatementBlockMarker(b.Body, "zb");
+						});
+				});
+		}
+		[Fact]
+		public void IfStatement_IfWithElsIfElse()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yb : INT; yc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSE zb; END_IF")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					Assert.Collection(ifSt.Branches,
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "xc");
+							AssertStatementBlockMarker(b.Body, "xb");
+						},
+						b =>
+						{
+							AssertVariableExpression(b.Condition, "yc");
+							AssertStatementBlockMarker(b.Body, "yb");
+						},
+						b =>
+						{
+							Assert.Null(b.Condition);
+							AssertStatementBlockMarker(b.Body, "zb");
+						});
+				});
+		}
+
+
+		[Fact]
+		public void WhileStatement()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; END_VAR", "WHILE xc DO xb; END_WHILE")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertVariableExpression(whileSt.Condition, "xc");
+					AssertStatementBlockMarker(whileSt.Body, "xb");
+				});
+		}
+		[Fact]
+		public void WhileStatement_WithExit()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; END_VAR", "WHILE xc DO EXIT; END_WHILE")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertNthStatement<ExitBoundStatement>(whileSt.Body, 0);
+				});
+		}
+		[Fact]
+		public void WhileStatement_WithContinue()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR xc : BOOL; END_VAR", "WHILE xc DO CONTINUE; END_WHILE")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertNthStatement<ContinueBoundStatement>(whileSt.Body, 0);
+				});
+		}
+		[Theory]
+		[InlineData("EXIT;")]
+		[InlineData("CONTINUE;")]
+		public void Error_SyntaxOnlyInLoop(string syntax)
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo", syntax)
+				.BindBodies(ErrorOfType<SyntaxOnlyAllowedInLoopMessage>());
 		}
 	}
 }

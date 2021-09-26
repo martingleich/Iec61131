@@ -54,19 +54,13 @@ namespace Compiler
 				return a.Accept(IdenticalVisitor.Instance, b);
 		}
 
-		public static bool IsAssignableTo(IType from, IType to)
+		public static IType MaxSizeType(IType a, IType b)
 		{
-			if (IsIdentical(from, to))
-			{
-				return true;
-			}
-			else
-			{
-				if (from is PointerType && to is PointerType) // Implicit conversion between pointers
-					return true;
-				else
-					return false;
-			}
+			if (a is null)
+				throw new ArgumentNullException(nameof(a));
+			if (b is null)
+				throw new ArgumentNullException(nameof(b));
+			return a.LayoutInfo.Size > b.LayoutInfo.Size ? a : b;
 		}
 	}
 }

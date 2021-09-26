@@ -18,17 +18,18 @@ namespace Compiler
 		public readonly ImmutableArray<BuiltInType> AllBuiltInTypes;
 		public readonly ImmutableArray<BuiltInType> ArithmeticTypes;
 		public readonly ImmutableArray<BuiltInType> IntegerTypes;
+		public readonly ImmutableArray<BuiltInType> RealTypes;
 		public readonly BuiltInType Char = new(1, 1, "Char");
-		public readonly BuiltInType LReal = new(8, 8, "LReal", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType Real = new(4, 4, "Real", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType LInt = new(8, 8, "LInt", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType DInt = new(4, 4, "DInt", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType Int = new(2, 2, "Int", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType SInt = new(1, 1, "SInt", BuiltInType.Flag.Arithmetic);
-		public readonly BuiltInType ULInt = new(8, 8, "ULInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
-		public readonly BuiltInType UDInt = new(4, 4, "UDInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
-		public readonly BuiltInType UInt = new(2, 2, "UInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
-		public readonly BuiltInType USInt = new(1, 1, "USInt", BuiltInType.Flag.Arithmetic | BuiltInType.Flag.Unsigned);
+		public readonly BuiltInType LReal = new(8, 8, "LReal", BuiltInType.Flag.Real);
+		public readonly BuiltInType Real = new(4, 4, "Real", BuiltInType.Flag.Real);
+		public readonly BuiltInType LInt = new(8, 8, "LInt", BuiltInType.Flag.SInt);
+		public readonly BuiltInType DInt = new(4, 4, "DInt", BuiltInType.Flag.SInt);
+		public readonly BuiltInType Int = new(2, 2, "Int", BuiltInType.Flag.SInt);
+		public readonly BuiltInType SInt = new(1, 1, "SInt", BuiltInType.Flag.SInt);
+		public readonly BuiltInType ULInt = new(8, 8, "ULInt", BuiltInType.Flag.UInt);
+		public readonly BuiltInType UDInt = new(4, 4, "UDInt", BuiltInType.Flag.UInt);
+		public readonly BuiltInType UInt = new(2, 2, "UInt", BuiltInType.Flag.UInt);
+		public readonly BuiltInType USInt = new(1, 1, "USInt", BuiltInType.Flag.UInt);
 		public readonly BuiltInType LWord = new(8, 8, "LWord");
 		public readonly BuiltInType DWord = new(4, 4, "DWord");
 		public readonly BuiltInType Word = new(2, 2, "Word");
@@ -50,17 +51,18 @@ namespace Compiler
 			AllBuiltInTypes = ImmutableArray.Create(Char, LReal, Real, LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt, LWord, DWord, Word, Byte, Bool, LTime, Time, LDT, DT, LDate, Date, LTOD, TOD);
 			ArithmeticTypes = AllBuiltInTypes.Where(t => t.IsArithmetic).ToImmutableArray();
 			IntegerTypes = ImmutableArray.Create(LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt);
+			RealTypes = ImmutableArray.Create(LReal, Real);
 			BuiltInTypeMapper = new TypeMapper(this);
 
-			var numericOperators = new[] { "ADD", "SUB", "MUL", "DIV" };
 			AllBuiltInFunctions = (from type in ArithmeticTypes
-						 from op in numericOperators
-						 select BinaryOperator($"{op}_{type.Name}", type, type, type)).ToSymbolSet();
+						 from op in BinaryOperatorMap.ArithmeticOperatorNames
+						 select BinaryOperator( $"{op}_{type.Name}", type, type, type)).ToSymbolSet();
 		}
 
 		public FunctionSymbol GetOperatorFunction(string op, BuiltInType type)
 			=> AllBuiltInFunctions[$"{op}_{type.Name}"];
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
+		public string? MapBinaryOperatorToOpName(IBinaryOperatorToken token) => token.Accept(BinaryOperatorMap.Instance);
 
 		public ILiteralValue GetDefaultValue(IType targetType)
 		{
@@ -74,8 +76,6 @@ namespace Compiler
 			else if (TypeRelations.IsIdentical(targetType, ULInt)) return new ULIntLiteralValue(0, targetType);
 			else throw new NotImplementedException();
 		}
-
-
 		public ILiteralValue? TryCreateLiteralFromRealValue(OverflowingReal value, IType targetType)
 		{
 			if (TypeRelations.IsIdentical(targetType, Real))
@@ -152,8 +152,6 @@ namespace Compiler
 			return null;
 		}
 
-		public bool IsIntegerType(IType targetType) => IntegerTypes.Any(it => TypeRelations.IsIdentical(it, targetType));
-
 		public ILiteralValue? TryCreateIntLiteral(OverflowingInteger value)
 		{
 			if (value.TryGetShort(out short shortValue))
@@ -170,6 +168,67 @@ namespace Compiler
 				return new ULIntLiteralValue(ulongValue, ULInt);
 			else
 				return null;
+		}
+		public IType? GetSignedIntegerTypeGreaterThan(int size)
+		{
+			if (SInt.Size > size)
+				return SInt;
+			if (Int.Size > size)
+				return Int;
+			else if (DInt.Size > size)
+				return DInt;
+			else if (LInt.Size > size)
+				return LInt;
+			else
+				return null;
+		}
+
+		public bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
+		{
+			// Okay casts:
+			// int+real TO LREAL
+			// int TO REAL
+			// unsigned int TO larger (unsigned|signed) int
+			// signed int TO larger signed int
+			if (builtInSource is null)
+				throw new ArgumentNullException(nameof(builtInSource));
+			if (builtInTarget is null)
+				throw new ArgumentNullException(nameof(builtInTarget));
+			if (!builtInSource.IsArithmetic || !builtInTarget.IsArithmetic)
+				return false;
+			return ((builtInSource.IsInt || (builtInSource.IsReal && builtInSource.Size <= builtInTarget.Size)) && builtInTarget.IsReal)
+				|| (builtInSource.IsUnsignedInt && builtInTarget.IsInt && builtInSource.Size <= builtInTarget.Size)
+				|| (builtInSource.IsSignedInt && builtInTarget.IsSignedInt && builtInSource.Size <= builtInTarget.Size);
+		}
+		public IType? GetSmallestCommonImplicitCastType(IType a, IType b)
+		{
+			if (b is null)
+				throw new ArgumentNullException(nameof(b));
+			if (a is null)
+				throw new ArgumentNullException(nameof(a));
+
+			// Enum + Anyting => BaseType(Enum) + Anything
+			// LREAL + Anything => LREAL
+			// REAL + Anything => REAL
+			// Signed + Signed => The bigger one
+			// Unsigned + Unsigned => The bigger one
+			// Signed + Unsigned => The next signed type that is bigger than both.
+			if (a is EnumTypeSymbol enumA)
+				return GetSmallestCommonImplicitCastType(enumA.BaseType, b);
+			if (b is EnumTypeSymbol enumB)
+				return GetSmallestCommonImplicitCastType(a, enumB.BaseType);
+			if (a is BuiltInType builtInA && b is BuiltInType builtInB && builtInA.IsArithmetic && builtInB.IsArithmetic)
+			{
+				// Must be compatible with IsAllowedArithmeticImplicitCast
+				if (builtInA.Equals(LReal) || builtInB.Equals(LReal))
+					return LReal;
+				if (builtInA.Equals(Real) || builtInB.Equals(Real))
+					return Real;
+				if ((builtInA.IsUnsignedInt && builtInB.IsUnsignedInt) || (builtInA.IsSignedInt && builtInB.IsSignedInt))
+					return TypeRelations.MaxSizeType(builtInA, builtInB);
+				return GetSignedIntegerTypeGreaterThan(Math.Max(builtInA.Size, builtInB.Size));
+			}
+			return null;
 		}
 
 		private sealed class TypeMapper : IBuiltInTypeToken.IVisitor<BuiltInType>
@@ -205,6 +264,30 @@ namespace Compiler
 			public BuiltInType Visit(DateToken dateToken) => SystemScope.Date;
 			public BuiltInType Visit(LTODToken lTODToken) => SystemScope.LTOD;
 			public BuiltInType Visit(TODToken tODToken) => SystemScope.TOD;
+		}
+	
+		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<string?>
+		{
+			public static readonly ImmutableArray<string> ArithmeticOperatorNames = ImmutableArray.Create("ADD", "SUB", "MUL", "DIV", "MOD");
+			public static readonly BinaryOperatorMap Instance = new();
+
+			public string? Visit(EqualToken equalToken) => null;
+			public string? Visit(LessEqualToken lessEqualToken) => null;
+			public string? Visit(LessToken lessToken) => null;
+			public string? Visit(GreaterToken greaterToken) => null;
+			public string? Visit(GreaterEqualToken greaterEqualToken) => null;
+			public string? Visit(UnEqualToken unEqualToken) => null;
+
+			public string? Visit(PlusToken plusToken) => ArithmeticOperatorNames[0];
+			public string? Visit(MinusToken minusToken) => ArithmeticOperatorNames[1];
+			public string? Visit(StarToken starToken) => ArithmeticOperatorNames[2];
+			public string? Visit(SlashToken slashToken) => ArithmeticOperatorNames[3];
+			public string? Visit(ModToken modToken) => ArithmeticOperatorNames[4];
+			public string? Visit(PowerToken powerToken) => null;
+
+			public string? Visit(AndToken andToken) => null;
+			public string? Visit(XorToken xorToken) => null;
+			public string? Visit(OrToken orToken) => null;
 		}
 	}
 }

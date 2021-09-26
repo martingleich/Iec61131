@@ -14,7 +14,6 @@ namespace Compiler
 		private readonly CommaSeperatedParser<RangeSyntax, BracketCloseToken> CommaSeperatedRangeParser;
 		private readonly CommaSeperatedParser<IExpressionSyntax, BracketCloseToken> CommaSeperatedIndexParser;
 		private readonly CommaSeperatedParser<CallArgumentSyntax, ParenthesisCloseToken> CommaSeperatedCallArgumentParser;
-		private readonly CommaSeperatedParser<IExpressionSyntax, ParenthesisCloseToken> CommaSeperatedOperatorCallArgumentParser;
 		private readonly CommaSeperatedParser<EnumValueDeclarationSyntax, ParenthesisCloseToken> CommaSeperatedEnumValueDeclarationParser;
 
 		private Parser(string text, Messages.MessageBag messages)
@@ -25,7 +24,6 @@ namespace Compiler
 			CommaSeperatedRangeParser = MakeCommaSeperatedParser(ParseRange, IsExpressionStartToken, BracketCloseToken.Synthesize);
 			CommaSeperatedIndexParser = MakeCommaSeperatedParser(ParseExpression, IsExpressionStartToken, BracketCloseToken.Synthesize);
 			CommaSeperatedCallArgumentParser = MakeCommaSeperatedParser(ParseCallArgument, IsExpressionStartToken, ParenthesisCloseToken.Synthesize);
-			CommaSeperatedOperatorCallArgumentParser = MakeCommaSeperatedParser(ParseExpression, IsExpressionStartToken, ParenthesisCloseToken.Synthesize);
 			CommaSeperatedEnumValueDeclarationParser = MakeCommaSeperatedParser(ParseEnumValueDeclaration, t => t is IdentifierToken, ParenthesisCloseToken.Synthesize);
 
 			CallArgumentSyntax ParseCallArgument()

@@ -8,28 +8,31 @@ namespace Compiler.Types
 		public enum Flag
 		{
 			None = 0,
-			Arithmetic = 1,
-			Unsigned = 2,
+			UInt = 1,
+			SInt = 2,
+			Real = 3,
+			Mask = 3,
 		}
-
 
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.ToString();
 		public BuiltInType(int size, int alignment, string name, Flag flags = Flag.None)
 		{
 			Name = name.ToCaseInsensitive();
-			Size = size;
-			Alignment = alignment;
+			LayoutInfo = new LayoutInfo(size, alignment);
 			Flags = flags;
 		}
 
-		public int Size { get; }
-		public int Alignment { get; }
-		public bool IsArithmetic => (Flags & Flag.Arithmetic) != 0;
-		public bool IsUnsigned => (Flags & Flag.Unsigned) != 0;
+		public int Size => LayoutInfo.Size;
+		public int Alignment => LayoutInfo.Alignment;
+		public bool IsArithmetic => Flags != 0;
+		public bool IsUnsignedInt => (Flags & Flag.Mask) == Flag.UInt;
+		public bool IsSignedInt => (Flags & Flag.Mask) == Flag.SInt;
+		public bool IsInt => IsUnsignedInt || IsSignedInt;
+		public bool IsReal => (Flags & Flag.Mask) == Flag.Real;
 		public Flag Flags { get; }
 
-		public LayoutInfo LayoutInfo => new(Size, Alignment);
+		public LayoutInfo LayoutInfo { get; }
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 

@@ -163,7 +163,7 @@ namespace Tests
 			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
 		}
 		[Theory]
-		[InlineData("enumValue + 1", "ADD_DINT")]
+		[InlineData("enumValue + 1", "ADD_INT")]
 		[InlineData("LREAL#5 + enumValue", "ADD_LREAL")]
 		public static void BinaryArithemtic_Enums(string expr, string op)
 		{

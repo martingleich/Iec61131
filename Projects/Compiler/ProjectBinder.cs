@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 
 namespace Compiler
@@ -32,20 +33,6 @@ namespace Compiler
 			DutTypes = dutTypes;
 			FunctionSymbols = functionSymbols;
 		}
-	}
-
-	public sealed class GlobalModuleScope : AInnerScope
-	{
-		private readonly BoundModuleInterface Interface;
-
-		public GlobalModuleScope(BoundModuleInterface @interface, IScope inner) : base(inner)
-		{
-			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
-		}
-
-		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.DutTypes.TryGetValue(identifier, out var dutType)
-			? ErrorsAnd.Create(dutType)
-			: base.LookupType(identifier, sourcePosition);
 	}
 
 	public sealed class BoundPou
@@ -103,27 +90,7 @@ namespace Compiler
 		}
 	}
 
-	public sealed class InsideFunctionScope : AInnerScope
-	{
-		private readonly FunctionSymbol Symbol;
-		private readonly SymbolSet<LocalVariableSymbol> LocalVariables;
-		public InsideFunctionScope(IScope outerScope, FunctionSymbol symbol, SymbolSet<LocalVariableSymbol> localVariables) : base(outerScope)
-		{
-			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
-			LocalVariables = localVariables;
-		}
-
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-		{
-			if (LocalVariables.TryGetValue(identifier, out var localVariableSymbol))
-				return localVariableSymbol;
-			if (Symbol.Parameters.TryGetValue(identifier, out var parameterSymbol))
-				return parameterSymbol;
-			return base.LookupVariable(identifier, sourcePosition);
-		}
-	}
-
-	public sealed class ProjectBinder : AInnerScope
+	public sealed class ProjectBinder : AInnerScope<RootScope>
 	{
 		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
 		private readonly MessageBag MessageBag = new();
@@ -274,7 +241,7 @@ namespace Compiler
 			{
 				var baseType = BodySyntax.EnumBaseType != null
 					? TypeCompiler.MapSymbolic(projectBinder, BodySyntax.EnumBaseType, projectBinder.MessageBag)
-					: projectBinder.SystemScope.DInt;
+					: projectBinder.SystemScope.Int;
 				Symbol._SetBaseType(baseType);
 				List<EnumValueSymbol> allValueSymbols = new List<EnumValueSymbol>();
 				EnumValueSymbol? prevSymbol = null;

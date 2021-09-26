@@ -30,6 +30,10 @@ namespace Compiler
 			T Accept(SequenceBoundStatement sequenceBoundStatement);
 			T Accept(ExpressionBoundStatement expressionBoundStatement);
 			T Accept(AssignBoundStatement assignToExpressionBoundStatement);
+			T Accept(IfBoundStatement ifBoundStatement);
+			T Accept(WhileBoundStatement whileBoundStatement);
+			T Accept(ExitBoundStatement exitBoundStatement);
+			T Accept(ContinueBoundStatement continueBoundStatement);
 		}
 	}
 
@@ -168,5 +172,51 @@ namespace Compiler
 		}
 
 		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class IfBoundStatement : IBoundStatement
+	{
+		public sealed class Branch
+		{
+			public readonly IBoundExpression? Condition;
+			public readonly IBoundStatement Body;
+
+			public Branch(IBoundExpression? condition, IBoundStatement body)
+			{
+				Condition = condition;
+				Body = body ?? throw new ArgumentNullException(nameof(body));
+			}
+		}
+		public readonly ImmutableArray<Branch> Branches;
+
+		public IfBoundStatement(ImmutableArray<Branch> branches)
+		{
+			Branches = branches;
+		}
+
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class WhileBoundStatement : IBoundStatement
+	{
+		public readonly IBoundExpression Condition;
+		public readonly IBoundStatement Body;
+
+		public WhileBoundStatement(IBoundExpression condition, IBoundStatement body)
+		{
+			Condition = condition ?? throw new ArgumentNullException(nameof(condition));
+			Body = body ?? throw new ArgumentNullException(nameof(body));
+		}
+
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class ExitBoundStatement : IBoundStatement
+	{
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class ContinueBoundStatement : IBoundStatement
+	{
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using Compiler.Messages;
+using Compiler.Scopes;
 using Compiler.Types;
 
 namespace Compiler
