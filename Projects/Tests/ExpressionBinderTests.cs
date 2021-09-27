@@ -344,6 +344,32 @@ namespace Tests
 			var literalBound = Assert.IsType<LiteralBoundExpression>(boundExpression);
 			AssertEx.EqualType(SystemScope.DInt, literalBound.Type);
 		}
+		[Fact]
+		public static void Deref()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO BOOL")
+				.BindGlobalExpression("ptr^", null);
+			var deref = Assert.IsType<DerefBoundExpression>(boundExpression);
+			AssertEx.EqualType(deref.Type, SystemScope.Bool);
+		}
+		[Fact]
+		public static void Error_Deref_IntValue()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("intValue", "INT")
+				.BindGlobalExpression("intValue^", null, ErrorOfType<CannotDereferenceTypeMessage>());
+			var deref = Assert.IsType<DerefBoundExpression>(boundExpression);
+			AssertEx.EqualType(deref.Type, SystemScope.Int);
+		}
+		[Fact]
+		public static void Error_Deref_NotAConstant()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO BOOL")
+				.BindGlobalExpression("ptr^", null);
+			AssertEx.NotAConstant(boundExpression, SystemScope);
+		}
 	}
 
 	public static class ExpressionBinderTests_PointerArithmetic
@@ -357,6 +383,7 @@ namespace Tests
 				.WithGlobalVar("ptr", "POINTER TO REAL")
 				.BindGlobalExpression("ptr + INT#5", null);
 			Assert.IsType<PointerOffsetBoundExpression>(boundExpression);
+			AssertEx.NotAConstant(boundExpression, SystemScope);
 		}
 		[Fact]
 		public static void IntegerAddPointer()
@@ -365,6 +392,7 @@ namespace Tests
 				.WithGlobalVar("ptr", "POINTER TO BOOL")
 				.BindGlobalExpression("DINT#7 + ptr", null);
 			Assert.IsType<PointerOffsetBoundExpression>(boundExpression);
+			AssertEx.NotAConstant(boundExpression, SystemScope);
 		}
 		[Fact]
 		public static void PointerSubInteger()
@@ -373,6 +401,7 @@ namespace Tests
 				.WithGlobalVar("ptr", "POINTER TO BOOL")
 				.BindGlobalExpression("ptr - SINT#7", null);
 			Assert.IsType<PointerOffsetBoundExpression>(boundExpression);
+			AssertEx.NotAConstant(boundExpression, SystemScope);
 		}
 		[Fact]
 		public static void PointerSubPointer()
@@ -382,6 +411,15 @@ namespace Tests
 				.WithGlobalVar("ptr2", "POINTER TO INT")
 				.BindGlobalExpression("ptr2 - ptr", null);
 			Assert.IsType<PointerDiffrenceBoundExpression>(boundExpression);
+			AssertEx.NotAConstant(boundExpression, SystemScope);
+		}
+		[Fact]
+		public static void Error_PointerAddPointer()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO BOOL")
+				.WithGlobalVar("ptr2", "POINTER TO INT")
+				.BindGlobalExpression("ptr2 + ptr", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
 		}
 	}
 }

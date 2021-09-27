@@ -251,7 +251,20 @@ namespace Compiler
 
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			var value = derefExpressionSyntax.LeftSide.Accept(this, null);
+			IType baseType;
+			if (value.Type is PointerType ptrType)
+			{
+				baseType = ptrType.BaseType;
+			}
+			else
+			{
+				MessageBag.Add(new CannotDereferenceTypeMessage(value.Type, derefExpressionSyntax.SourcePosition));
+				baseType = value.Type;
+			}
+
+			var boundExpression = new DerefBoundExpression(value, baseType);
+			return ImplicitCast(derefExpressionSyntax.SourcePosition, boundExpression, context);
 		}
 
 		public IBoundExpression Visit(IndexAccessExpressionSyntax indexAccessExpressionSyntax, IType? context)

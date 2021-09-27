@@ -94,13 +94,13 @@ namespace Compiler
 		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => NotAConstant(default);
 		public ILiteralValue? Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression) => NotAConstant(default);
 		public ILiteralValue? Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAConstant(default);
+		public ILiteralValue? Accept(DerefBoundExpression derefBoundExpression) => NotAConstant(default);
 
 		private ILiteralValue? NotAConstant(SourcePosition? position)
 		{
 			MessageBag.Add(new NotAConstantMessage(position ?? default));
 			return null;
 		}
-
 		private ILiteralValue? EvaluateConstantFunction(IType returnType, FunctionSymbol function, params ILiteralValue?[] args)
 		{
 			if (!args.HasNoNullElement(out var nonNullArgs))

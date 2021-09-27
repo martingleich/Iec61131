@@ -111,6 +111,7 @@ namespace Tests
 		}
 		
 		public static readonly TestProject NewProject = new (Project.Empty);
+
 	}
 
 	public static class AssertEx
@@ -118,6 +119,12 @@ namespace Tests
 		public static void EqualType(IType expected, IType passed)
 		{
 			Assert.Equal(expected.Code, passed.Code);
+		}
+		public static void NotAConstant(IBoundExpression expression, SystemScope systemScope)
+		{
+			var bag = new MessageBag();
+			ConstantExpressionEvaluator.EvaluateConstant(expression, bag, systemScope);
+			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
 		}
 	}
 }

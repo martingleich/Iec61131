@@ -258,4 +258,15 @@ namespace Compiler.Messages
 
 		public override string Text => $"Division by zero in constant context.";
 	}
+	public sealed class CannotDereferenceTypeMessage : ACriticalMessage
+	{
+		public readonly IType Type;
+
+		public CannotDereferenceTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Type = type;
+		}
+
+		public override string Text => $"Cannot dereference a expression of type '{Type.Code}'.";
+	}
 }

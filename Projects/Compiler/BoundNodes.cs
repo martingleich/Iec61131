@@ -22,6 +22,7 @@ namespace Compiler
 			T Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
 			T Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression);
 			T Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression);
+			T Accept(DerefBoundExpression derefBoundExpression);
 		}
 	}
 
@@ -182,6 +183,20 @@ namespace Compiler
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 			Function = function ?? throw new ArgumentNullException(nameof(function));
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class DerefBoundExpression : IBoundExpression
+	{
+		public IType Type { get; }
+		public readonly IBoundExpression Value;
+
+		public DerefBoundExpression(IBoundExpression value, IType type)
+		{
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
