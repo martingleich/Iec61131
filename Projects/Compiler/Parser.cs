@@ -324,7 +324,6 @@ namespace Compiler
 				var initial = TryParseVarInit();
 				var tokenSemicolon = Match(SemicolonToken.Synthesize);
 				return new(attributes, tokenIdentifier, tokenColon, type, initial, tokenSemicolon);
-
 			}
 		}
 
@@ -648,23 +647,23 @@ namespace Compiler
 				}
 			}
 
-			private SyntaxCommaSeparated<TElement>.TailSyntax? TryParseTail(out TEnd TEnd)
+			private SyntaxCommaSeparated<TElement>.TailSyntax? TryParseTail(out TEnd end)
 			{
 				if (Parser.TryMatch<CommaToken>(out var commaToken))
 				{
 					var element = ParseElement();
-					var tail = TryParseTail(out TEnd);
+					var tail = TryParseTail(out end);
 					return new SyntaxCommaSeparated<TElement>.TailSyntax(commaToken, element, tail);
 				}
-				else if (Parser.TryMatch<TEnd>(out var p))
+				else if (Parser.TryMatch<TEnd>(out var x))
 				{
-					TEnd = p;
+					end = x;
 					return null;
 				}
 				else
 				{
 					Parser.AddUnexpectedTokenMessage(typeof(CommaToken), typeof(TEnd));
-					TEnd = MakeEnd(Parser.CurToken.StartPosition);
+					end = MakeEnd(Parser.CurToken.StartPosition);
 					return null;
 				}
 			}
