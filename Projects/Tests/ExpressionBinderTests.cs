@@ -270,13 +270,13 @@ namespace Tests
 		[InlineData("-(BOOL#FALSE)")]
 		public static void Error_UnaryExpression_NoNegAllowed(string expr)
 		{
-			var boundExpression = BindHelper.NewProject
+			BindHelper.NewProject
 				.BindGlobalExpression(expr, null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
 		}
 		[Fact]
 		public static void Error_NegateOnDUT()
 		{
-			var boundExpression = BindHelper.NewProject
+			BindHelper.NewProject
 				.AddDut("TYPE MyDut : STRUCT END_STRUCT; END_TYPE")
 				.WithGlobalVar("x", "MyDut")
 				.BindGlobalExpression("-x", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());

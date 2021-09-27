@@ -119,16 +119,16 @@ namespace Compiler
 			{
 				return boundValue;
 			}
-			else if (boundValue.Type is EnumTypeSymbol)
+			else if (TypeRelations.IsEnumType(boundValue.Type, out _))
 			{
 				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
 				return ImplicitCast(errorPosition, enumValue, targetType);
 			}
-			else if (targetType is PointerType targetPointerType && boundValue.Type is PointerType)
+			else if (TypeRelations.IsPointerType(targetType, out var targetPointerType) && TypeRelations.IsPointerType(boundValue.Type, out _))
 			{
 				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
-			else if (targetType is BuiltInType builtInTarget && boundValue.Type is BuiltInType builtInSource && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
+			else if (TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
 			{
 				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
 			}
@@ -140,7 +140,7 @@ namespace Compiler
 		public IBoundExpression Visit(LiteralExpressionSyntax literalExpressionSyntax, IType? context)
 		{
 			// "0" can be converted to every pointer type
-			if (context is PointerType targetPointerType && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
+			if (TypeRelations.IsPointerType(context, out var targetPointerType) && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
 				return new LiteralBoundExpression(new NullPointerLiteralValue(targetPointerType));
 
 			return literalExpressionSyntax.TokenValue.Accept(LiteralTokenBinder, context);
@@ -151,7 +151,7 @@ namespace Compiler
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
 			// Special case pointer arithmetic:
-			if (boundLeft.Type is PointerType || boundRight.Type is PointerType)
+			if (TypeRelations.IsPointerType(boundLeft.Type, out _) || TypeRelations.IsPointerType(boundRight.Type, out _))
 			{
 				var bound = VisitPointerArithmetic(binaryOperatorExpressionSyntax, boundLeft, boundRight, context);
 				if (bound != null)
@@ -166,7 +166,7 @@ namespace Compiler
 			// i.e. ADD_DInt must take two DINTs, and so on.
 			var commonArgType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
 			FunctionSymbol? operatorFunction;
-			if (commonArgType is BuiltInType b)
+			if (TypeRelations.IsBuiltInType(commonArgType, out var b))
 				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetBinaryOperatorFunction(binaryOperatorExpressionSyntax.TokenOperator, b);
 			else
 				operatorFunction = null;
@@ -187,11 +187,11 @@ namespace Compiler
 
 		private IBoundExpression? VisitPointerArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IBoundExpression boundLeft, IBoundExpression boundRight, IType? context)
 		{
-			if (boundLeft.Type is PointerType && boundRight.Type is PointerType && binaryOperatorExpressionSyntax.TokenOperator is MinusToken)
+			if (TypeRelations.IsPointerType(boundLeft.Type, out _) && TypeRelations.IsPointerType(boundRight.Type, out _) && binaryOperatorExpressionSyntax.TokenOperator is MinusToken)
 			{
 				return new PointerDiffrenceBoundExpression(boundLeft, boundRight, SystemScope.PointerDiffrence);
 			}
-			else if (boundLeft.Type is PointerType ptrLeft && boundRight.Type is BuiltInType bright && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
+			else if (TypeRelations.IsPointerType(boundLeft.Type, out var ptrLeft) && TypeRelations.IsBuiltInType(boundRight.Type, out var bright) && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
 			{
 				var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundRight, SystemScope.PointerDiffrence);
 				return new PointerOffsetBoundExpression(
@@ -200,7 +200,7 @@ namespace Compiler
 					ptrLeft);
 
 			}
-			else if (boundLeft.Type is BuiltInType lright && lright.IsInt && boundRight.Type is PointerType ptrRight && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
+			else if (TypeRelations.IsBuiltInType(boundLeft.Type, out var lright) && lright.IsInt && TypeRelations.IsPointerType(boundRight.Type, out var ptrRight) && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
 			{
 				var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft, SystemScope.PointerDiffrence);
 				return new PointerOffsetBoundExpression(
@@ -218,7 +218,7 @@ namespace Compiler
 		{
 			var boundValue = unaryOperatorExpressionSyntax.Value.Accept(this, null);
 			FunctionSymbol? operatorFunction;
-			if (boundValue.Type is BuiltInType b)
+			if (TypeRelations.IsBuiltInType(boundValue.Type, out var b))
 				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetUnaryOperatorFunction(unaryOperatorExpressionSyntax.TokenOperator, b);
 			else
 				operatorFunction = null;
@@ -253,7 +253,7 @@ namespace Compiler
 		{
 			var value = derefExpressionSyntax.LeftSide.Accept(this, null);
 			IType baseType;
-			if (value.Type is PointerType ptrType)
+			if (TypeRelations.IsPointerType(value.Type, out var ptrType))
 			{
 				baseType = ptrType.BaseType;
 			}

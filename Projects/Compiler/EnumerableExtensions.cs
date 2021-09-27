@@ -60,5 +60,22 @@ namespace Compiler
 			nonNulls = values!;
 			return true;
 		}
+
+		public static bool Equal<T>(ImmutableArray<T> r1, ImmutableArray<T> r2) where T:IEquatable<T>
+		{
+			if (r1.Length == r2.Length)
+			{
+				for (int i = 0; i < r1.Length; ++i)
+				{
+					if (!r1[i].Equals(r2[i]))
+						return false;
+				}
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
 	}
 }

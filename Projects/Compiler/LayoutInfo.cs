@@ -63,7 +63,7 @@ namespace Compiler
 			Value = value;
 		}
 
-		public static implicit operator UndefinedLayoutInfo(LayoutInfo info) => new UndefinedLayoutInfo(info);
+		public static implicit operator UndefinedLayoutInfo(LayoutInfo info) => new (info);
 
 		public bool TryGet(out LayoutInfo value)
 		{

@@ -1,28 +1,11 @@
 ﻿using Compiler.Types;
 using System;
-using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Compiler
 {
 	public static class TypeRelations
 	{
-		private static bool Equal<T>(ImmutableArray<T> r1, ImmutableArray<T> r2) where T:IEquatable<T>
-		{
-			if (r1.Length == r2.Length)
-			{
-				for (int i = 0; i < r1.Length; ++i)
-				{
-					if (!r1[i].Equals(r2[i]))
-						return false;
-				}
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
-
 		private sealed class IdenticalVisitor : IType.IVisitor<bool, IType>
 		{
 			public static readonly IdenticalVisitor Instance = new ();
@@ -35,7 +18,7 @@ namespace Compiler
 			public bool Visit(StringType stringTypeSymbol, IType context)
 				=> context is StringType other && stringTypeSymbol.Size == other.Size;
 			public bool Visit(ArrayType arrayTypeSymbol, IType context)
-				=> context is ArrayType other && IsIdentical(arrayTypeSymbol.BaseType, other.BaseType) && Equal(arrayTypeSymbol.Ranges, other.Ranges);
+				=> context is ArrayType other && IsIdentical(arrayTypeSymbol.BaseType, other.BaseType) && EnumerableExtensions.Equal(arrayTypeSymbol.Ranges, other.Ranges);
 			public bool Visit(EnumTypeSymbol enumTypeSymbol, IType context)
 				=> context is EnumTypeSymbol other && enumTypeSymbol.Name == other.Name;
 			public bool VisitError(IType context) => true;
@@ -62,5 +45,14 @@ namespace Compiler
 				throw new ArgumentNullException(nameof(b));
 			return a.LayoutInfo.Size > b.LayoutInfo.Size ? a : b;
 		}
+
+		private static bool IsType<T>(IType? type, [NotNullWhen(true)] out T? tType) where T : class, IType
+		{
+			tType = type as T;
+			return tType != null;
+		}
+		public static bool IsBuiltInType(IType? type, [NotNullWhen(true)] out BuiltInType? builtInType) => IsType(type, out builtInType);
+		public static bool IsEnumType(IType? type, [NotNullWhen(true)] out EnumTypeSymbol? enumTypeSymbol) => IsType(type, out enumTypeSymbol);
+		public static bool IsPointerType(IType? type, [NotNullWhen(true)] out PointerType? pointerType) => IsType(type, out pointerType);
 	}
 }
