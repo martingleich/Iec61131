@@ -159,19 +159,21 @@ namespace Compiler
 				return null;
 		}
 		public IType? GetSignedIntegerTypeGreaterThan(int size)
+			=> GetSignedIntegerTypeGreaterEqualThan(size + 1);
+		public IType? GetSignedIntegerTypeGreaterEqualThan(int size)
 		{
-			if (SInt.Size > size)
+			if (SInt.Size >= size)
 				return SInt;
-			if (Int.Size > size)
+			else if (Int.Size >= size)
 				return Int;
-			else if (DInt.Size > size)
+			else if (DInt.Size >= size)
 				return DInt;
-			else if (LInt.Size > size)
+			else if (LInt.Size >= size)
 				return LInt;
 			else
 				return null;
 		}
-
+		public IType PointerDiffrence => GetSignedIntegerTypeGreaterEqualThan(4)!;
 		public bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
 		{
 			// Okay casts:

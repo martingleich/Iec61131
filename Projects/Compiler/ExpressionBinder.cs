@@ -150,6 +150,17 @@ namespace Compiler
 		{
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
+			// Special case pointer arithmetic:
+			if (boundLeft.Type is PointerType || boundRight.Type is PointerType)
+			{
+				var bound = VisitPointerArithmetic(binaryOperatorExpressionSyntax, boundLeft, boundRight, context);
+				if (bound != null)
+				{
+					return ImplicitCast(binaryOperatorExpressionSyntax.SourcePosition, bound, context);
+				}
+				// Error-case, just to the normal flow to report errors.
+			}
+
 			// Perform naive overload resolution
 			// This function only works if the arguments for the target function both have the same type.
 			// i.e. ADD_DInt must take two DINTs, and so on.
@@ -172,6 +183,35 @@ namespace Compiler
 			var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.Right.SourcePosition, boundRight, commonArgType);
 			var binaryOperatorExpression = new BinaryOperatorBoundExpression(returnType, castedLeft, castedRight, operatorFunction);
 			return ImplicitCast(binaryOperatorExpressionSyntax.SourcePosition, binaryOperatorExpression, context);
+		}
+
+		private IBoundExpression? VisitPointerArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IBoundExpression boundLeft, IBoundExpression boundRight, IType? context)
+		{
+			if (boundLeft.Type is PointerType && boundRight.Type is PointerType && binaryOperatorExpressionSyntax.TokenOperator is MinusToken)
+			{
+				return new PointerDiffrenceBoundExpression(boundLeft, boundRight, SystemScope.PointerDiffrence);
+			}
+			else if (boundLeft.Type is PointerType ptrLeft && boundRight.Type is BuiltInType bright && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
+			{
+				var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundRight, SystemScope.PointerDiffrence);
+				return new PointerOffsetBoundExpression(
+					boundLeft,
+					castedRight,
+					ptrLeft);
+
+			}
+			else if (boundLeft.Type is BuiltInType lright && lright.IsInt && boundRight.Type is PointerType ptrRight && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
+			{
+				var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft, SystemScope.PointerDiffrence);
+				return new PointerOffsetBoundExpression(
+					castedLeft,
+					boundLeft,
+					ptrRight);
+			}
+			else
+			{
+				return null;
+			}
 		}
 
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)

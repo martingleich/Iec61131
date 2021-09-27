@@ -20,6 +20,8 @@ namespace Compiler
 			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
 			T Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
 			T Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
+			T Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression);
+			T Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression);
 		}
 	}
 
@@ -116,6 +118,39 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	
+	public sealed class PointerDiffrenceBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Left;
+		public readonly IBoundExpression Right;
+
+		public PointerDiffrenceBoundExpression(IBoundExpression left, IBoundExpression right, IType type)
+		{
+			Left = left ?? throw new ArgumentNullException(nameof(left));
+			Right = right ?? throw new ArgumentNullException(nameof(right));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
+	}
+	public sealed class PointerOffsetBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Left;
+		public readonly IBoundExpression Right;
+
+		public PointerOffsetBoundExpression(IBoundExpression left, IBoundExpression right, IType type)
+		{
+			Left = left ?? throw new ArgumentNullException(nameof(left));
+			Right = right ?? throw new ArgumentNullException(nameof(right));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
 	}
 

@@ -46,5 +46,19 @@ namespace Compiler
 				return false;
 			}
 		}
+
+		public static bool HasNoNullElement<T>(this T?[] values, [MaybeNullWhen(false)] out T[] nonNulls) where T : class
+		{
+			foreach (var value in values)
+			{
+				if (value is null)
+				{
+					nonNulls = null;
+					return false;
+				}
+			}
+			nonNulls = values!;
+			return true;
+		}
 	}
 }
