@@ -1,4 +1,6 @@
-﻿namespace Compiler.Types
+﻿using Compiler.Messages;
+
+namespace Compiler.Types
 {
 	public interface IType
 	{
@@ -15,6 +17,7 @@
 			T Visit(StringType stringTypeSymbol, TContext context);
 			T Visit(ArrayType arrayTypeSymbol, TContext context);
 			T Visit(EnumTypeSymbol enumTypeSymbol, TContext context);
+			T Visit(AliasTypeSymbol aliasTypeSymbol, TContext context);
 		}
 	}
 }

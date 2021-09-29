@@ -108,10 +108,7 @@ namespace Compiler
 		{
 			public static readonly DutSymbolCreator Instance = new();
 			public ITypeSymbolInWork Visit(AliasTypeDeclarationBodySyntax aliasTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-			{
-				throw new NotImplementedException();
-			}
-
+				=> new AliasTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), aliasTypeDeclarationBodySyntax.BaseType);
 			public ITypeSymbolInWork Visit(StructTypeDeclarationBodySyntax structTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
 				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), false, structTypeDeclarationBodySyntax.Fields);
 			public ITypeSymbolInWork Visit(UnionTypeDeclarationBodySyntax unionTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
@@ -273,6 +270,28 @@ namespace Compiler
 				}
 				var uniqueValueSymbols = allValueSymbols.ToSymbolSetWithDuplicates(projectBinder.MessageBag);
 				Symbol._SetValues(uniqueValueSymbols);
+				return Symbol;
+			}
+		}
+
+		private sealed class AliasTypeInWork : ITypeSymbolInWork
+		{
+			private readonly AliasTypeSymbol Symbol;
+			private readonly ITypeSyntax AliasedTypeSyntax;
+
+			public AliasTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString name, ITypeSyntax aliasedTypeSyntax)
+			{
+				Symbol = new AliasTypeSymbol(declaringPosition, name);
+				AliasedTypeSyntax = aliasedTypeSyntax;
+			}
+
+			ITypeSymbol ITypeSymbolInWork.Symbol => Symbol;
+			public CaseInsensitiveString Name => Symbol.Name;
+			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
+
+			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			{
+				Symbol._SetAliasedType(TypeCompiler.MapSymbolic(projectBinder, AliasedTypeSyntax, projectBinder.MessageBag));
 				return Symbol;
 			}
 		}

@@ -21,6 +21,9 @@ namespace Compiler
 				=> context is ArrayType other && IsIdentical(arrayTypeSymbol.BaseType, other.BaseType) && EnumerableExtensions.Equal(arrayTypeSymbol.Ranges, other.Ranges);
 			public bool Visit(EnumTypeSymbol enumTypeSymbol, IType context)
 				=> context is EnumTypeSymbol other && enumTypeSymbol.Name == other.Name;
+			public bool Visit(AliasTypeSymbol aliasTypeSymbol, IType context)
+				=> context is AliasTypeSymbol other && aliasTypeSymbol.Name == other.Name;
+
 			public bool VisitError(IType context) => true;
 		}
 
@@ -31,10 +34,7 @@ namespace Compiler
 			if (b is null)
 				throw new ArgumentNullException(nameof(b));
 
-			if (a is ErrorTypeSymbol || b is ErrorTypeSymbol)
-				return true;
-			else
-				return a.Accept(IdenticalVisitor.Instance, b);
+			return a.IsError() || b.IsError() || a.Accept(IdenticalVisitor.Instance, b);
 		}
 
 		public static IType MaxSizeType(IType a, IType b)

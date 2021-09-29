@@ -10,7 +10,7 @@ namespace Compiler.Types
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.Original;
 
-		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }
+		private UndefinedLayoutInfo? MaybeLayoutInfo { get; set; }
 		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
 
 		private SymbolSet<FieldSymbol> _fields;
