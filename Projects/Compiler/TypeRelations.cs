@@ -53,6 +53,15 @@ namespace Compiler
 		}
 		public static bool IsBuiltInType(IType? type, [NotNullWhen(true)] out BuiltInType? builtInType) => IsType(type, out builtInType);
 		public static bool IsEnumType(IType? type, [NotNullWhen(true)] out EnumTypeSymbol? enumTypeSymbol) => IsType(type, out enumTypeSymbol);
+		public static bool IsAliasType(IType? type, [NotNullWhen(true)] out AliasTypeSymbol? aliasTypeSymbol) => IsType(type, out aliasTypeSymbol);
 		public static bool IsPointerType(IType? type, [NotNullWhen(true)] out PointerType? pointerType) => IsType(type, out pointerType);
+		public static IType ResolveAlias(IType type)
+		{
+			if (IsAliasType(type, out var aliasTypeSymbol))
+				return ResolveAlias(aliasTypeSymbol.AliasedType);
+			else
+				return type;
+		}
+		public static IType? ResolveAliasNullable(IType? type) => type != null ? ResolveAlias(type) : null;
 	}
 }

@@ -89,14 +89,14 @@ namespace Tests
 			public static void Pointer_ZeroAsPointer()
 			{
 				var boundExpression = BindHelper.NewProject
-					.BindGlobalExpression("0", new PointerType(SystemScope.Int));
+					.BindGlobalExpression("0", "POINTER TO INT");
 				AssertEx.EqualType(new PointerType(SystemScope.Int), boundExpression.Type);
 			}
 			[Fact]
 			public static void Error_Pointer_OneAsPointer()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression("1", new PointerType(SystemScope.Int), ErrorOfType<IntegerIsToLargeForTypeMessage>());
+					.BindGlobalExpression("1", "POINTER TO INT", ErrorOfType<IntegerIsToLargeForTypeMessage>());
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.WithGlobalVar("ptr", "POINTER TO INT")
-				.BindGlobalExpression("ptr", new PointerType(SystemScope.Real));
+				.BindGlobalExpression("ptr", "POINTER TO REAL");
 			var pointerCast = Assert.IsType<ImplicitPointerTypeCastBoundExpression>(boundExpression);
 			AssertEx.EqualType(pointerCast.Type, new PointerType(SystemScope.Real));
 		}
@@ -326,7 +326,7 @@ namespace Tests
 		public static void Error_TypeNotConvertible_INT_TO_BOOL()
 		{
 			BindHelper.NewProject
-				.BindGlobalExpression("TRUE", SystemScope.Int, ErrorOfType<TypeIsNotConvertibleMessage>());
+				.BindGlobalExpression("TRUE", "INT", ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 		[Fact]
 		public static void ParenthesisedExpression()
@@ -340,7 +340,7 @@ namespace Tests
 		public static void ParenthesisedExpression_KeepContext()
 		{
 			var boundExpression = BindHelper.NewProject
-				.BindGlobalExpression("(0)", SystemScope.DInt);
+				.BindGlobalExpression("(0)", "DINT");
 			var literalBound = Assert.IsType<LiteralBoundExpression>(boundExpression);
 			AssertEx.EqualType(SystemScope.DInt, literalBound.Type);
 		}
@@ -420,6 +420,174 @@ namespace Tests
 				.WithGlobalVar("ptr", "POINTER TO BOOL")
 				.WithGlobalVar("ptr2", "POINTER TO INT")
 				.BindGlobalExpression("ptr2 + ptr", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+	}
+
+	public static class ExpressionBinderTests_Aliases
+	{
+		private static readonly SystemScope SystemScope = new();
+		[Fact]
+		public static void LiteralAsAlias_SInt()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : SINT; END_TYPE")
+				.BindGlobalExpression("5", "myalias");
+			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
+			Assert.IsType<LiteralBoundExpression>(cast.Value);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void LiteralAsAlias_REAL()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : REAL; END_TYPE")
+				.BindGlobalExpression("3.14", "myalias");
+			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
+			Assert.IsType<LiteralBoundExpression>(cast.Value);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+
+		[Fact]
+		public static void Addition_Int_AliasToInt()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : INT; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("1 + x", null);
+			var op = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
+			Assert.IsType<ImplicitAliasToBaseTypeCastBoundExpression>(op.Right);
+			Assert.Equal("Int", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Addition_AliasToInt_AliasToInt_Same()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : INT; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.WithGlobalVar("y", "myalias")
+				.BindGlobalExpression("x + y", null);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Addition_AliasToInt_AliasToInt_Diffrent()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias1 : INT; END_TYPE")
+				.AddDut("TYPE myalias2 : INT; END_TYPE")
+				.WithGlobalVar("x", "myalias1")
+				.WithGlobalVar("y", "myalias2")
+				.BindGlobalExpression("x + y", null);
+			Assert.Equal("Int", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Addition_AliasToPointerOffset()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("x + 5", null);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Addition_AliasToPointerOffset2()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("5 + x", null);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Subtraction_DiffrentPointerAliases()
+		{
+			BindHelper.NewProject
+				.AddDut("TYPE myalias1 : POINTER TO INT; END_TYPE")
+				.AddDut("TYPE myalias2 : POINTER TO INT; END_TYPE")
+				.WithGlobalVar("x", "myalias1")
+				.WithGlobalVar("y", "myalias2")
+				.BindGlobalExpression("x - y", null);
+		}
+		[Fact]
+		public static void ZeroAsAliasToPointer()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.BindGlobalExpression("0", "myAlias");
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void UnaryOperator_On_Alias_Not()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : BOOL; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("NOT x", null);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void DerefAliasPointer()
+		{
+			BindHelper.NewProject
+				.AddDut("TYPE myalias : POINTER TO LINT; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("x^", null);
+		}
+		[Fact]
+		public static void SizeofAlias()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myalias : LINT; END_TYPE")
+				.BindGlobalExpression("SIZEOF(myalias)", null);
+			Assert.IsType<SizeOfTypeBoundExpression>(boundExpression);
+			AssertEx.HasConstantValue(boundExpression, SystemScope, value =>
+				Assert.Equal(8, Assert.IsType<IntLiteralValue>(value).Value));
+		}
+		[Fact]
+		public static void Casting_AliasToBase()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
+				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("x", "mydut");
+			Assert.IsType<ImplicitAliasToBaseTypeCastBoundExpression>(boundExpression);
+			Assert.Equal("mydut", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Casting_BaseToAlias()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
+				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.WithGlobalVar("x", "mydut")
+				.BindGlobalExpression("x", "myalias");
+			Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
+			Assert.Equal("myalias", boundExpression.Type.Code);
+		}
+		[Fact]
+		public static void Casting_AliasToAlias_Diffrent()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
+				.AddDut("TYPE myalias1 : mydut; END_TYPE")
+				.AddDut("TYPE myalias2 : mydut; END_TYPE")
+				.WithGlobalVar("x", "myalias1")
+				.BindGlobalExpression("x", "myalias2");
+			var cast1 = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
+			Assert.Equal("myalias2", cast1.Type.Code);
+			var cast2 = Assert.IsType<ImplicitAliasToBaseTypeCastBoundExpression>(cast1.Value);
+			Assert.Equal("mydut", cast2.Type.Code);
+		}
+		[Fact]
+		public static void Casting_AliasToAlias_Same()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
+				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.WithGlobalVar("x", "myalias")
+				.BindGlobalExpression("x", "myalias");
+			var variable = Assert.IsType<VariableBoundExpression>(boundExpression);
+			Assert.Equal("x", variable.Variable.Name.Original);
 		}
 	}
 }

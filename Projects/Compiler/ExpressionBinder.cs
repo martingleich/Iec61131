@@ -18,16 +18,16 @@ namespace Compiler
 			}
 
 			public IBoundExpression Visit(TrueToken trueToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(trueToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(true, ExpressionBinder.SystemScope.Bool)), context);
+				=> ExpressionBinder.ImplicitCast(new LiteralBoundExpression(trueToken, new BooleanLiteralValue(true, ExpressionBinder.SystemScope.Bool)), context);
 
 			public IBoundExpression Visit(FalseToken falseToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(falseToken.SourcePosition, new LiteralBoundExpression(new BooleanLiteralValue(false, ExpressionBinder.SystemScope.Bool)), context);
+				=> ExpressionBinder.ImplicitCast(new LiteralBoundExpression(falseToken, new BooleanLiteralValue(false, ExpressionBinder.SystemScope.Bool)), context);
 
 			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
 			{
 				var type = ExpressionBinder.SystemScope.MapTokenToType(typedLiteralToken.Value.Type);
 				var boundValue = typedLiteralToken.Value.LiteralToken.Accept(this, type);
-				return ExpressionBinder.ImplicitCast(typedLiteralToken.SourcePosition, boundValue, context);
+				return ExpressionBinder.ImplicitCast(boundValue, context);
 			}
 
 			
@@ -55,7 +55,7 @@ namespace Compiler
 					finalValue = value;
 				}
 
-				return new LiteralBoundExpression(finalValue);
+				return new LiteralBoundExpression(integerLiteralToken, finalValue);
 			}
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
@@ -69,7 +69,7 @@ namespace Compiler
 					MessageBag.Add(new RealIsToLargeForTypeMessage(realLiteralToken.Value, context, realLiteralToken.SourcePosition));
 					value = new UnknownLiteralValue(context);
 				}
-				return new LiteralBoundExpression(value);
+				return new LiteralBoundExpression(realLiteralToken, value);
 			}
 
 			public IBoundExpression Visit(SingleByteStringLiteralToken singleByteStringLiteralToken, IType? context)
@@ -113,100 +113,123 @@ namespace Compiler
 		public static IBoundExpression Bind(IExpressionSyntax syntax, IScope scope, MessageBag messageBag, IType? targetType)
 			=> syntax.Accept(new ExpressionBinder(scope, messageBag), targetType);
 
-		private IBoundExpression ImplicitCast(SourcePosition errorPosition, IBoundExpression boundValue, IType? targetType)
+		private IBoundExpression ImplicitCast(IBoundExpression boundValue, IType? targetType)
 		{
 			if (targetType == null || TypeRelations.IsIdentical(boundValue.Type, targetType))
 			{
 				return boundValue;
 			}
+			else if (TypeRelations.IsAliasType(boundValue.Type, out var sourceAliasTypeSymbol))
+			{
+				var cast = new ImplicitAliasToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue, sourceAliasTypeSymbol.AliasedType);
+				return ImplicitCast(cast, targetType);
+			}
 			else if (TypeRelations.IsEnumType(boundValue.Type, out _))
 			{
-				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
-				return ImplicitCast(errorPosition, enumValue, targetType);
+				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue);
+				return ImplicitCast(enumValue, targetType);
+			}
+			else if (TypeRelations.IsAliasType(targetType, out var aliasTypeSymbol))
+			{
+				var castBaseValue = ImplicitCast(boundValue, aliasTypeSymbol.AliasedType);
+				return new ImplicitAliasFromBaseTypeCastBoundExpression(boundValue.OriginalNode, castBaseValue, aliasTypeSymbol);
 			}
 			else if (TypeRelations.IsPointerType(targetType, out var targetPointerType) && TypeRelations.IsPointerType(boundValue.Type, out _))
 			{
-				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
+				return new ImplicitPointerTypeCastBoundExpression(boundValue.OriginalNode, boundValue, targetPointerType);
 			}
 			else if (TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
 			{
-				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
+				return new ImplicitArithmeticCastBoundExpression(boundValue.OriginalNode, boundValue, targetType);
 			}
 
-			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, errorPosition));
-			return boundValue;
+			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourcePosition));
+			return new ImplicitErrorCastBoundExpression(boundValue.OriginalNode, boundValue, targetType);
 		}
 
 		public IBoundExpression Visit(LiteralExpressionSyntax literalExpressionSyntax, IType? context)
 		{
+			// Literals are typed depending on the context, we must resolve the alias to do this correctly! 
+			var realType = TypeRelations.ResolveAliasNullable(context);
 			// "0" can be converted to every pointer type
-			if (TypeRelations.IsPointerType(context, out var targetPointerType) && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
-				return new LiteralBoundExpression(new NullPointerLiteralValue(targetPointerType));
-
-			return literalExpressionSyntax.TokenValue.Accept(LiteralTokenBinder, context);
+			if (TypeRelations.IsPointerType(realType, out var targetPointerType) && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
+				return ImplicitCast(new LiteralBoundExpression(literalExpressionSyntax, new NullPointerLiteralValue(targetPointerType)), context);
+			else
+				return ImplicitCast(literalExpressionSyntax.TokenValue.Accept(LiteralTokenBinder, realType), context);
 		}
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
 		{
 			var boundLeft = binaryOperatorExpressionSyntax.Left.Accept(this, null);
 			var boundRight = binaryOperatorExpressionSyntax.Right.Accept(this, null);
-			// Special case pointer arithmetic:
-			if (TypeRelations.IsPointerType(boundLeft.Type, out _) || TypeRelations.IsPointerType(boundRight.Type, out _))
+			if (TryVisitPointerArithmetic(binaryOperatorExpressionSyntax, boundLeft, boundRight) is IBoundExpression pointerArithemticResult)
 			{
-				var bound = VisitPointerArithmetic(binaryOperatorExpressionSyntax, boundLeft, boundRight, context);
-				if (bound != null)
-				{
-					return ImplicitCast(binaryOperatorExpressionSyntax.SourcePosition, bound, context);
-				}
-				// Error-case, just to the normal flow to report errors.
+				return ImplicitCast(pointerArithemticResult, context);
 			}
-
-			// Perform naive overload resolution
-			// This function only works if the arguments for the target function both have the same type.
-			// i.e. ADD_DInt must take two DINTs, and so on.
-			var commonArgType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
-			FunctionSymbol? operatorFunction;
-			if (TypeRelations.IsBuiltInType(commonArgType, out var b))
-				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetBinaryOperatorFunction(binaryOperatorExpressionSyntax.TokenOperator, b);
 			else
-				operatorFunction = null;
-
-			if (operatorFunction == null)
 			{
-				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
-				commonArgType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
-				operatorFunction = FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: commonArgType);
-			}
+				// Perform naive overload resolution
+				// This function only works if the arguments for the target function both have the same type.
+				// i.e. ADD_DInt must take two DINTs, and so on.
+				var commonArgType = SystemScope.GetSmallestCommonImplicitCastType(boundLeft.Type, boundRight.Type);
+				var realCommonArgType = TypeRelations.ResolveAliasNullable(commonArgType);
+				OperatorFunction? operatorFunction;
+				if (TypeRelations.IsBuiltInType(realCommonArgType, out var b))
+					operatorFunction = SystemScope.BuiltInFunctionTable.TryGetBinaryOperatorFunction(binaryOperatorExpressionSyntax.TokenOperator, b);
+				else
+					operatorFunction = default;
 
-			var returnType = operatorFunction.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
-			var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.Left.SourcePosition, boundLeft, commonArgType);
-			var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.Right.SourcePosition, boundRight, commonArgType);
-			var binaryOperatorExpression = new BinaryOperatorBoundExpression(returnType, castedLeft, castedRight, operatorFunction);
-			return ImplicitCast(binaryOperatorExpressionSyntax.SourcePosition, binaryOperatorExpression, context);
+				if (!operatorFunction.HasValue)
+				{
+					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
+					commonArgType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
+					operatorFunction = new OperatorFunction(FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: commonArgType), false);
+				}
+
+				var returnType = operatorFunction.Value.Symbol.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+				var castedLeft = ImplicitCast(boundLeft, realCommonArgType);
+				var castedRight = ImplicitCast(boundRight, realCommonArgType);
+				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol
+					);
+				if (operatorFunction.Value.IsGenericReturn)
+					binaryOperatorExpression = ImplicitCast(binaryOperatorExpression, commonArgType);
+				return ImplicitCast(binaryOperatorExpression, context);
+			}
 		}
 
-		private IBoundExpression? VisitPointerArithmetic(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IBoundExpression boundLeft, IBoundExpression boundRight, IType? context)
+		private IBoundExpression? TryVisitPointerArithmetic(
+			BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax,
+			IBoundExpression boundLeft,
+			IBoundExpression boundRight)
 		{
-			if (TypeRelations.IsPointerType(boundLeft.Type, out _) && TypeRelations.IsPointerType(boundRight.Type, out _) && binaryOperatorExpressionSyntax.TokenOperator is MinusToken)
+			var baseLeftType = TypeRelations.ResolveAlias(boundLeft.Type);
+			var baseRightType = TypeRelations.ResolveAlias(boundRight.Type);
+			if (TypeRelations.IsPointerType(baseLeftType, out _) && TypeRelations.IsPointerType(baseRightType, out _) && binaryOperatorExpressionSyntax.TokenOperator is MinusToken)
 			{
-				return new PointerDiffrenceBoundExpression(boundLeft, boundRight, SystemScope.PointerDiffrence);
+				var castedLeft = ImplicitCast(boundLeft, baseLeftType);
+				var castedRight = ImplicitCast(boundRight, baseRightType);
+				return new PointerDiffrenceBoundExpression(binaryOperatorExpressionSyntax, castedLeft, castedRight, SystemScope.PointerDiffrence);
 			}
-			else if (TypeRelations.IsPointerType(boundLeft.Type, out var ptrLeft) && TypeRelations.IsBuiltInType(boundRight.Type, out var bright) && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
+			else if (TypeRelations.IsPointerType(baseLeftType, out var ptrLeft) && TypeRelations.IsBuiltInType(baseRightType, out var bright) && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
 			{
-				var castedRight = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundRight, SystemScope.PointerDiffrence);
-				return new PointerOffsetBoundExpression(
-					boundLeft,
+				var castedLeft = ImplicitCast(boundLeft, baseLeftType);
+				var castedRight = ImplicitCast(boundRight, SystemScope.PointerDiffrence);
+				return ImplicitCast(new PointerOffsetBoundExpression(
+					binaryOperatorExpressionSyntax,
+					castedLeft,
 					castedRight,
-					ptrLeft);
+					ptrLeft), boundLeft.Type);
 
 			}
-			else if (TypeRelations.IsBuiltInType(boundLeft.Type, out var lright) && lright.IsInt && TypeRelations.IsPointerType(boundRight.Type, out var ptrRight) && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
+			else if (TypeRelations.IsBuiltInType(baseLeftType, out var lright) && lright.IsInt && TypeRelations.IsPointerType(baseRightType, out var ptrRight) && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
 			{
-				var castedLeft = ImplicitCast(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft, SystemScope.PointerDiffrence);
-				return new PointerOffsetBoundExpression(
+				var castedLeft = ImplicitCast(boundLeft, SystemScope.PointerDiffrence);
+				var castedRight = ImplicitCast(boundLeft, baseLeftType);
+				return ImplicitCast(new PointerOffsetBoundExpression(
+					binaryOperatorExpressionSyntax,
+					castedRight,
 					castedLeft,
-					boundLeft,
-					ptrRight);
+					ptrRight), boundRight.Type);
 			}
 			else
 			{
@@ -217,21 +240,24 @@ namespace Compiler
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)
 		{
 			var boundValue = unaryOperatorExpressionSyntax.Value.Accept(this, null);
-			FunctionSymbol? operatorFunction;
-			if (TypeRelations.IsBuiltInType(boundValue.Type, out var b))
+			var realBoundType = TypeRelations.ResolveAlias(boundValue.Type);
+			OperatorFunction? operatorFunction;
+			if (TypeRelations.IsBuiltInType(realBoundType, out var b))
 				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetUnaryOperatorFunction(unaryOperatorExpressionSyntax.TokenOperator, b);
 			else
-				operatorFunction = null;
+				operatorFunction = default;
 
-			if (operatorFunction == null)
+			if (!operatorFunction.HasValue)
 			{
 				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundValue.Type));
-				operatorFunction = FunctionSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: boundValue.Type);
+				operatorFunction = new OperatorFunction(FunctionSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: boundValue.Type), false);
 			}
 
-			var returnType = operatorFunction.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
-			var unaryOperatorExpression = new UnaryOperatorBoundExpression(returnType, boundValue, operatorFunction);
-			return ImplicitCast(unaryOperatorExpressionSyntax.SourcePosition, unaryOperatorExpression, context);
+			var returnType = operatorFunction.Value.Symbol.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+			IBoundExpression unaryOperatorExpression = new UnaryOperatorBoundExpression(unaryOperatorExpressionSyntax, returnType, boundValue, operatorFunction.Value.Symbol);
+			if (operatorFunction.Value.IsGenericReturn)
+				unaryOperatorExpression = ImplicitCast(unaryOperatorExpression, boundValue.Type);
+			return ImplicitCast(unaryOperatorExpression, context);
 		}
 
 		public IBoundExpression Visit(ParenthesisedExpressionSyntax parenthesisedExpressionSyntax, IType? context)
@@ -241,7 +267,7 @@ namespace Compiler
 		{
 			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier.ToCaseInsensitive(), variableExpressionSyntax.SourcePosition).Extract(MessageBag);
 			var boundExpression = new VariableBoundExpression(variableExpressionSyntax, variable);
-			return ImplicitCast(variableExpressionSyntax.SourcePosition, boundExpression, context);
+			return ImplicitCast(boundExpression, context);
 		}
 
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
@@ -252,8 +278,10 @@ namespace Compiler
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
 		{
 			var value = derefExpressionSyntax.LeftSide.Accept(this, null);
+			var realValueType = TypeRelations.ResolveAlias(value.Type);
+			var castedValue = ImplicitCast(value, realValueType);
 			IType baseType;
-			if (TypeRelations.IsPointerType(value.Type, out var ptrType))
+			if (TypeRelations.IsPointerType(realValueType, out var ptrType))
 			{
 				baseType = ptrType.BaseType;
 			}
@@ -263,8 +291,8 @@ namespace Compiler
 				baseType = value.Type;
 			}
 
-			var boundExpression = new DerefBoundExpression(value, baseType);
-			return ImplicitCast(derefExpressionSyntax.SourcePosition, boundExpression, context);
+			var boundExpression = new DerefBoundExpression(derefExpressionSyntax, castedValue, baseType);
+			return ImplicitCast(boundExpression, context);
 		}
 
 		public IBoundExpression Visit(IndexAccessExpressionSyntax indexAccessExpressionSyntax, IType? context)
@@ -275,7 +303,7 @@ namespace Compiler
 		public IBoundExpression Visit(SizeOfExpressionSyntax sizeOfExpressionSyntax, IType? context)
 		{
 			var type = TypeCompiler.MapSymbolic(Scope, sizeOfExpressionSyntax.Argument, MessageBag);
-			return ImplicitCast(sizeOfExpressionSyntax.SourcePosition, new SizeOfTypeBoundExpression(type, Scope.SystemScope.Int), context);
+			return ImplicitCast(new SizeOfTypeBoundExpression(sizeOfExpressionSyntax, type, Scope.SystemScope.Int), context);
 		}
 
 		public IBoundExpression Visit(CallExpressionSyntax callExpressionSyntax, IType? context)

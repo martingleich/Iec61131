@@ -207,10 +207,15 @@ namespace Compiler
 			// Signed + Unsigned => The next signed type that is bigger than both.
 			if (TypeRelations.IsIdentical(a, b))
 				return a;
+			if (TypeRelations.IsAliasType(a, out var aliasTypeSymbolA))
+				return GetSmallestCommonImplicitCastType(aliasTypeSymbolA.AliasedType, b);
+			if (TypeRelations.IsAliasType(b, out var aliasTypeSymbolB))
+				return GetSmallestCommonImplicitCastType(a, aliasTypeSymbolB.AliasedType);
 			if (TypeRelations.IsEnumType(a, out var enumA))
 				return GetSmallestCommonImplicitCastType(enumA.BaseType, b);
 			if (TypeRelations.IsEnumType(b, out var enumB))
 				return GetSmallestCommonImplicitCastType(a, enumB.BaseType);
+
 			if (TypeRelations.IsBuiltInType(a, out var builtInA) && TypeRelations.IsBuiltInType(b, out var builtInB) && builtInA.IsArithmetic && builtInB.IsArithmetic)
 			{
 				// Must be compatible with IsAllowedArithmeticImplicitCast

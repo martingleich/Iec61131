@@ -1,5 +1,6 @@
 ﻿using Compiler.Types;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
@@ -25,18 +26,6 @@ namespace Compiler
 			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
 				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, type)));
-		}
-
-		public struct BuiltInId
-		{
-			public readonly string Id;
-
-			public BuiltInId(string id)
-			{
-				Id = id ?? throw new ArgumentNullException(nameof(id));
-			}
-
-			public override string ToString() => Id;
 		}
 
 		public BuiltInFunctionTable(SystemScope systemScope)
@@ -234,46 +223,67 @@ namespace Compiler
 		public bool TryGetConstantEvaluator(FunctionSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;
 		public SymbolSet<FunctionSymbol> AllFunctions { get; }
-		public FunctionSymbol? TryGetBinaryOperatorFunction(IBinaryOperatorToken token, BuiltInType type)
+		private OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
+		{
+			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionSymbol func)
+				return new (func, op.IsGenericReturn);
+			else
+				return default;
+		}
+		public OperatorFunction? TryGetBinaryOperatorFunction(IBinaryOperatorToken token, BuiltInType type)
 		{
 			var op = token.Accept(BinaryOperatorMap.Instance);
-			return AllFunctions.TryGetValue($"{op.Id}_{type.Name}".ToCaseInsensitive());
+			return TryGetOperatorFunction(op, type);
 		}
-		public FunctionSymbol? TryGetUnaryOperatorFunction(IUnaryOperatorToken token, BuiltInType type)
+		public OperatorFunction? TryGetUnaryOperatorFunction(IUnaryOperatorToken token, BuiltInType type)
 		{
 			var op = token.Accept(UnaryOperatorMap.Instance);
-			return AllFunctions.TryGetValue($"{op.Id}_{type.Name}".ToCaseInsensitive());
+			return TryGetOperatorFunction(op, type);
 		}
 
-		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<BuiltInId>
+		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<(string Name, bool IsGenericReturn)>
 		{
 			public static readonly BinaryOperatorMap Instance = new();
 
-			public BuiltInId Visit(EqualToken equalToken) => new ("EQUAL");
-			public BuiltInId Visit(LessEqualToken lessEqualToken) => new ("LESS_EQUAL");
-			public BuiltInId Visit(LessToken lessToken) => new ("LESS");
-			public BuiltInId Visit(GreaterToken greaterToken) => new ("GREATER");
-			public BuiltInId Visit(GreaterEqualToken greaterEqualToken) => new ("GREATER_EQUAL");
-			public BuiltInId Visit(UnEqualToken unEqualToken) => new ("NOT_EQUAL");
+			public (string, bool) Visit(EqualToken equalToken) => ("EQUAL", false);
+			public (string, bool) Visit(LessEqualToken lessEqualToken) => ("LESS_EQUAL", false);
+			public (string, bool) Visit(LessToken lessToken) => ("LESS", false);
+			public (string, bool) Visit(GreaterToken greaterToken) => ("GREATER", false);
+			public (string, bool) Visit(GreaterEqualToken greaterEqualToken) => ("GREATER_EQUAL", false);
+			public (string, bool) Visit(UnEqualToken unEqualToken) => ("NOT_EQUAL", false);
 
-			public BuiltInId Visit(PlusToken plusToken) => new ("ADD");
-			public BuiltInId Visit(MinusToken minusToken) => new ("SUB");
-			public BuiltInId Visit(StarToken starToken) => new ("MUL");
-			public BuiltInId Visit(SlashToken slashToken) => new ("DIV");
-			public BuiltInId Visit(ModToken modToken) => new ("MOD");
-			public BuiltInId Visit(PowerToken powerToken) => new ("POW");
+			public (string, bool) Visit(PlusToken plusToken) => ("ADD", true);
+			public (string, bool) Visit(MinusToken minusToken) => ("SUB", true);
+			public (string, bool) Visit(StarToken starToken) => ("MUL", true);
+			public (string, bool) Visit(SlashToken slashToken) => ("DIV", true);
+			public (string, bool) Visit(ModToken modToken) => ("MOD", true);
+			public (string, bool) Visit(PowerToken powerToken) => ("POW", true);
 
-			public BuiltInId Visit(AndToken andToken) => new ("AND");
-			public BuiltInId Visit(XorToken xorToken) => new ("XOR");
-			public BuiltInId Visit(OrToken orToken) => new ("OR");
+			public (string, bool) Visit(AndToken andToken) => ("AND", true);
+			public (string, bool) Visit(XorToken xorToken) => ("XOR", true);
+			public (string, bool) Visit(OrToken orToken) => ("OR", true);
 		}
 	
-		private sealed class UnaryOperatorMap : IUnaryOperatorToken.IVisitor<BuiltInId>
+		private sealed class UnaryOperatorMap : IUnaryOperatorToken.IVisitor<(string Name, bool IsGenericReturn)>
 		{
 			public static readonly UnaryOperatorMap Instance = new();
 
-			public BuiltInId Visit(MinusToken minusToken) => new("NEG");
-			public BuiltInId Visit(NotToken notToken) => new("NOT");
+			public (string Name, bool IsGenericReturn) Visit(MinusToken minusToken) => ("NEG", true);
+			public (string Name, bool IsGenericReturn) Visit(NotToken notToken) => ("NOT", true);
+		}
+	}
+
+	public readonly struct OperatorFunction
+	{
+		public readonly FunctionSymbol Symbol;
+		/// Is the operator "generic", i.e. Is the return type equal to the argument types.
+		/// This is only relevant for alias types.
+		public readonly bool IsGenericReturn;
+
+		public OperatorFunction(FunctionSymbol symbol, bool isGenericReturn)
+		{
+			Symbol = symbol;
+			IsGenericReturn = isGenericReturn;
 		}
 	}
 }

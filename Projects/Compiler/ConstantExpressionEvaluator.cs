@@ -24,11 +24,45 @@ namespace Compiler
 		public static ILiteralValue? EvaluateConstant(IBoundExpression expression, MessageBag messages, SystemScope systemScope)
 			=> expression.Accept(new ConstantExpressionEvaluator(messages, systemScope));
 
+		private ILiteralValue? NotAConstant(IBoundExpression node) => NotAConstant(node.OriginalNode);
+		private ILiteralValue? NotAConstant(INode node)
+		{
+			MessageBag.Add(new NotAConstantMessage(node.SourcePosition));
+			return null;
+		}
+		private ILiteralValue? EvaluateConstantFunction(IBoundExpression expression, FunctionSymbol function, params ILiteralValue?[] args)
+		{
+			if (!args.HasNoNullElement(out var nonNullArgs))
+				return null; // The args are not constant, this is already an error. Do not report an error again.
+
+			if (!SystemScope.BuiltInFunctionTable.TryGetConstantEvaluator(function, out var func))
+				return NotAConstant(expression);
+
+			try
+			{
+				return func(expression.Type, nonNullArgs);
+			}
+			catch (InvalidCastException) // The values have the wrong type, i.e. The expression binder must already reported an error for this
+			{
+				return null;
+			}
+			catch (DivideByZeroException) // Divsion by zero in constant context
+			{
+				MessageBag.Add(new DivsionByZeroInConstantContextMessage(default));
+				return null;
+			}
+			catch (OverflowException) // Overflow in constant context
+			{
+				MessageBag.Add(new OverflowInConstantContextMessage(default));
+				return null;
+			}
+		}
+		
 		public ILiteralValue? Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
 		{
 			var leftValue = binaryOperatorBoundExpression.Left.Accept(this);
 			var rightValue = binaryOperatorBoundExpression.Right.Accept(this);
-			return EvaluateConstantFunction(binaryOperatorBoundExpression.Type, binaryOperatorBoundExpression.Function, leftValue, rightValue);
+			return EvaluateConstantFunction(binaryOperatorBoundExpression, binaryOperatorBoundExpression.Function, leftValue, rightValue);
 		}
 
 		public ILiteralValue? Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCastBoundExpression)
@@ -58,14 +92,14 @@ namespace Compiler
 			}
 			else
 			{
-				return NotAConstant(default);
+				return NotAConstant(implicitArithmeticCastBoundExpression.OriginalNode);
 			}
 		}
 
 		public ILiteralValue? Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
 		{
 			var value = unaryOperatorBoundExpression.Value.Accept(this);
-			return EvaluateConstantFunction(unaryOperatorBoundExpression.Type, unaryOperatorBoundExpression.Function, value);
+			return EvaluateConstantFunction(unaryOperatorBoundExpression, unaryOperatorBoundExpression.Function, value);
 		}
 
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
@@ -73,7 +107,7 @@ namespace Compiler
 		{
 			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, default);
 			if (undefinedLayoutInf.TryGet(out var layoutInfo))
-				return new DIntLiteralValue(layoutInfo.Size, sizeOfTypeBoundExpression.Type);
+				return new IntLiteralValue(checked((short)layoutInfo.Size), sizeOfTypeBoundExpression.Type);
 			else
 				return null;
 		}
@@ -82,7 +116,7 @@ namespace Compiler
 			if (variableBoundExpression.Variable is EnumValueSymbol enumValueSymbol)
 				return enumValueSymbol._GetConstantValue(MessageBag);
 			else
-				return NotAConstant(variableBoundExpression.OriginalSyntax?.SourcePosition);
+				return NotAConstant(variableBoundExpression.OriginalNode);
 		}
 
 		public ILiteralValue? Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression)
@@ -91,42 +125,19 @@ namespace Compiler
 			return (x as EnumLiteralValue)?.InnerValue; // No error necessary, typify already generates one.
 		}
 
-		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => NotAConstant(default);
-		public ILiteralValue? Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression) => NotAConstant(default);
-		public ILiteralValue? Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAConstant(default);
-		public ILiteralValue? Accept(DerefBoundExpression derefBoundExpression) => NotAConstant(default);
+		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => NotAConstant(implicitPointerTypeCaseBoundExpression);
+		public ILiteralValue? Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression) => NotAConstant(pointerDiffrenceBoundExpression);
+		public ILiteralValue? Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAConstant(pointerOffsetBoundExpression);
+		public ILiteralValue? Accept(DerefBoundExpression derefBoundExpression) => NotAConstant(derefBoundExpression);
+		public ILiteralValue? Accept(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression) => NotAConstant(aliasToBaseTypeCastBoundExpression);
 
-		private ILiteralValue? NotAConstant(SourcePosition? position)
+		public ILiteralValue? Accept(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression)
 		{
-			MessageBag.Add(new NotAConstantMessage(position ?? default));
+			// This is never a constant, since it is only generated for compile errors, report error for the inner values, and go on.
+			implicitErrorCastBoundExpression.Value.Accept(this);
 			return null;
 		}
-		private ILiteralValue? EvaluateConstantFunction(IType returnType, FunctionSymbol function, params ILiteralValue?[] args)
-		{
-			if (!args.HasNoNullElement(out var nonNullArgs))
-				return null; // The args are not constant, this is already an error. Do not report an error again.
 
-			if (!SystemScope.BuiltInFunctionTable.TryGetConstantEvaluator(function, out var func))
-				return NotAConstant(default);
-
-			try
-			{
-				return func(returnType, nonNullArgs);
-			}
-			catch (InvalidCastException) // The values have the wrong type, i.e. The expression binder must already reported an error for this
-			{
-				return null;
-			}
-			catch (DivideByZeroException) // Divsion by zero in constant context
-			{
-				MessageBag.Add(new DivsionByZeroInConstantContextMessage(default));
-				return null;
-			}
-			catch (OverflowException) // Overflow in constant context
-			{
-				MessageBag.Add(new OverflowInConstantContextMessage(default));
-				return null;
-			}
-		}
+		public ILiteralValue? Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAConstant(implicitAliasFromBaseTypeCastBoundExpression);
 	}
 }

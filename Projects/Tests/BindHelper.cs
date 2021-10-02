@@ -43,7 +43,7 @@ namespace Tests
 				return new (boundPous);
 			}
 
-			public IBoundExpression BindGlobalExpression(string expression, IType? targetType, params Action<IMessage>[] checks)
+			public IBoundExpression BindGlobalExpression(string expression, string? targetType, params Action<IMessage>[] checks)
 				=> new TestGlobalExpression(this).BindGlobalExpression(expression, targetType, checks);
 			public TestGlobalExpression WithGlobalVar(string name, string type)
 				=> new TestGlobalExpression(this).WithGlobalVar(name, type);
@@ -74,7 +74,20 @@ namespace Tests
 				return new(Project, Variables.Add(name.ToCaseInsensitive(), parsed));
 			}
 
-			public IBoundExpression BindGlobalExpression(string expression, IType? targetType, params Action<IMessage>[] checks)
+			private static IType MapType(IScope scope, string typeText)
+			{
+				var typeSyntax = ParserTestHelper.ParseType(typeText);
+				return MapType(scope, typeSyntax);
+			}
+			private static IType MapType(IScope scope, ITypeSyntax typeSyntax)
+			{
+				var messageBag = new MessageBag();
+				var type = TypeCompiler.MapComplete(scope, typeSyntax, messageBag);
+				Assert.Empty(messageBag);
+				return type;
+			}
+
+			public IBoundExpression BindGlobalExpression(string expression, string? targetTypeText, params Action<IMessage>[] checks)
 			{
 				var expressionParseMessages = new MessageBag();
 				var expressionSyntax = Parser.ParseExpression(expression, expressionParseMessages);
@@ -83,11 +96,10 @@ namespace Tests
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
 				var moduleScope = new GlobalModuleScope(boundModuleInterface, RootScope.Instance);
-				var messageBag = new MessageBag();
-				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(x.Key, default, TypeCompiler.MapComplete(moduleScope, x.Value, messageBag)));
-				Assert.Empty(messageBag);
+				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(x.Key, default, MapType(moduleScope, x.Value)));
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();
+				var targetType = targetTypeText != null ? MapType(moduleScope, targetTypeText) : null;
 				var boundExpression = ExpressionBinder.Bind(expressionSyntax, realScope, bindMessages, targetType);
 				ExactlyMessages(checks)(bindMessages.ToImmutable());
 				return boundExpression;
@@ -125,6 +137,13 @@ namespace Tests
 			var bag = new MessageBag();
 			ConstantExpressionEvaluator.EvaluateConstant(expression, bag, systemScope);
 			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
+		}
+		public static void HasConstantValue(IBoundExpression expression, SystemScope systemScope, Action<ILiteralValue?> checker)
+		{
+			var bag = new MessageBag();
+			var actualValue = ConstantExpressionEvaluator.EvaluateConstant(expression, bag, systemScope);
+			ExactlyMessages()(bag);
+			checker(actualValue);
 		}
 	}
 }

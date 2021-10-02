@@ -7,6 +7,7 @@ namespace Compiler
 	public interface IBoundExpression
 	{
 		IType Type { get; }
+		INode OriginalNode { get; }
 
 		T Accept<T>(IVisitor<T> visitor);
 
@@ -23,6 +24,9 @@ namespace Compiler
 			T Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression);
 			T Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression);
 			T Accept(DerefBoundExpression derefBoundExpression);
+			T Accept(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression);
+			T Accept(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression);
+			T Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression);
 		}
 	}
 
@@ -44,9 +48,11 @@ namespace Compiler
 	public sealed class LiteralBoundExpression : IBoundExpression
 	{
 		public readonly ILiteralValue Value;
+		public INode OriginalNode { get; }
 
-		public LiteralBoundExpression(ILiteralValue value)
+		public LiteralBoundExpression(INode originalNode, ILiteralValue value)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -57,8 +63,10 @@ namespace Compiler
 	public sealed class SizeOfTypeBoundExpression : IBoundExpression
 	{
 		public readonly IType ArgType;
-		public SizeOfTypeBoundExpression(IType argType, IType type)
+		public INode OriginalNode { get; }
+		public SizeOfTypeBoundExpression(INode originalNode, IType argType, IType type)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			ArgType = argType ?? throw new ArgumentNullException(nameof(argType));
 			Type = type;
 		}
@@ -69,13 +77,13 @@ namespace Compiler
 
 	public sealed class VariableBoundExpression : IBoundExpression
 	{
-		public VariableBoundExpression(ISyntax? originalSyntax, IVariableSymbol variable)
+		public INode OriginalNode { get; }
+		public VariableBoundExpression(ISyntax originalNode, IVariableSymbol variable)
 		{
-			OriginalSyntax = originalSyntax;
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
-		public ISyntax? OriginalSyntax { get; }
 		public IVariableSymbol Variable { get; }
 		public IType Type => Variable.Type;
 
@@ -84,8 +92,10 @@ namespace Compiler
 	
 	public sealed class ImplicitEnumToBaseTypeCastBoundExpression : IBoundExpression
 	{
-		public ImplicitEnumToBaseTypeCastBoundExpression(IBoundExpression value)
+		public INode OriginalNode { get; }
+		public ImplicitEnumToBaseTypeCastBoundExpression(INode originalNode, IBoundExpression value)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -96,8 +106,10 @@ namespace Compiler
 	}
 	public sealed class ImplicitPointerTypeCastBoundExpression : IBoundExpression
 	{
-		public ImplicitPointerTypeCastBoundExpression(IBoundExpression value, PointerType targetType)
+		public INode OriginalNode { get; }
+		public ImplicitPointerTypeCastBoundExpression(INode originalNode, IBoundExpression value, PointerType targetType)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 			Type = targetType ?? throw new ArgumentNullException(nameof(targetType));
 		}
@@ -111,9 +123,11 @@ namespace Compiler
 	public sealed class ImplicitArithmeticCastBoundExpression : IBoundExpression
 	{
 		public readonly IBoundExpression Value;
+		public INode OriginalNode { get; }
 
-		public ImplicitArithmeticCastBoundExpression(IBoundExpression value, IType type)
+		public ImplicitArithmeticCastBoundExpression(INode originalNode, IBoundExpression value, IType type)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
@@ -121,14 +135,63 @@ namespace Compiler
 		public IType Type { get; }
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
 	}
+	public sealed class ImplicitErrorCastBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Value;
+		public INode OriginalNode { get; }
+
+		public ImplicitErrorCastBoundExpression(INode originalNode, IBoundExpression value, IType type)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class ImplicitAliasToBaseTypeCastBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Value;
+		public INode OriginalNode { get; }
+
+		public ImplicitAliasToBaseTypeCastBoundExpression(INode originalNode, IBoundExpression value, IType type)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class ImplicitAliasFromBaseTypeCastBoundExpression : IBoundExpression
+	{
+		public readonly IBoundExpression Value;
+		public INode OriginalNode { get; }
+
+		public ImplicitAliasFromBaseTypeCastBoundExpression(INode originalNode, IBoundExpression value, IType type)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public IType Type { get; }
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
 	
 	public sealed class PointerDiffrenceBoundExpression : IBoundExpression
 	{
+		public INode OriginalNode { get; }
 		public readonly IBoundExpression Left;
 		public readonly IBoundExpression Right;
 
-		public PointerDiffrenceBoundExpression(IBoundExpression left, IBoundExpression right, IType type)
+		public PointerDiffrenceBoundExpression(INode originalNode, IBoundExpression left, IBoundExpression right, IType type)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Left = left ?? throw new ArgumentNullException(nameof(left));
 			Right = right ?? throw new ArgumentNullException(nameof(right));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
@@ -140,11 +203,13 @@ namespace Compiler
 	}
 	public sealed class PointerOffsetBoundExpression : IBoundExpression
 	{
+		public INode OriginalNode { get; }
 		public readonly IBoundExpression Left;
 		public readonly IBoundExpression Right;
 
-		public PointerOffsetBoundExpression(IBoundExpression left, IBoundExpression right, IType type)
+		public PointerOffsetBoundExpression(INode originalNode, IBoundExpression left, IBoundExpression right, IType type)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Left = left ?? throw new ArgumentNullException(nameof(left));
 			Right = right ?? throw new ArgumentNullException(nameof(right));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
@@ -157,13 +222,15 @@ namespace Compiler
 
 	public sealed class BinaryOperatorBoundExpression : IBoundExpression
 	{
+		public INode OriginalNode { get; }
 		public IType Type { get; }
 		public readonly IBoundExpression Left;
 		public readonly IBoundExpression Right;
 		public readonly FunctionSymbol Function;
 
-		public BinaryOperatorBoundExpression(IType type, IBoundExpression left, IBoundExpression right, FunctionSymbol function)
+		public BinaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression left, IBoundExpression right, FunctionSymbol function)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Left = left ?? throw new ArgumentNullException(nameof(left));
 			Right = right ?? throw new ArgumentNullException(nameof(right));
@@ -174,12 +241,14 @@ namespace Compiler
 	}
 	public sealed class UnaryOperatorBoundExpression : IBoundExpression
 	{
+		public INode OriginalNode { get; }
 		public IType Type { get; }
 		public readonly IBoundExpression Value;
 		public readonly FunctionSymbol Function;
 
-		public UnaryOperatorBoundExpression(IType type, IBoundExpression value, FunctionSymbol function)
+		public UnaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression value, FunctionSymbol function)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 			Function = function ?? throw new ArgumentNullException(nameof(function));
@@ -190,11 +259,13 @@ namespace Compiler
 
 	public sealed class DerefBoundExpression : IBoundExpression
 	{
+		public INode OriginalNode { get; }
 		public IType Type { get; }
 		public readonly IBoundExpression Value;
 
-		public DerefBoundExpression(IBoundExpression value, IType type)
+		public DerefBoundExpression(INode originalNode, IBoundExpression value, IType type)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}

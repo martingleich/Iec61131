@@ -1,6 +1,4 @@
 Add GVLs
-Add Alias types
-	-ImplicitCasts from and to alias must be generated as needed.
 Add Compoaccess
 Add Indexaccess
 Allow function calls
