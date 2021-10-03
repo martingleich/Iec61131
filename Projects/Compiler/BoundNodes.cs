@@ -27,6 +27,8 @@ namespace Compiler
 			T Accept(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression);
 			T Accept(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression);
 			T Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression);
+			T Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression);
+			T Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
 		}
 	}
 
@@ -268,6 +270,36 @@ namespace Compiler
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Value = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class ArrayIndexAccessBoundExpression : IBoundExpression
+	{
+		public INode OriginalNode { get; }
+		public IType Type { get; }
+		public readonly ImmutableArray<IBoundExpression> Indices;
+
+		public ArrayIndexAccessBoundExpression(INode originalNode, IType type, ImmutableArray<IBoundExpression> indices)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			Indices = indices;
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+	public sealed class PointerIndexAccessBoundExpression : IBoundExpression
+	{
+		public INode OriginalNode { get; }
+		public IType Type { get; }
+		public readonly ImmutableArray<IBoundExpression> Indices;
+
+		public PointerIndexAccessBoundExpression(INode originalNode, IType type, ImmutableArray<IBoundExpression> indices)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			Indices = indices;
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);

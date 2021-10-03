@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Immutable;
+using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
@@ -297,7 +299,35 @@ namespace Compiler
 
 		public IBoundExpression Visit(IndexAccessExpressionSyntax indexAccessExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			void CheckIndexCount(int expectedCount, ImmutableArray<IBoundExpression> boundIndices)
+			{
+				if (expectedCount != boundIndices.Length)
+				{
+					var sourcePos = expectedCount < boundIndices.Length
+						? boundIndices.Skip(expectedCount).SourcePositionHull()
+						: boundIndices.Last().OriginalNode.SourcePosition;
+					MessageBag.Add(new WrongNumberOfDimensionInIndexMessage(1, boundIndices.Length, sourcePos));
+				}
+			}
+
+			var boundBase =  indexAccessExpressionSyntax.LeftSide.Accept(this, null);
+			var castedIndices = indexAccessExpressionSyntax.Indices.Select(idx => ImplicitCast(idx.Accept(this, null), SystemScope.PointerDiffrence)).ToImmutableArray();
+			var realBaseType = TypeRelations.ResolveAlias(boundBase.Type);
+			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
+			{
+				CheckIndexCount(1, castedIndices);
+				return ImplicitCast(new PointerIndexAccessBoundExpression(indexAccessExpressionSyntax, pointerBaseType.BaseType, castedIndices), context);
+			}
+			else if (TypeRelations.IsArrayType(realBaseType, out var arrayBaseType))
+			{
+				CheckIndexCount(arrayBaseType.Ranges.Length, castedIndices);
+				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, arrayBaseType.BaseType, castedIndices), context);
+			}
+			else
+			{
+				MessageBag.Add(new CannotIndexTypeMessage(boundBase.Type, indexAccessExpressionSyntax.TokenBracketOpen.SourcePosition));
+				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase.Type, castedIndices), context);
+			}
 		}
 
 		public IBoundExpression Visit(SizeOfExpressionSyntax sizeOfExpressionSyntax, IType? context)

@@ -130,7 +130,11 @@ namespace Tests
 	{
 		public static void EqualType(IType expected, IType passed)
 		{
-			Assert.Equal(expected.Code, passed.Code);
+			EqualType(expected.Code, passed);
+		}
+		public static void EqualType(string typeCode, IType passed)
+		{
+			Assert.Equal(typeCode.ToCaseInsensitive(), passed.Code.ToCaseInsensitive());
 		}
 		public static void NotAConstant(IBoundExpression expression, SystemScope systemScope)
 		{

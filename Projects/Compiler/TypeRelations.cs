@@ -55,6 +55,7 @@ namespace Compiler
 		public static bool IsEnumType(IType? type, [NotNullWhen(true)] out EnumTypeSymbol? enumTypeSymbol) => IsType(type, out enumTypeSymbol);
 		public static bool IsAliasType(IType? type, [NotNullWhen(true)] out AliasTypeSymbol? aliasTypeSymbol) => IsType(type, out aliasTypeSymbol);
 		public static bool IsPointerType(IType? type, [NotNullWhen(true)] out PointerType? pointerType) => IsType(type, out pointerType);
+		public static bool IsArrayType(IType? type, [NotNullWhen(true)] out ArrayType? arrayType) => IsType(type, out arrayType);
 		public static IType ResolveAlias(IType type)
 		{
 			if (IsAliasType(type, out var aliasTypeSymbol))

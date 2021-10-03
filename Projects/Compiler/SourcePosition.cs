@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Compiler
 {
@@ -36,5 +38,13 @@ namespace Compiler
 		public static bool operator !=(SourcePosition left, SourcePosition right) => !(left == right);
 		[ExcludeFromCodeCoverage]
 		public override string ToString() => $"{Start}:{End - Start}";
+	}
+
+
+	public static class SourcePositionEx
+	{
+		public static SourcePosition ConvexHull(this IEnumerable<SourcePosition> self) => self.Aggregate(SourcePosition.ConvexHull);
+		public static SourcePosition SourcePositionHull(this IEnumerable<INode> self) => self.Select(self => self.SourcePosition).ConvexHull();
+		public static SourcePosition SourcePositionHull(this IEnumerable<IBoundExpression> self) => self.Select(self => self.OriginalNode).SourcePositionHull();
 	}
 }

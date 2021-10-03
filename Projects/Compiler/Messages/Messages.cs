@@ -269,4 +269,39 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot dereference a expression of type '{Type.Code}'.";
 	}
+	public sealed class CannotIndexTypeMessage : ACriticalMessage
+	{
+		public readonly IType Type;
+
+		public CannotIndexTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Type = type;
+		}
+
+		public override string Text => $"Cannot perform a index access on expression of type '{Type.Code}'.";
+	}
+	public sealed class CannotIndexWithTypeMessage : ACriticalMessage
+	{
+		public readonly IType Type;
+
+		public CannotIndexWithTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Type = type;
+		}
+
+		public override string Text => $"Cannot perform a index access with expression of type '{Type.Code}'.";
+	}
+	public sealed class WrongNumberOfDimensionInIndexMessage : ACriticalMessage
+	{
+		public readonly int ExpectedIndices;
+		public readonly int PassedIndices;
+
+		public WrongNumberOfDimensionInIndexMessage(int expectedIndices, int passedIndices, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			ExpectedIndices = expectedIndices;
+			PassedIndices = passedIndices;
+		}
+
+		public override string Text => $"Expected {ExpectedIndices} indexes to access this array, but only received {PassedIndices}.";
+	}
 }
