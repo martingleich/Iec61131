@@ -149,6 +149,15 @@ namespace Compiler
 			return new ImplicitErrorCastBoundExpression(boundValue.OriginalNode, boundValue, targetType);
 		}
 
+		private (IBoundExpression, PointerType)? TryImplicitCastToPointer(IBoundExpression boundValue)
+		{
+			var resolved = TypeRelations.ResolveAlias(boundValue.Type);
+			if (TypeRelations.IsPointerType(resolved, out var pointerType))
+				return (ImplicitCast(boundValue, pointerType), pointerType);
+			else
+				return null;
+		}
+
 		public IBoundExpression Visit(LiteralExpressionSyntax literalExpressionSyntax, IType? context)
 		{
 			// Literals are typed depending on the context, we must resolve the alias to do this correctly! 
@@ -280,17 +289,18 @@ namespace Compiler
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
 		{
 			var value = derefExpressionSyntax.LeftSide.Accept(this, null);
-			var realValueType = TypeRelations.ResolveAlias(value.Type);
-			var castedValue = ImplicitCast(value, realValueType);
+			IBoundExpression castedValue;
 			IType baseType;
-			if (TypeRelations.IsPointerType(realValueType, out var ptrType))
+			if (TryImplicitCastToPointer(value) is (IBoundExpression, PointerType) castResult)
 			{
-				baseType = ptrType.BaseType;
+				baseType = castResult.Item2.BaseType;
+				castedValue = castResult.Item1;
 			}
 			else
 			{
 				MessageBag.Add(new CannotDereferenceTypeMessage(value.Type, derefExpressionSyntax.SourcePosition));
 				baseType = value.Type;
+				castedValue = value;
 			}
 
 			var boundExpression = new DerefBoundExpression(derefExpressionSyntax, castedValue, baseType);
