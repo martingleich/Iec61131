@@ -8,7 +8,7 @@ namespace Tests
 	using static ErrorTestHelper;
 	public static class ExpressionBinderTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		public static class Literal
 		{
 			public static readonly object[][] NoTargetTypeValues = {
@@ -374,7 +374,7 @@ namespace Tests
 
 	public static class ExpressionBinderTests_PointerArithmetic
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 
 		[Fact]
 		public static void PointerPlusInteger()
@@ -425,7 +425,7 @@ namespace Tests
 
 	public static class ExpressionBinderTests_Aliases
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public static void LiteralAsAlias_SInt()
 		{
@@ -739,6 +739,60 @@ namespace Tests
 			BindHelper.NewProject
 				.WithGlobalVar("arr", "POINTER TO INT")
 				.BindGlobalExpression("arr[4, 9]", null, ErrorOfType<WrongNumberOfDimensionInIndexMessage>());
+		}
+	}
+
+	public static class ExpressionBinderTests_FieldAccess
+	{
+		[Fact]
+		public static void Error_NonStructuredType_Int()
+		{
+			BindHelper.NewProject
+				.WithGlobalVar("value", "INT")
+				.BindGlobalExpression("value.xyz", null, ErrorOfType<FieldNotFoundMessage>());
+		}
+		[Fact]
+		public static void Error_StructuredType_DoesNotContainField()
+		{
+			BindHelper.NewProject
+				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.WithGlobalVar("value", "myDut")
+				.BindGlobalExpression("value.abc", null, ErrorOfType<FieldNotFoundMessage>());
+		}
+		[Fact]
+		public static void Error_NoCascadingError()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("(TRUE * FALSE).abc", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
+		}
+		[Fact]
+		public static void FieldOnVariable()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.WithGlobalVar("value", "myDut")
+				.BindGlobalExpression("value.myField", null);
+			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
+			Assert.Equal("myField".ToCaseInsensitive(), fieldAccess.Field.Name);
+		}
+		[Fact]
+		public static void FieldOnIndex()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.WithGlobalVar("values", "ARRAY[0..10] OF myDut")
+				.BindGlobalExpression("values[1].myField", null);
+			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
+			Assert.Equal("myField".ToCaseInsensitive(), fieldAccess.Field.Name);
+		}
+		[Fact]
+		public static void FieldCastedResult()
+		{
+			var boundExpression = BindHelper.NewProject
+				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.WithGlobalVar("value", "myDut")
+				.BindGlobalExpression("value.myField", "DINT");
+			Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundExpression);
 		}
 	}
 }

@@ -14,6 +14,9 @@ namespace Tests
 
 	public static class BindHelper
 	{
+		public static readonly SystemScope SystemScope = new ();
+		public static readonly RootScope RootScope = new (SystemScope);
+
 		public sealed class TestProject
 		{
 			public readonly Project MyProject;
@@ -95,7 +98,7 @@ namespace Tests
 				ExactlyMessages()(Project.MyProject.LazyParseMessages.Value);
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
-				var moduleScope = new GlobalModuleScope(boundModuleInterface, RootScope.Instance);
+				var moduleScope = new GlobalModuleScope(boundModuleInterface, RootScope);
 				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(x.Key, default, MapType(moduleScope, x.Value)));
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();

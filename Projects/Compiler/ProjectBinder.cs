@@ -55,18 +55,13 @@ namespace Compiler
 		private (IBoundStatement, ImmutableArray<IMessage>) Bind()
 		{
 			var messageBag = new MessageBag();
-			// Step 1: Create a scope for the body.
-			//		a) Create a symbol set for the remaining variables.
 			var localVariables = BindLocalVariables(Interface.VariableDeclarations, Scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
 			foreach (var local in localVariables)
 			{
 				if (Symbol.Parameters.TryGetValue(local.Name, out var existing))
 					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringPosition, local.DeclaringPosition));
 			}
-			//		b) Create a statement scope A for the Symbol
-			//		c) Create a statement scope B(A) with the remaining variables.
 			var scope = new InsideFunctionScope(Scope, Symbol, localVariables);
-			// Step 2: Bind the body
 			var bound = StatementBinder.Bind(Body, scope, messageBag);
 			return (bound, messageBag.ToImmutable());
 		}
@@ -97,7 +92,8 @@ namespace Compiler
 		private readonly PouSymbolCreatorT PouSymbolCreator;
 
 		private ProjectBinder(
-			ImmutableArray<ParsedDutLanguageSource> duts) : base(RootScope.Instance)
+			RootScope rootScope,
+			ImmutableArray<ParsedDutLanguageSource> duts) : base(rootScope)
 		{
 			PouSymbolCreator = new(this, MessageBag);
 			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
@@ -303,7 +299,7 @@ namespace Compiler
 		{
 			if (gvls.Any())
 				throw new NotImplementedException();
-			var binder = new ProjectBinder(duts);
+			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts);
 			return binder.Bind(pous);
 		}
 

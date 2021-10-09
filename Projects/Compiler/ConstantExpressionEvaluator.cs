@@ -141,5 +141,6 @@ namespace Compiler
 		public ILiteralValue? Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAConstant(implicitAliasFromBaseTypeCastBoundExpression);
 		public ILiteralValue? Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => NotAConstant(arrayIndexAccessBoundExpression);
 		public ILiteralValue? Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
+		public ILiteralValue? Accept(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
 	}
 }

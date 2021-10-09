@@ -14,7 +14,7 @@ namespace Tests
 
 	public sealed class InterfaceBindingTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 
 		[Fact]
 		public void EmptyModule()
@@ -157,7 +157,7 @@ namespace Tests
 
 	public sealed class TypeCompilerTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		private static readonly StructuredTypeSymbol MyType = new(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
 		private sealed class TypeSetScope : AInnerScope<IScope>
 		{
@@ -176,7 +176,7 @@ namespace Tests
 
 		private static void AssertTypeCompiler(string input, Action<IType> check)
 		{
-			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), RootScope.Instance);
+			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), BindHelper.RootScope);
 			var source = ParserTestHelper.ParseType(input);
 			var bag = new MessageBag();
 			var bound = Compiler.TypeCompiler.MapComplete(naiveScope, source, bag);
@@ -210,7 +210,7 @@ namespace Tests
 
 	public sealed class EnumBindingTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void EmptyEnum()
 		{
@@ -279,7 +279,7 @@ namespace Tests
 
 	public sealed class FunctionBindingTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void EmptyFunction()
 		{
@@ -428,7 +428,7 @@ namespace Tests
 
 	public sealed class ProgramBindingTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void Empty()
 		{
@@ -576,7 +576,7 @@ namespace Tests
 
 	public sealed class AliasBindingTests
 	{
-		private static readonly SystemScope SystemScope = new();
+		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void AliasToBuiltIn()
 		{

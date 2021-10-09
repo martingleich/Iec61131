@@ -304,4 +304,17 @@ namespace Compiler.Messages
 
 		public override string Text => $"Expected {ExpectedIndices} indexes to access this array, but only received {PassedIndices}.";
 	}
+	public sealed class FieldNotFoundMessage : ACriticalMessage
+	{
+		public readonly IType BaseType;
+		public readonly CaseInsensitiveString FieldName;
+
+		public FieldNotFoundMessage(IType baseType, CaseInsensitiveString fieldName, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
+			FieldName = fieldName;
+		}
+
+		public override string Text => $"The type '{BaseType.Code}' does not have a field '{FieldName}'.";
+	}
 }

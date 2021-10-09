@@ -1,4 +1,5 @@
 ﻿using Compiler.Messages;
+using Compiler.Scopes;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace Compiler
 		public readonly Lazy<BoundModule> LazyBoundModule;
 		public readonly Lazy<ImmutableArray<IMessage>> LazyParseMessages;
 
-		private Project(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
+		private Project( ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
 		{
 			Pous = pous;
 			Gvls = gvls;

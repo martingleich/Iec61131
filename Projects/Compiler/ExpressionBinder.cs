@@ -283,7 +283,18 @@ namespace Compiler
 
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			var boundLeft = compoAccessExpressionSyntax.LeftSide.Accept(this, null);
+			if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(), out var field)))
+			{
+				if (!boundLeft.Type.IsError())
+					MessageBag.Add(new FieldNotFoundMessage(boundLeft.Type, compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(), compoAccessExpressionSyntax.TokenIdentifier.SourcePosition));
+				field = new FieldSymbol(
+					compoAccessExpressionSyntax.TokenIdentifier.SourcePosition,
+					compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(),
+					boundLeft.Type);
+			}
+
+			return ImplicitCast(new FieldAccessBoundExpression(compoAccessExpressionSyntax, boundLeft, field), context);
 		}
 
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
