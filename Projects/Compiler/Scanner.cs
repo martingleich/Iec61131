@@ -264,7 +264,7 @@ namespace Compiler
 			if (Cursor < Text.Length - keyword.Length + 1)
 			{
 				var generating = Text[Cursor..(Cursor + keyword.Length)];
-				if (generating.Equals(keyword, System.StringComparison.InvariantCultureIgnoreCase))
+				if (generating.ToCaseInsensitive() == keyword.ToCaseInsensitive())
 				{
 					if (ScannerKeywordTable.TryMap(generating, Cursor, leadingToken) is IToken token)
 					{
