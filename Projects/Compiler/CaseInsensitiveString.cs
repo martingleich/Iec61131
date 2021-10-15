@@ -2,7 +2,7 @@
 
 namespace Compiler
 {
-	public struct CaseInsensitiveString : IEquatable<CaseInsensitiveString>
+	public struct CaseInsensitiveString : IEquatable<CaseInsensitiveString>, IComparable<CaseInsensitiveString>
 	{
 		private readonly string Value;
 		public string Original => Value; 
@@ -18,8 +18,13 @@ namespace Compiler
 
 		public override string ToString() => Value;
 
+		public int CompareTo(CaseInsensitiveString other) => string.Compare(Value, other.Value, StringComparison.InvariantCultureIgnoreCase);
 		public static bool operator ==(CaseInsensitiveString left, CaseInsensitiveString right) => left.Equals(right);
 		public static bool operator !=(CaseInsensitiveString left, CaseInsensitiveString right) => !(left == right);
+		public static bool operator <(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) < 0;
+		public static bool operator <=(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) <= 0;
+		public static bool operator >(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) > 0;
+		public static bool operator >=(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) >= 0;
 	}
 
 	public static class CaseInsensitiveStringExt

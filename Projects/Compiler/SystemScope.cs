@@ -173,7 +173,8 @@ namespace Compiler
 			else
 				return null;
 		}
-		public IType PointerDiffrence => GetSignedIntegerTypeGreaterEqualThan(4)!;
+		public IType PointerDiffrenceType => GetSignedIntegerTypeGreaterEqualThan(PointerSize)!;
+		public int PointerSize => 4;
 		public bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
 		{
 			// Okay casts:

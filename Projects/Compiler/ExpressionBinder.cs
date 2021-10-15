@@ -35,15 +35,15 @@ namespace Compiler
 				var cast = new ImplicitAliasToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue, sourceAliasTypeSymbol.AliasedType);
 				return ImplicitCast(cast, targetType);
 			}
-			else if (TypeRelations.IsEnumType(boundValue.Type, out _))
-			{
-				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue);
-				return ImplicitCast(enumValue, targetType);
-			}
 			else if (TypeRelations.IsAliasType(targetType, out var aliasTypeSymbol))
 			{
 				var castBaseValue = ImplicitCast(boundValue, aliasTypeSymbol.AliasedType);
 				return new ImplicitAliasFromBaseTypeCastBoundExpression(boundValue.OriginalNode, castBaseValue, aliasTypeSymbol);
+			}
+			else if (TypeRelations.IsEnumType(boundValue.Type, out _))
+			{
+				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue);
+				return ImplicitCast(enumValue, targetType);
 			}
 			else if (TypeRelations.IsPointerType(targetType, out var targetPointerType) && TypeRelations.IsPointerType(boundValue.Type, out _))
 			{
@@ -127,12 +127,12 @@ namespace Compiler
 			{
 				var castedLeft = ImplicitCast(boundLeft, baseLeftType);
 				var castedRight = ImplicitCast(boundRight, baseRightType);
-				return new PointerDiffrenceBoundExpression(binaryOperatorExpressionSyntax, castedLeft, castedRight, SystemScope.PointerDiffrence);
+				return new PointerDiffrenceBoundExpression(binaryOperatorExpressionSyntax, castedLeft, castedRight, SystemScope.PointerDiffrenceType);
 			}
 			else if (TypeRelations.IsPointerType(baseLeftType, out var ptrLeft) && TypeRelations.IsBuiltInType(baseRightType, out var bright) && bright.IsInt && binaryOperatorExpressionSyntax.TokenOperator is MinusToken or PlusToken)
 			{
 				var castedLeft = ImplicitCast(boundLeft, baseLeftType);
-				var castedRight = ImplicitCast(boundRight, SystemScope.PointerDiffrence);
+				var castedRight = ImplicitCast(boundRight, SystemScope.PointerDiffrenceType);
 				return ImplicitCast(new PointerOffsetBoundExpression(
 					binaryOperatorExpressionSyntax,
 					castedLeft,
@@ -142,7 +142,7 @@ namespace Compiler
 			}
 			else if (TypeRelations.IsBuiltInType(baseLeftType, out var lright) && lright.IsInt && TypeRelations.IsPointerType(baseRightType, out var ptrRight) && binaryOperatorExpressionSyntax.TokenOperator is PlusToken)
 			{
-				var castedLeft = ImplicitCast(boundLeft, SystemScope.PointerDiffrence);
+				var castedLeft = ImplicitCast(boundLeft, SystemScope.PointerDiffrenceType);
 				var castedRight = ImplicitCast(boundLeft, baseLeftType);
 				return ImplicitCast(new PointerOffsetBoundExpression(
 					binaryOperatorExpressionSyntax,
@@ -194,7 +194,7 @@ namespace Compiler
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
 		{
 			var boundLeft = BindLeftCompo(compoAccessExpressionSyntax.LeftSide);
-			return boundLeft.BindCompo(compoAccessExpressionSyntax, compoAccessExpressionSyntax.TokenIdentifier, context, this);
+			return ImplicitCast(boundLeft.BindCompo(compoAccessExpressionSyntax, compoAccessExpressionSyntax.TokenIdentifier, this), context);
 		}
 
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
@@ -232,7 +232,7 @@ namespace Compiler
 			}
 
 			var boundBase =  indexAccessExpressionSyntax.LeftSide.Accept(this, null);
-			var castedIndices = indexAccessExpressionSyntax.Indices.Select(idx => ImplicitCast(idx.Accept(this, null), SystemScope.PointerDiffrence)).ToImmutableArray();
+			var castedIndices = indexAccessExpressionSyntax.Indices.Select(idx => ImplicitCast(idx.Accept(this, null), SystemScope.PointerDiffrenceType)).ToImmutableArray();
 			var realBaseType = TypeRelations.ResolveAlias(boundBase.Type);
 			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
 			{

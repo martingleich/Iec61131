@@ -17,7 +17,7 @@ namespace Compiler
 					this.boundLeft = boundLeft ?? throw new ArgumentNullException(nameof(boundLeft));
 				}
 
-				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder)
+				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, ExpressionBinder binder)
 				{
 					if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value, out var field)))
 					{
@@ -29,7 +29,7 @@ namespace Compiler
 							boundLeft.Type);
 					}
 
-					return binder.ImplicitCast(new FieldAccessBoundExpression(originalNode, boundLeft, field), context);
+					return new FieldAccessBoundExpression(originalNode, boundLeft, field);
 				}
 			}
 			public sealed class Type : BoundCompoLeft
@@ -43,13 +43,14 @@ namespace Compiler
 					_resolvedType = resolvedType ?? throw new ArgumentNullException(nameof(resolvedType));
 				}
 
-				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder)
+				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, ExpressionBinder binder)
 				{
 					if (_resolvedType is EnumTypeSymbol enumTypeSymbol)
 					{
 						if (enumTypeSymbol.Values.TryGetValue(name.Value, out var enumValue))
 						{
-							return new LiteralBoundExpression(originalNode, enumValue._GetConstantValue(binder.MessageBag));
+							// Cast to original type, in cases of aliased enums like myAlias.EnumValue the type shall be myAlias.
+							return binder.ImplicitCast(new LiteralBoundExpression(originalNode, enumValue._GetConstantValue(binder.MessageBag)), _type);
 						}
 						else
 						{
@@ -74,7 +75,7 @@ namespace Compiler
 					_gvl = gvl ?? throw new ArgumentNullException(nameof(gvl));
 				}
 
-				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder)
+				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, ExpressionBinder binder)
 				{
 					var varName = name.Value;
 					var varPos = name.SourcePosition;
@@ -84,11 +85,11 @@ namespace Compiler
 						globalVariable = GlobalVariableSymbol.CreateError(varPos, varName);
 					}
 
-					return binder.ImplicitCast(new StaticVariableBoundExpression(originalNode, globalVariable), context);
+					return new StaticVariableBoundExpression(originalNode, globalVariable);
 				}
 			}
 
-			public abstract IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder);
+			public abstract IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, ExpressionBinder binder);
 		}
 	
 		private BoundCompoLeft BindLeftCompo(IExpressionSyntax syntax)

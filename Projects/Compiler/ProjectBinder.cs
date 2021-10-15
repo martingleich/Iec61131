@@ -314,12 +314,12 @@ namespace Compiler
 			private static IEnumerable<GlobalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
 			{
 				if (kind is not VarGlobalToken)
-					messages.Add(new OnlyVarGlobalInGvlMessages(kind.SourcePosition));
+					messages.Add(new OnlyVarGlobalInGvlMessage(kind.SourcePosition));
 				return vardecls.Select(v => BindVarDecl(v, scope, messages));
 			}
 			private static GlobalVariableSymbol BindVarDecl(VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
-				IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 				return new(
 					syntax.TokenIdentifier.SourcePosition,
 					syntax.Identifier,

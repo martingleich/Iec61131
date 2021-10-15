@@ -133,6 +133,11 @@ namespace Tests
 
 	public static class AssertEx
 	{
+		public static void CheckVariable(IVariableSymbol var, string name, IType type)
+		{
+			Assert.Equal(name.ToCaseInsensitive(), var.Name);
+			EqualType(type, var.Type);
+		}
 		public static void EqualType(IType expected, IType passed)
 		{
 			EqualType(expected.Code, passed);

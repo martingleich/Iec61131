@@ -318,9 +318,9 @@ namespace Compiler.Messages
 		public override string Text => $"The type '{BaseType.Code}' does not have a field '{FieldName}'.";
 	}
 	
-	public sealed class OnlyVarGlobalInGvlMessages : ACriticalMessage
+	public sealed class OnlyVarGlobalInGvlMessage : ACriticalMessage
 	{
-		public OnlyVarGlobalInGvlMessages(SourcePosition sourcePosition) : base(sourcePosition)
+		public OnlyVarGlobalInGvlMessage(SourcePosition sourcePosition) : base(sourcePosition)
 		{
 		}
 
