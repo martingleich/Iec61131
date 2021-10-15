@@ -2,7 +2,7 @@
 
 namespace Compiler
 {
-	public struct CaseInsensitiveString : IEquatable<CaseInsensitiveString>, IComparable<CaseInsensitiveString>
+	public readonly struct CaseInsensitiveString : IEquatable<CaseInsensitiveString>, IComparable<CaseInsensitiveString>
 	{
 		private readonly string Value;
 		public string Original => Value; 

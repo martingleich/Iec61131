@@ -19,7 +19,7 @@ namespace Compiler
 		T Value { get; }
 	}
 
-	public struct TypedLiteral
+	public readonly struct TypedLiteral
 	{
 		public readonly IBuiltInTypeToken Type;
 		public readonly ILiteralToken LiteralToken;
@@ -33,7 +33,7 @@ namespace Compiler
 		public override string? ToString() => $"{Type}#{LiteralToken}";
 	}
 
-	public struct OverflowingInteger
+	public readonly struct OverflowingInteger
 	{
 		private readonly ulong Value;
 		private readonly bool IsNegative;
@@ -232,7 +232,7 @@ namespace Compiler
 		public bool IsOne => TryGetInt(out var value) && value == 1;
 	}
 
-	public struct OverflowingReal
+	public readonly struct OverflowingReal
 	{
 		private readonly double Value;
 		private readonly bool IsOverflown;
@@ -284,7 +284,7 @@ namespace Compiler
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
 
-	public struct OverflowingDate
+	public readonly struct OverflowingDate
 	{
 		private readonly DateTime Value;
 		private readonly bool IsOverflown;
@@ -299,7 +299,7 @@ namespace Compiler
 
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
-	public struct OverflowingDuration
+	public readonly struct OverflowingDuration
 	{
 		private readonly TimeSpan Value;
 		private readonly bool IsOverflown;
@@ -314,7 +314,7 @@ namespace Compiler
 
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
-	public struct OverflowingDateAndTime
+	public readonly struct OverflowingDateAndTime
 	{
 		private readonly DateTime Value;
 		private readonly bool IsOverflown;

@@ -12,7 +12,7 @@ namespace Compiler
 
 
 	[DebuggerDisplay("Count = {Count}")]
-	public struct SymbolSet<T> : IEnumerable<T> where T : ISymbol
+	public readonly struct SymbolSet<T> : IEnumerable<T> where T : ISymbol
 	{
 		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
 		private readonly ImmutableDictionary<CaseInsensitiveString, T> Values;

@@ -44,7 +44,7 @@ namespace Compiler
 		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
-	public struct ParsedDutLanguageSource
+	public readonly struct ParsedDutLanguageSource
 	{
 		public readonly DutLanguageSource Original;
 		public readonly TypeDeclarationSyntax Syntax;
@@ -58,7 +58,7 @@ namespace Compiler
 		}
 	}
 
-	public struct ParsedTopLevelInterfaceAndBodyPouLanguageSource
+	public readonly struct ParsedTopLevelInterfaceAndBodyPouLanguageSource
 	{
 		public readonly TopLevelInterfaceAndBodyPouLanguageSource Original;
 		public readonly PouInterfaceSyntax Interface;
@@ -74,7 +74,7 @@ namespace Compiler
 		}
 	}
 
-	public struct ParsedGVLLanguageSource
+	public readonly struct ParsedGVLLanguageSource
 	{
 		public readonly GlobalVariableListLanguageSource Original;
 		public readonly CaseInsensitiveString Name;

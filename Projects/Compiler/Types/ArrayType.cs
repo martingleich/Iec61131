@@ -83,7 +83,7 @@ namespace Compiler.Types
 			return MaybeLayoutInfo.Value;
 		}
 
-		private struct BoundRange<T> where T : class, ILiteralValue
+		private readonly struct BoundRange<T> where T : class, ILiteralValue
 		{
 			public readonly RangeSyntax Syntax;
 			public readonly T? Lower;

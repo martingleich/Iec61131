@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Compiler.Messages
 {
-	public struct ErrorsAnd<T>
+	public readonly struct ErrorsAnd<T>
 	{
 		public readonly T Value;
 		public readonly ImmutableArray<IMessage> Errors;

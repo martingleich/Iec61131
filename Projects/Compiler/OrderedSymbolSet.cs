@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Compiler
 {
-	public struct OrderedSymbolSet<T> : IReadOnlyList<T> where T : ISymbol
+	public readonly struct OrderedSymbolSet<T> : IReadOnlyList<T> where T : ISymbol
 	{
 		public static readonly OrderedSymbolSet<T> Empty = new(ImmutableArray<T>.Empty);
 		private readonly ImmutableArray<T> Values;
