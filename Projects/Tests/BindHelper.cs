@@ -29,6 +29,8 @@ namespace Tests
 				=> new (MyProject.Add(new DutLanguageSource(source)));
 			public TestProject AddPou(string itf, string body)
 				=> new (MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource(itf, body)));
+			public TestProject AddGVL(string name, string source)
+				=> new (MyProject.Add(new GlobalVariableListLanguageSource(name, source)));
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{
@@ -99,7 +101,7 @@ namespace Tests
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
 				var moduleScope = new GlobalModuleScope(boundModuleInterface, RootScope);
-				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(x.Key, default, MapType(moduleScope, x.Value)));
+				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(default, x.Key, MapType(moduleScope, x.Value)));
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();
 				var targetType = targetTypeText != null ? MapType(moduleScope, targetTypeText) : null;
@@ -142,13 +144,13 @@ namespace Tests
 		public static void NotAConstant(IBoundExpression expression, SystemScope systemScope)
 		{
 			var bag = new MessageBag();
-			ConstantExpressionEvaluator.EvaluateConstant(expression, bag, systemScope);
+			ConstantExpressionEvaluator.EvaluateConstant(systemScope, expression, bag);
 			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
 		}
 		public static void HasConstantValue(IBoundExpression expression, SystemScope systemScope, Action<ILiteralValue?> checker)
 		{
 			var bag = new MessageBag();
-			var actualValue = ConstantExpressionEvaluator.EvaluateConstant(expression, bag, systemScope);
+			var actualValue = ConstantExpressionEvaluator.EvaluateConstant(systemScope, expression, bag);
 			ExactlyMessages()(bag);
 			checker(actualValue);
 		}

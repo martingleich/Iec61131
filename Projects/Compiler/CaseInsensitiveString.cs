@@ -25,5 +25,10 @@ namespace Compiler
 	public static class CaseInsensitiveStringExt
 	{
 		public static CaseInsensitiveString ToCaseInsensitive(this string self) => new (self);
+		/// <summary>
+		/// Prevents people from calling ToCaseInsensitive on an already converted string.
+		/// </summary>
+		/// <param name="_"></param>
+		public static void ToCaseInsensitive(this CaseInsensitiveString _) { }
 	}
 }

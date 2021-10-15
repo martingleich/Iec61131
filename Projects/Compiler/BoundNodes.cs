@@ -30,6 +30,7 @@ namespace Compiler
 			T Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression);
 			T Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
 			T Accept(FieldAccessBoundExpression fieldAccessBoundExpression);
+			T Accept(StaticVariableBoundExpression staticVariableBoundExpression);
 		}
 	}
 
@@ -310,13 +311,28 @@ namespace Compiler
 		public INode OriginalNode { get; }
 		public IType Type => Field.Type;
 		public readonly IBoundExpression BaseExpression;
-		public readonly FieldSymbol Field;
+		public readonly FieldVariableSymbol Field;
 
-		public FieldAccessBoundExpression(INode originalNode, IBoundExpression baseExpression, FieldSymbol field)
+		public FieldAccessBoundExpression(INode originalNode, IBoundExpression baseExpression, FieldVariableSymbol field)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			BaseExpression = baseExpression ?? throw new ArgumentNullException(nameof(baseExpression));
 			Field = field ?? throw new ArgumentNullException(nameof(field));
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+	}
+
+	public sealed class StaticVariableBoundExpression : IBoundExpression
+	{
+		public INode OriginalNode { get; }
+		public IType Type => Variable.Type;
+		public readonly GlobalVariableSymbol Variable;
+
+		public StaticVariableBoundExpression(INode originalNode, GlobalVariableSymbol variable)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);

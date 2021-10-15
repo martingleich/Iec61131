@@ -13,15 +13,15 @@ namespace Compiler.Types
 		private UndefinedLayoutInfo? MaybeLayoutInfo { get; set; }
 		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
 
-		private SymbolSet<FieldSymbol> _fields;
-		public SymbolSet<FieldSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized");
+		private SymbolSet<FieldVariableSymbol> _fields;
+		public SymbolSet<FieldVariableSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized");
 		public SourcePosition DeclaringPosition { get; }
 
 		public StructuredTypeSymbol(
 			SourcePosition declaringPosition,
 			bool isUnion,
 			CaseInsensitiveString name,
-			SymbolSet<FieldSymbol> fields,
+			SymbolSet<FieldVariableSymbol> fields,
 			LayoutInfo layoutInfo)
 		{
 			DeclaringPosition = declaringPosition;
@@ -44,7 +44,7 @@ namespace Compiler.Types
 			Name = name;
 			RecursiveLayoutWasDone = false;
 		}
-		internal void _SetFields(SymbolSet<FieldSymbol> fields)
+		internal void _SetFields(SymbolSet<FieldVariableSymbol> fields)
 		{
 			if (!_fields.IsDefault)
 				throw new InvalidOperationException();

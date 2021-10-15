@@ -9,13 +9,13 @@ namespace Compiler
 	public sealed class Project
 	{
 		private readonly ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> Pous;
-		private readonly ImmutableArray<GlobalVariableLanguageSource> Gvls;
+		private readonly ImmutableArray<ParsedGVLLanguageSource> Gvls;
 		private readonly ImmutableArray<ParsedDutLanguageSource> Duts;
 
 		public readonly Lazy<BoundModule> LazyBoundModule;
 		public readonly Lazy<ImmutableArray<IMessage>> LazyParseMessages;
 
-		private Project( ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<GlobalVariableLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
+		private Project( ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous, ImmutableArray<ParsedGVLLanguageSource> gvls, ImmutableArray<ParsedDutLanguageSource> duts)
 		{
 			Pous = pous;
 			Gvls = gvls;
@@ -30,11 +30,12 @@ namespace Compiler
 
 		public static readonly Project Empty = new (
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource>.Empty,
-			ImmutableArray<GlobalVariableLanguageSource>.Empty,
+			ImmutableArray<ParsedGVLLanguageSource>.Empty,
 			ImmutableArray<ParsedDutLanguageSource>.Empty);
 
 		public Project Add(ParsedDutLanguageSource source) => new (Pous, Gvls, Duts.Add(source));
 		public Project Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource source) => new (Pous.Add(source), Gvls, Duts);
+		public Project Add(ParsedGVLLanguageSource source) => new (Pous, Gvls.Add(source), Duts);
 		public Project Add(DutLanguageSource source)
 		{
 			if (source is null)
@@ -51,6 +52,14 @@ namespace Compiler
 			var itf = Parser.ParsePouInterface(source.Interface, msg);
 			var body = Parser.ParsePouBody(source.Body, msg);
 			return Add(new ParsedTopLevelInterfaceAndBodyPouLanguageSource(source, itf, body, msg.ToImmutable()));
+		}
+		public Project Add(GlobalVariableListLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var body = Parser.ParseGlobalVarList(source.Body, msg);
+			return Add(new ParsedGVLLanguageSource(source, source.Name.ToCaseInsensitive(), body, msg.ToImmutable()));
 		}
 	}
 }

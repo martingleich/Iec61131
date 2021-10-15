@@ -181,7 +181,7 @@ namespace Tests
 			Assert.Equal(op.ToCaseInsensitive(), binaryExpression.Function.Name);
 			AssertEx.EqualType(SystemScope.Bool, binaryExpression.Type);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			Assert.Empty(bag);
 			Assert.Equal(result, Assert.IsType<BooleanLiteralValue>(actualResult).Value);
 		}
@@ -191,7 +191,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("DINT#77 / DINT#0", null);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			ExactlyMessages(ErrorOfType<DivsionByZeroInConstantContextMessage>())(bag);
 			Assert.Null(actualResult);
 		}
@@ -201,7 +201,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("USINT#200 + USINT#200", null);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			ExactlyMessages(ErrorOfType<OverflowInConstantContextMessage>())(bag);
 			Assert.Null(actualResult);
 		}
@@ -211,7 +211,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("LREAL#1 + LREAL#2", null);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
 			Assert.Null(actualResult);
 		}
@@ -221,7 +221,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("LREAL#0 + (REAL#1 + REAL#2)", null);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
 			Assert.Null(actualResult);
 		}
@@ -231,7 +231,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("NOT (LREAL#1 <> LREAL#2)", null);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			ExactlyMessages(ErrorOfType<NotAConstantMessage>())(bag);
 			Assert.Null(actualResult);
 		}
@@ -246,7 +246,7 @@ namespace Tests
 			var unaryExpression = Assert.IsType<UnaryOperatorBoundExpression>(boundExpression);
 			Assert.Equal(op.ToCaseInsensitive(), unaryExpression.Function.Name);
 			var bag = new MessageBag();
-			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, bag, SystemScope);
+			var actualResult = ConstantExpressionEvaluator.EvaluateConstant(SystemScope, boundExpression, bag);
 			Assert.Empty(bag);
 			Assert.Equal(result, Assert.IsType<BooleanLiteralValue>(actualResult).Value);
 		}

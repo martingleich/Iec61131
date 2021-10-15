@@ -5,7 +5,7 @@
 		public interface IVisitor
 		{
 			void Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource);
-			void Visit(GlobalVariableLanguageSource globalVariableLanguageSource);
+			void Visit(GlobalVariableListLanguageSource globalVariableLanguageSource);
 			void Visit(DutLanguageSource dutLanguageSource);
 		}
 		void Accept(IVisitor visitor);

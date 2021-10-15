@@ -28,7 +28,7 @@ namespace Compiler
 
 		public bool Equals(SIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as SIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as SIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"SINT#{Value}";
 	}
@@ -47,11 +47,10 @@ namespace Compiler
 
 		public bool Equals(USIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as USIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as USIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"USINT#{Value}";
 	}
-	
 	public sealed class UIntLiteralValue : IAnyIntLiteralValue, IEquatable<UIntLiteralValue>
 	{
 		public readonly uint Value;
@@ -67,7 +66,7 @@ namespace Compiler
 
 		public bool Equals(UIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as UIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as UIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"UINT#{Value}";
 	}
@@ -86,11 +85,10 @@ namespace Compiler
 
 		public bool Equals(IntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as IntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as IntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"INT#{Value}";
 	}
-	
 	public sealed class UDIntLiteralValue : IAnyIntLiteralValue, IEquatable<UDIntLiteralValue>
 	{
 		public readonly uint Value;
@@ -106,7 +104,7 @@ namespace Compiler
 
 		public bool Equals(UDIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as UDIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as UDIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"UDINT#{Value}";
 	}
@@ -125,11 +123,10 @@ namespace Compiler
 
 		public bool Equals(DIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as DIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as DIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"DINT#{Value}";
 	}
-
 	public sealed class ULIntLiteralValue : IAnyIntLiteralValue, IEquatable<ULIntLiteralValue>
 	{
 		public readonly ulong Value;
@@ -145,7 +142,7 @@ namespace Compiler
 
 		public bool Equals(ULIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as ULIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as ULIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"UlINT#{Value}";
 	}
@@ -164,11 +161,10 @@ namespace Compiler
 
 		public bool Equals(LIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as LIntLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as LIntLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => $"LINT#{Value}";
 	}
-
 	public sealed class BooleanLiteralValue : ILiteralValue, IEquatable<BooleanLiteralValue>
 	{
 		public readonly bool Value;
@@ -181,7 +177,7 @@ namespace Compiler
 		public IType Type { get; }
 		public bool Equals(BooleanLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as BooleanLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as BooleanLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 		public override string ToString() => Value ? "TRUE" : "FALSE";
 	}
@@ -196,7 +192,7 @@ namespace Compiler
 
 		public bool Equals(UnknownLiteralValue? other) => other != null;
 		public bool Equals(ILiteralValue? other) => Equals(other as UnknownLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as UnknownLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => 0;
 		public override string ToString() => "Unknown";
 	}
@@ -214,11 +210,10 @@ namespace Compiler
 
 		public bool Equals(EnumLiteralValue? other) => other != null && TypeRelations.IsIdentical(Type, other.Type) && InnerValue.Equals(other.InnerValue);
 		public bool Equals(ILiteralValue? other) => Equals(other as EnumLiteralValue);
-		public override bool Equals(object? obj) => Equals(obj as EnumLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => HashCode.Combine(Type, InnerValue);
 		public override string ToString() => $"{Type}({InnerValue})";
 	}
-
 	public sealed class RealLiteralValue : ILiteralValue, IEquatable<RealLiteralValue>
 	{
 		public readonly float Value;
@@ -233,10 +228,9 @@ namespace Compiler
 
 		public bool Equals(RealLiteralValue? other) => other != null && BitConverter.SingleToInt32Bits(other.Value) == BitConverter.SingleToInt32Bits(Value);
 		public bool Equals(ILiteralValue? other) => Equals(other as RealLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => BitConverter.SingleToInt32Bits(Value).GetHashCode();
 	}
-
-
 	public sealed class LRealLiteralValue : ILiteralValue, IEquatable<LRealLiteralValue>
 	{
 		public readonly double Value;
@@ -251,6 +245,7 @@ namespace Compiler
 
 		public bool Equals(LRealLiteralValue? other) => other != null && BitConverter.DoubleToInt64Bits(other.Value) == BitConverter.DoubleToInt64Bits(Value);
 		public bool Equals(ILiteralValue? other) => Equals(other as LRealLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => BitConverter.DoubleToInt64Bits(Value).GetHashCode();
 	}
 	public sealed class NullPointerLiteralValue : ILiteralValue, IEquatable<NullPointerLiteralValue>

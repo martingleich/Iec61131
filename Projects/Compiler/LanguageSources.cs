@@ -18,15 +18,15 @@ namespace Compiler
 		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
-	public sealed class GlobalVariableLanguageSource : ILanguageSource
+	public sealed class GlobalVariableListLanguageSource : ILanguageSource
 	{
 		public readonly string Name;
-		public readonly GlobalVarListSyntax Syntax;
+		public readonly string Body;
 
-		public GlobalVariableLanguageSource(string name, GlobalVarListSyntax syntax)
+		public GlobalVariableListLanguageSource(string name, string body)
 		{
 			Name = name ?? throw new ArgumentNullException(nameof(name));
-			Syntax = syntax ?? throw new ArgumentNullException(nameof(syntax));
+			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
 		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
@@ -70,6 +70,22 @@ namespace Compiler
 			Original = original ?? throw new ArgumentNullException(nameof(original));
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
 			Body = body ?? throw new ArgumentNullException(nameof(body));
+			Messages = messages;
+		}
+	}
+
+	public struct ParsedGVLLanguageSource
+	{
+		public readonly GlobalVariableListLanguageSource Original;
+		public readonly CaseInsensitiveString Name;
+		public readonly GlobalVarListSyntax Syntax;
+		public readonly ImmutableArray<IMessage> Messages;
+
+		public ParsedGVLLanguageSource(GlobalVariableListLanguageSource original, CaseInsensitiveString name, GlobalVarListSyntax syntax, ImmutableArray<IMessage> messages)
+		{
+			Original = original ?? throw new ArgumentNullException(nameof(original));
+			Name = name;
+			Syntax = syntax ?? throw new ArgumentNullException(nameof(syntax));
 			Messages = messages;
 		}
 	}

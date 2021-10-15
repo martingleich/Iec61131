@@ -16,67 +16,53 @@ namespace Compiler
 		IType Type { get; }
 
 		public static IVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) =>
-			new ErrorVariableSymbol(declaringPosition, ITypeSymbol.CreateError(declaringPosition, name), name);
+			new ErrorVariableSymbol(declaringPosition, name, ITypeSymbol.CreateErrorForVar(declaringPosition, name));
 	}
-	
-	public sealed class FieldSymbol : IVariableSymbol
+
+	public abstract class AVariableSymbol : IVariableSymbol
 	{
+		protected AVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
+		{
+			Name = name;
+			DeclaringPosition = declaringPosition;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
-		private IType? _type;
-		public IType Type => _type ?? throw new InvalidOperationException("Type is not initialized yet");
-
-		public FieldSymbol(SourcePosition declaringPosition, CaseInsensitiveString name)
-		{
-			DeclaringPosition = declaringPosition;
-			Name = name;
-		}
-
-		public FieldSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
-		{
-			DeclaringPosition = declaringPosition;
-			Name = name;
-			_type = type ?? throw new ArgumentNullException(nameof(type));
-		}
-
-		internal void _CompleteType(ITypeSymbol type)
-		{
-			if (_type != null)
-				throw new InvalidOperationException("Type is already initialized.");
-			_type = type;
-		}
-
+		public IType Type { get; }
 		public override string ToString() => $"{Name} : {Type}";
 	}
-
-	public sealed class LocalVariableSymbol : IVariableSymbol
+	public sealed class FieldVariableSymbol : AVariableSymbol
 	{
-		public LocalVariableSymbol(CaseInsensitiveString name, SourcePosition declaringPosition, IType type)
+		public FieldVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
 		{
-			Name = name;
-			DeclaringPosition = declaringPosition;
-			Type = type;
 		}
-
-		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
-		public IType Type { get; }
-
-		public override string ToString() => $"VAR {Name} : {Type}";
 	}
 
-	public sealed class ErrorVariableSymbol : IVariableSymbol
+	public sealed class LocalVariableSymbol : AVariableSymbol
 	{
-		public ErrorVariableSymbol(SourcePosition declaringPosition, IType type, CaseInsensitiveString name)
+		public LocalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
 		{
-			DeclaringPosition = declaringPosition;
-			Type = type;
-			Name = name;
+		}
+	}
+
+	public sealed class ErrorVariableSymbol : AVariableSymbol
+	{
+		public ErrorVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		{
 		}
 
-		public IType Type { get; }
-		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
+	}
+
+	public sealed class GlobalVariableSymbol : AVariableSymbol
+	{
+		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		{
+		}
+		public static GlobalVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) => new (
+			declaringPosition, name,
+			ITypeSymbol.CreateErrorForVar(declaringPosition, name));
 	}
 
 	public sealed class EnumValueSymbol : IVariableSymbol
@@ -123,7 +109,7 @@ namespace Compiler
 
 			InGetConstantValue = true;
 			var boundExpression = ExpressionBinder.Bind(MaybeValueSyntax!, MaybeScope!, messageBag, Type.BaseType);
-			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(boundExpression, messageBag, MaybeScope!.SystemScope) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
+			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(MaybeScope!.SystemScope, boundExpression, messageBag) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
 			InGetConstantValue = false;
 			return _value = new EnumLiteralValue(Type, literalValue);
 		}
@@ -203,5 +189,20 @@ namespace Compiler
 			public ParameterKind? Visit(VarInOutToken varInOutToken) => InOut;
 			public ParameterKind? Visit(VarTempToken varTempToken) => null;
 		}
+	}
+
+	public sealed class GlobalVariableListSymbol : ISymbol
+	{
+		public readonly SymbolSet<GlobalVariableSymbol> Variables;
+
+		public GlobalVariableListSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, SymbolSet<GlobalVariableSymbol> variables)
+		{
+			DeclaringPosition = declaringPosition;
+			Name = name;
+			Variables = variables;
+		}
+
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
 	}
 }

@@ -158,7 +158,7 @@ namespace Tests
 	public sealed class TypeCompilerTests
 	{
 		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
-		private static readonly StructuredTypeSymbol MyType = new(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, new LayoutInfo(23, 8));
+		private static readonly StructuredTypeSymbol MyType = new(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldVariableSymbol>.Empty, new LayoutInfo(23, 8));
 		private sealed class TypeSetScope : AInnerScope<IScope>
 		{
 			private readonly SymbolSet<ITypeSymbol> Types;
@@ -193,7 +193,7 @@ namespace Tests
 			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayType(SystemScope.Date, ImmutableArray.Create(new ArrayType.Range(0, 1), new ArrayType.Range(2, 5))));
 			yield return ("ARRAY[0..0] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, 0))));
 			yield return ("ARRAY[0..-1] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, -1))));
-			yield return ("MyType", new StructuredTypeSymbol(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldSymbol>.Empty, default));
+			yield return ("MyType", new StructuredTypeSymbol(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldVariableSymbol>.Empty, default));
 			yield return ("STRING[17]", new StringType(17));
 			yield return ("STRING", new StringType(80));
 			yield return ("STRING[SIZEOF(MyType)]", new StringType(23));

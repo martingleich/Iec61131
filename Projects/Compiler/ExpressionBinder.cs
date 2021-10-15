@@ -7,101 +7,10 @@ using Compiler.Types;
 
 namespace Compiler
 {
-	public sealed class ExpressionBinder : IExpressionSyntax.IVisitor<IBoundExpression, IType?>
+	public sealed partial class ExpressionBinder : IExpressionSyntax.IVisitor<IBoundExpression, IType?>
 	{
-		private sealed class LiteralTokenBinderT : ILiteralToken.IVisitor<IBoundExpression, IType?>
-		{
-			private MessageBag MessageBag => ExpressionBinder.MessageBag;
-			private readonly ExpressionBinder ExpressionBinder;
-
-			public LiteralTokenBinderT(ExpressionBinder expressionBinder)
-			{
-				ExpressionBinder = expressionBinder ?? throw new ArgumentNullException(nameof(expressionBinder));
-			}
-
-			public IBoundExpression Visit(TrueToken trueToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(new LiteralBoundExpression(trueToken, new BooleanLiteralValue(true, ExpressionBinder.SystemScope.Bool)), context);
-
-			public IBoundExpression Visit(FalseToken falseToken, IType? context)
-				=> ExpressionBinder.ImplicitCast(new LiteralBoundExpression(falseToken, new BooleanLiteralValue(false, ExpressionBinder.SystemScope.Bool)), context);
-
-			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
-			{
-				var type = ExpressionBinder.SystemScope.MapTokenToType(typedLiteralToken.Value.Type);
-				var boundValue = typedLiteralToken.Value.LiteralToken.Accept(this, type);
-				return ExpressionBinder.ImplicitCast(boundValue, context);
-			}
-
-			
-			public IBoundExpression Visit(IntegerLiteralToken integerLiteralToken, IType? context)
-			{
-				ILiteralValue finalValue;
-				if (context != null)
-				{
-					var value = ExpressionBinder.SystemScope.TryCreateLiteralFromIntValue(integerLiteralToken.Value, context);
-					if(value == null)
-					{
-						MessageBag.Add(new IntegerIsToLargeForTypeMessage(integerLiteralToken.Value, context, integerLiteralToken.SourcePosition));
-						value = new UnknownLiteralValue(context);
-					}
-					finalValue = value;
-				}
-				else
-				{
-					var value = ExpressionBinder.SystemScope.TryCreateIntLiteral(integerLiteralToken.Value);
-					if (value == null)
-					{
-						MessageBag.Add(new ConstantDoesNotFitIntoAnyType(integerLiteralToken));
-						value = new UnknownLiteralValue(ExpressionBinder.SystemScope.Int);
-					}
-					finalValue = value;
-				}
-
-				return new LiteralBoundExpression(integerLiteralToken, finalValue);
-			}
-
-			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
-			{
-				if (context == null)
-					context = ExpressionBinder.SystemScope.LReal;
-
-				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromRealValue(realLiteralToken.Value, context);
-				if (value == null)
-				{
-					MessageBag.Add(new RealIsToLargeForTypeMessage(realLiteralToken.Value, context, realLiteralToken.SourcePosition));
-					value = new UnknownLiteralValue(context);
-				}
-				return new LiteralBoundExpression(realLiteralToken, value);
-			}
-
-			public IBoundExpression Visit(SingleByteStringLiteralToken singleByteStringLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-
-			public IBoundExpression Visit(MultiByteStringLiteralToken multiByteStringLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-
-			public IBoundExpression Visit(DateLiteralToken dateLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-
-			public IBoundExpression Visit(DurationLiteralToken durationLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-
-			public IBoundExpression Visit(DateAndTimeLiteralToken dateAndTimeLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-		}
-
 		private readonly MessageBag MessageBag;
-		private readonly LiteralTokenBinderT LiteralTokenBinder;
+		private readonly LiteralTokenBinder _literalTokenBinder;
 		private readonly IScope Scope;
 		private SystemScope SystemScope => Scope.SystemScope;
 
@@ -109,7 +18,7 @@ namespace Compiler
 		{
 			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 			MessageBag = messageBag ?? throw new ArgumentNullException(nameof(messageBag));
-			LiteralTokenBinder = new LiteralTokenBinderT(this);
+			_literalTokenBinder = new LiteralTokenBinder(this);
 		}
 
 		public static IBoundExpression Bind(IExpressionSyntax syntax, IScope scope, MessageBag messageBag, IType? targetType)
@@ -166,7 +75,7 @@ namespace Compiler
 			if (TypeRelations.IsPointerType(realType, out var targetPointerType) && literalExpressionSyntax.TokenValue is IntegerLiteralToken intLiteral && intLiteral.Value.IsZero)
 				return ImplicitCast(new LiteralBoundExpression(literalExpressionSyntax, new NullPointerLiteralValue(targetPointerType)), context);
 			else
-				return ImplicitCast(literalExpressionSyntax.TokenValue.Accept(LiteralTokenBinder, realType), context);
+				return ImplicitCast(literalExpressionSyntax.TokenValue.Accept(_literalTokenBinder, realType), context);
 		}
 
 		public IBoundExpression Visit(BinaryOperatorExpressionSyntax binaryOperatorExpressionSyntax, IType? context)
@@ -200,8 +109,7 @@ namespace Compiler
 				var returnType = operatorFunction.Value.Symbol.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
 				var castedLeft = ImplicitCast(boundLeft, realCommonArgType);
 				var castedRight = ImplicitCast(boundRight, realCommonArgType);
-				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol
-					);
+				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol );
 				if (operatorFunction.Value.IsGenericReturn)
 					binaryOperatorExpression = ImplicitCast(binaryOperatorExpression, commonArgType);
 				return ImplicitCast(binaryOperatorExpression, context);
@@ -281,20 +189,12 @@ namespace Compiler
 			return ImplicitCast(boundExpression, context);
 		}
 
+		
+
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
 		{
-			var boundLeft = compoAccessExpressionSyntax.LeftSide.Accept(this, null);
-			if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(), out var field)))
-			{
-				if (!boundLeft.Type.IsError())
-					MessageBag.Add(new FieldNotFoundMessage(boundLeft.Type, compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(), compoAccessExpressionSyntax.TokenIdentifier.SourcePosition));
-				field = new FieldSymbol(
-					compoAccessExpressionSyntax.TokenIdentifier.SourcePosition,
-					compoAccessExpressionSyntax.Identifier.ToCaseInsensitive(),
-					boundLeft.Type);
-			}
-
-			return ImplicitCast(new FieldAccessBoundExpression(compoAccessExpressionSyntax, boundLeft, field), context);
+			var boundLeft = BindLeftCompo(compoAccessExpressionSyntax.LeftSide);
+			return boundLeft.BindCompo(compoAccessExpressionSyntax, compoAccessExpressionSyntax.TokenIdentifier, context, this);
 		}
 
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)

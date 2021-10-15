@@ -19,9 +19,9 @@ namespace Compiler
 		public static ILiteralValue? EvaluateConstant(IScope scope, MessageBag messageBag, IType type, IExpressionSyntax expression)
 		{
 			var boundExpr = ExpressionBinder.Bind(expression, scope, messageBag, type);
-			return EvaluateConstant(boundExpr, messageBag, scope.SystemScope);
+			return EvaluateConstant(scope.SystemScope, boundExpr, messageBag);
 		}
-		public static ILiteralValue? EvaluateConstant(IBoundExpression expression, MessageBag messages, SystemScope systemScope)
+		public static ILiteralValue? EvaluateConstant(SystemScope systemScope, IBoundExpression expression, MessageBag messages)
 			=> expression.Accept(new ConstantExpressionEvaluator(messages, systemScope));
 
 		private ILiteralValue? NotAConstant(IBoundExpression node) => NotAConstant(node.OriginalNode);
@@ -142,5 +142,6 @@ namespace Compiler
 		public ILiteralValue? Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => NotAConstant(arrayIndexAccessBoundExpression);
 		public ILiteralValue? Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
 		public ILiteralValue? Accept(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
+		public ILiteralValue? Accept(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
 	}
 }

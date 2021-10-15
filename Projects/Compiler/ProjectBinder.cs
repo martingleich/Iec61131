@@ -15,7 +15,10 @@ namespace Compiler
 		public readonly BoundModuleInterface Interface;
 		public readonly ImmutableDictionary<FunctionSymbol, BoundPou> Pous;
 
-		public BoundModule(ImmutableArray<IMessage> interfaceMessages, BoundModuleInterface @interface, ImmutableDictionary<FunctionSymbol, BoundPou> pous)
+		public BoundModule(
+			ImmutableArray<IMessage> interfaceMessages,
+			BoundModuleInterface @interface,
+			ImmutableDictionary<FunctionSymbol, BoundPou> pous)
 		{
 			InterfaceMessages = interfaceMessages;
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
@@ -27,11 +30,13 @@ namespace Compiler
 	{
 		public readonly SymbolSet<ITypeSymbol> DutTypes;
 		public readonly SymbolSet<FunctionSymbol> FunctionSymbols;
+		public readonly SymbolSet<GlobalVariableListSymbol> GlobalVariableListSymbols;
 
-		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes, SymbolSet<FunctionSymbol> functionSymbols)
+		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes, SymbolSet<FunctionSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
 		{
 			DutTypes = dutTypes;
 			FunctionSymbols = functionSymbols;
+			GlobalVariableListSymbols = globalVariableListSymbols;
 		}
 	}
 
@@ -79,8 +84,8 @@ namespace Compiler
 		{
 			IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
 			return new(
-				syntax.Identifiers.ToCaseInsensitive(),
 				syntax.TokenIdentifiers.SourcePosition,
+				syntax.Identifiers.ToCaseInsensitive(),
 				type);
 		}
 	}
@@ -88,16 +93,20 @@ namespace Compiler
 	public sealed class ProjectBinder : AInnerScope<RootScope>
 	{
 		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
+		private readonly SymbolSet<GlobalVariableListSymbol> WorkingGvlSymbols;
 		private readonly MessageBag MessageBag = new();
 		private readonly PouSymbolCreatorT PouSymbolCreator;
 
 		private ProjectBinder(
 			RootScope rootScope,
-			ImmutableArray<ParsedDutLanguageSource> duts) : base(rootScope)
+			ImmutableArray<ParsedDutLanguageSource> duts,
+			ImmutableArray<ParsedGVLLanguageSource> gvls) : base(rootScope)
 		{
 			PouSymbolCreator = new(this, MessageBag);
 			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
-				v => v.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, v.Syntax));
+				x => x.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, x.Syntax));
+			WorkingGvlSymbols = gvls.ToSymbolSetWithDuplicates(MessageBag,
+				x => GvlSymbolInWork.Create(x, this, MessageBag));
 		}
 
 		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
@@ -208,10 +217,10 @@ namespace Compiler
 				return Symbol;
 			}
 
-			private static FieldSymbol CreateFieldSymbol(ProjectBinder projectBinder, VarDeclSyntax fieldSyntax)
+			private static FieldVariableSymbol CreateFieldSymbol(ProjectBinder projectBinder, VarDeclSyntax fieldSyntax)
 			{
 				var typeSymbol = TypeCompiler.MapSymbolic(projectBinder, fieldSyntax.Type, projectBinder.MessageBag);
-				return new FieldSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifiers.ToCaseInsensitive(), typeSymbol);
+				return new FieldVariableSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifiers.ToCaseInsensitive(), typeSymbol);
 			}
 		}
 
@@ -292,14 +301,39 @@ namespace Compiler
 			}
 		}
 
+		private static class GvlSymbolInWork
+		{
+			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, ProjectBinder projectBinder, MessageBag messageBag)
+			{
+				var variables = BindVariables(x.Syntax.VariableDeclarations, projectBinder, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var symbol = new GlobalVariableListSymbol(x.Syntax.SourcePosition, x.Name, variables);
+				return symbol;
+			}
+
+			private static IEnumerable<GlobalVariableSymbol> BindVariables(IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
+				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations, scope, messages));
+			private static IEnumerable<GlobalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
+			{
+				if (kind is not VarGlobalToken)
+					messages.Add(new OnlyVarGlobalInGvlMessages(kind.SourcePosition));
+				return vardecls.Select(v => BindVarDecl(v, scope, messages));
+			}
+			private static GlobalVariableSymbol BindVarDecl(VarDeclSyntax syntax, IScope scope, MessageBag messages)
+			{
+				IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+				return new(
+					syntax.TokenIdentifiers.SourcePosition,
+					syntax.Identifiers.ToCaseInsensitive(),
+					type);
+			}
+		}
+
 		public static BoundModule Bind(
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
-			ImmutableArray<GlobalVariableLanguageSource> gvls,
+			ImmutableArray<ParsedGVLLanguageSource> gvls,
 			ImmutableArray<ParsedDutLanguageSource> duts)
 		{
-			if (gvls.Any())
-				throw new NotImplementedException();
-			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts);
+			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts, gvls);
 			return binder.Bind(pous);
 		}
 
@@ -310,6 +344,11 @@ namespace Compiler
 				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, typeSymbol.DeclaringPosition);
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
 				enumTypeSymbol.RecursiveInitializers(MessageBag);
+			foreach (var gvlSymbol in WorkingGvlSymbols)
+			{
+				foreach(var globalVar in gvlSymbol.Variables)
+					DelayedLayoutType.RecursiveLayout(globalVar.Type, MessageBag, globalVar.DeclaringPosition);
+			}
 
 			var symbolsWithDuplicate = new List<FunctionSymbol>();
 			var dictionary = ImmutableDictionary.CreateBuilder<FunctionSymbol, BoundPou>(SymbolByNameComparer<FunctionSymbol>.Instance);
@@ -322,7 +361,7 @@ namespace Compiler
 			}
 			var functionSymbols = symbolsWithDuplicate.ToSymbolSetWithDuplicates(MessageBag);
 
-			var itf = new BoundModuleInterface(typeSymbols, functionSymbols);
+			var itf = new BoundModuleInterface(typeSymbols, functionSymbols, WorkingGvlSymbols);
 			return new BoundModule(
 				MessageBag.ToImmutable(),
 				itf,
@@ -333,5 +372,9 @@ namespace Compiler
 			WorkingTypeSymbols.TryGetValue(identifier, out var symbolInWork)
 				? ErrorsAnd.Create(symbolInWork.Symbol)
 				: base.LookupType(identifier, sourcePosition);
+		public override ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+			WorkingGvlSymbols.TryGetValue(identifier, out var symbol)
+				? ErrorsAnd.Create(symbol)
+				: base.LookupGlobalVariableList(identifier, sourcePosition);
 	}
 }
