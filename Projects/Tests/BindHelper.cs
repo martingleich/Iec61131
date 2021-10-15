@@ -30,7 +30,7 @@ namespace Tests
 			public TestProject AddPou(string itf, string body)
 				=> new (MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource(itf, body)));
 			public TestProject AddGVL(string name, string source)
-				=> new (MyProject.Add(new GlobalVariableListLanguageSource(name, source)));
+				=> new (MyProject.Add(new GlobalVariableListLanguageSource(name.ToCaseInsensitive(), source)));
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{

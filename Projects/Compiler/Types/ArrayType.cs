@@ -42,7 +42,6 @@ namespace Compiler.Types
 		private readonly ArrayTypeSyntax? MaybeSyntax;
 		private readonly IScope? MaybeScope;
 
-		public CaseInsensitiveString Name => ToString().ToCaseInsensitive();
 		public readonly IType BaseType;
 		public ImmutableArray<Range> Ranges { get; private set; }
 		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }

@@ -58,7 +58,7 @@ namespace Compiler
 				throw new ArgumentNullException(nameof(source));
 			var msg = new MessageBag();
 			var body = Parser.ParseGlobalVarList(source.Body, msg);
-			return Add(new ParsedGVLLanguageSource(source, source.Name.ToCaseInsensitive(), body, msg.ToImmutable()));
+			return Add(new ParsedGVLLanguageSource(source, source.Name, body, msg.ToImmutable()));
 		}
 	}
 }

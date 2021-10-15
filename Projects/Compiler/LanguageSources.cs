@@ -20,12 +20,12 @@ namespace Compiler
 
 	public sealed class GlobalVariableListLanguageSource : ILanguageSource
 	{
-		public readonly string Name;
+		public readonly CaseInsensitiveString Name;
 		public readonly string Body;
 
-		public GlobalVariableListLanguageSource(string name, string body)
+		public GlobalVariableListLanguageSource(CaseInsensitiveString name, string body)
 		{
-			Name = name ?? throw new ArgumentNullException(nameof(name));
+			Name = name;
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
