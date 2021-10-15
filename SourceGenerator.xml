@@ -497,8 +497,8 @@
     <!--Simple token with value-->
     <TokenWithValueClass>
       <Name>IdentifierToken</Name>
-      <ValueType>string</ValueType>
-      <DefaultValue>"__ERROR__"</DefaultValue>
+      <ValueType>CaseInsensitiveString</ValueType>
+      <DefaultValue>"__ERROR__".ToCaseInsensitive()</DefaultValue>
     </TokenWithValueClass>
     <TokenWithValueClass>
       <Name>UnknownToken</Name>
@@ -656,7 +656,7 @@
         <Type>AttributeSyntax</Type>
       </Element>
       <Element>
-        <Name>TokenIdentifiers</Name>
+        <Name>TokenIdentifier</Name>
         <Type>IdentifierToken</Type>
       </Element>
       <Element>

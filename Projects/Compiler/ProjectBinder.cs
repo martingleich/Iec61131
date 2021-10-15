@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
@@ -84,8 +83,8 @@ namespace Compiler
 		{
 			IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
 			return new(
-				syntax.TokenIdentifiers.SourcePosition,
-				syntax.Identifiers.ToCaseInsensitive(),
+				syntax.TokenIdentifier.SourcePosition,
+				syntax.Identifier,
 				type);
 		}
 	}
@@ -113,13 +112,13 @@ namespace Compiler
 		{
 			public static readonly DutSymbolCreator Instance = new();
 			public ITypeSymbolInWork Visit(AliasTypeDeclarationBodySyntax aliasTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new AliasTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), aliasTypeDeclarationBodySyntax.BaseType);
+				=> new AliasTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, aliasTypeDeclarationBodySyntax.BaseType);
 			public ITypeSymbolInWork Visit(StructTypeDeclarationBodySyntax structTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), false, structTypeDeclarationBodySyntax.Fields);
+				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, false, structTypeDeclarationBodySyntax.Fields);
 			public ITypeSymbolInWork Visit(UnionTypeDeclarationBodySyntax unionTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), true, unionTypeDeclarationBodySyntax.Fields);
+				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, true, unionTypeDeclarationBodySyntax.Fields);
 			public ITypeSymbolInWork Visit(EnumTypeDeclarationBodySyntax enumTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier.ToCaseInsensitive(), enumTypeDeclarationBodySyntax);
+				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, enumTypeDeclarationBodySyntax);
 		}
 
 		private sealed class PouSymbolCreatorT : IPouKindToken.IVisitor<FunctionSymbol, PouInterfaceSyntax>
@@ -141,11 +140,11 @@ namespace Compiler
 				=> TypifyFunctionOrProgram(isProgram: false, context);
 			private FunctionSymbol TypifyFunctionOrProgram(bool isProgram, PouInterfaceSyntax context)
 			{
-				var allParameters = BindParameters(context.VariableDeclarations).Concat(BindReturnValue(context.Name.ToCaseInsensitive(), context.ReturnDeclaration));
+				var allParameters = BindParameters(context.VariableDeclarations).Concat(BindReturnValue(context.Name, context.ReturnDeclaration));
 				var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
 				return new FunctionSymbol(
 					isProgram,
-					context.Name.ToCaseInsensitive(),
+					context.Name,
 					context.TokenName.SourcePosition,
 					uniqueParameters);
 			}
@@ -165,8 +164,8 @@ namespace Compiler
 				IType type = TypeCompiler.MapComplete(Scope, syntax.Type, Messages);
 				return new(
 					kind,
-					syntax.TokenIdentifiers.SourcePosition,
-					syntax.Identifiers.ToCaseInsensitive(),
+					syntax.TokenIdentifier.SourcePosition,
+					syntax.Identifier,
 					type);
 			}
 			private IEnumerable<ParameterSymbol> BindReturnValue(CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
@@ -220,7 +219,7 @@ namespace Compiler
 			private static FieldVariableSymbol CreateFieldSymbol(ProjectBinder projectBinder, VarDeclSyntax fieldSyntax)
 			{
 				var typeSymbol = TypeCompiler.MapSymbolic(projectBinder, fieldSyntax.Type, projectBinder.MessageBag);
-				return new FieldVariableSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifiers.ToCaseInsensitive(), typeSymbol);
+				return new FieldVariableSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifier, typeSymbol);
 			}
 		}
 
@@ -264,12 +263,12 @@ namespace Compiler
 						else
 						{
 							value = new BinaryOperatorExpressionSyntax(
-								new VariableExpressionSyntax(IdentifierToken.SynthesizeEx(0, prevSymbol.Name.Original)),
+								new VariableExpressionSyntax(IdentifierToken.SynthesizeEx(0, prevSymbol.Name)),
 								PlusToken.Synthesize(0),
 								new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(0, OverflowingInteger.FromUlong(1, false))));
 						}
 					}
-					var valueSymbol = new EnumValueSymbol(innerScope, valueSyntax.SourcePosition, valueSyntax.Identifier.ToCaseInsensitive(), value, Symbol);
+					var valueSymbol = new EnumValueSymbol(innerScope, valueSyntax.SourcePosition, valueSyntax.Identifier, value, Symbol);
 					allValueSymbols.Add(valueSymbol);
 					prevSymbol = valueSymbol;
 				}
@@ -322,8 +321,8 @@ namespace Compiler
 			{
 				IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
 				return new(
-					syntax.TokenIdentifiers.SourcePosition,
-					syntax.Identifiers.ToCaseInsensitive(),
+					syntax.TokenIdentifier.SourcePosition,
+					syntax.Identifier,
 					type);
 			}
 		}

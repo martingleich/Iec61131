@@ -184,7 +184,7 @@ namespace Compiler
 
 		public IBoundExpression Visit(VariableExpressionSyntax variableExpressionSyntax, IType? context)
 		{
-			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier.ToCaseInsensitive(), variableExpressionSyntax.SourcePosition).Extract(MessageBag);
+			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier, variableExpressionSyntax.SourcePosition).Extract(MessageBag);
 			var boundExpression = new VariableBoundExpression(variableExpressionSyntax, variable);
 			return ImplicitCast(boundExpression, context);
 		}

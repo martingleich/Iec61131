@@ -26,7 +26,7 @@ namespace Compiler
 		}
 
 		public IType Visit(IdentifierTypeSyntax identifierTypeSyntax)
-			=> Scope.LookupType(identifierTypeSyntax.Identifier.ToCaseInsensitive(), identifierTypeSyntax.SourcePosition).Extract(MessageBag);
+			=> Scope.LookupType(identifierTypeSyntax.Identifier, identifierTypeSyntax.SourcePosition).Extract(MessageBag);
 
 		public IType Visit(BuiltInTypeSyntax builtInTypeSyntax) =>
 			Scope.SystemScope.MapTokenToType(builtInTypeSyntax.TokenType);

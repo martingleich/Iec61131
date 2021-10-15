@@ -296,7 +296,7 @@ namespace Compiler
 				return token;
 			}
 			else
-				return new IdentifierToken(generating, generating, start, leadingToken);
+				return new IdentifierToken(generating.ToCaseInsensitive(), generating, start, leadingToken);
 		}
 
 		private IToken ScanUnknown(IToken? leadingToken)

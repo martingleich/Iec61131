@@ -1,6 +1,5 @@
 Allow function calls
 Handle assignement for diffrent syntax.
-Create enum values via EnumType.Value
 Add FBs
 Add initializers
 Create roslyn typerules for equatable.

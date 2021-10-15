@@ -345,7 +345,7 @@ namespace Compiler.Messages
 		public readonly CaseInsensitiveString Name;
 
 		public static ExpectedVariableOrTypeOrGvlMessage Create(VariableExpressionSyntax expression)
-			=> new (expression.Identifier.ToCaseInsensitive(), expression.SourcePosition);
+			=> new (expression.Identifier, expression.SourcePosition);
 		public ExpectedVariableOrTypeOrGvlMessage(CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
 		{
 			Name = name;

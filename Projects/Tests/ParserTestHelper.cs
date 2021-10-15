@@ -32,5 +32,7 @@ namespace Tests
 		{
 			Assert.Collection(arr.Values, checkes);
 		};
+		public static Action<ISyntax> VariableExpressionSyntax(string name) =>
+			VariableExpressionSyntax(name.ToCaseInsensitive());
 	}
 }

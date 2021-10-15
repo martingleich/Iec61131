@@ -19,13 +19,13 @@ namespace Compiler
 
 				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder)
 				{
-					if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value.ToCaseInsensitive(), out var field)))
+					if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value, out var field)))
 					{
 						if (!boundLeft.Type.IsError())
-							binder.MessageBag.Add(new FieldNotFoundMessage(boundLeft.Type, name.Value.ToCaseInsensitive(), name.SourcePosition));
+							binder.MessageBag.Add(new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourcePosition));
 						field = new FieldVariableSymbol(
 							name.SourcePosition,
-							name.Value.ToCaseInsensitive(),
+							name.Value,
 							boundLeft.Type);
 					}
 
@@ -47,21 +47,21 @@ namespace Compiler
 				{
 					if (_resolvedType is EnumTypeSymbol enumTypeSymbol)
 					{
-						if (enumTypeSymbol.Values.TryGetValue(name.Value.ToCaseInsensitive(), out var enumValue))
+						if (enumTypeSymbol.Values.TryGetValue(name.Value, out var enumValue))
 						{
 							return new LiteralBoundExpression(originalNode, enumValue._GetConstantValue(binder.MessageBag));
 						}
 						else
 						{
-							binder.MessageBag.Add(new EnumValueNotFoundMessage(enumTypeSymbol, name.Value.ToCaseInsensitive(), name.SourcePosition));
+							binder.MessageBag.Add(new EnumValueNotFoundMessage(enumTypeSymbol, name.Value, name.SourcePosition));
 							return new LiteralBoundExpression(originalNode,
 								new EnumLiteralValue(enumTypeSymbol, new UnknownLiteralValue(enumTypeSymbol.BaseType)));
 						}
 					}
 					else
 					{
-						binder.MessageBag.Add(new TypeDoesNotContainStaticVariableMessage(_type, name.Value.ToCaseInsensitive(), name.SourcePosition));
-						return new StaticVariableBoundExpression(originalNode, GlobalVariableSymbol.CreateError(name.SourcePosition, name.Value.ToCaseInsensitive()));
+						binder.MessageBag.Add(new TypeDoesNotContainStaticVariableMessage(_type, name.Value, name.SourcePosition));
+						return new StaticVariableBoundExpression(originalNode, GlobalVariableSymbol.CreateError(name.SourcePosition, name.Value));
 					}
 				}
 			}
@@ -76,7 +76,7 @@ namespace Compiler
 
 				public override IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, IType? context, ExpressionBinder binder)
 				{
-					var varName = name.Value.ToCaseInsensitive();
+					var varName = name.Value;
 					var varPos = name.SourcePosition;
 					if (!_gvl.Variables.TryGetValue(varName, out var globalVariable))
 					{
@@ -95,7 +95,7 @@ namespace Compiler
 		{
 			if (syntax is VariableExpressionSyntax variableExpressionSyntax)
 			{
-				var name = variableExpressionSyntax.Identifier.ToCaseInsensitive();
+				var name = variableExpressionSyntax.Identifier;
 				var pos = variableExpressionSyntax.SourcePosition;
 				var maybeVar = Scope.LookupVariable(name, pos);
 				if (!maybeVar.HasErrors)
