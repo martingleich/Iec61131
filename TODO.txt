@@ -3,7 +3,6 @@ Handle assignement for diffrent syntax.
 Add FBs
 Add initializers
 Create roslyn typerules for equatable.
-Pretty print expression nodes in debug mode
 Simple incremental compile
 Libraries
 LateLanguageUpdates

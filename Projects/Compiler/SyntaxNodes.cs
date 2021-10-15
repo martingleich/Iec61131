@@ -7,6 +7,7 @@ namespace Compiler
 {
 	public interface ISyntax : INode
 	{
+		IEnumerable<INode> GetChildren();
 	}
 
 	public readonly struct SyntaxCommaSeparated<T> : ISyntax, IEnumerable<T> where T : INode
@@ -31,6 +32,14 @@ namespace Compiler
 			public INode FirstNonNullChild => CommaToken;
 			public INode LastNonNullChild => (INode?)Tail ?? Value;
 			public SourcePosition SourcePosition { get; }
+
+			public IEnumerable<INode> GetChildren()
+			{
+				yield return CommaToken;
+				yield return Value;
+				if (Tail is not null)
+					yield return Tail;
+			}
 		}
 		public class HeadSyntax : ISyntax
 		{
@@ -45,6 +54,12 @@ namespace Compiler
 			public INode FirstNonNullChild => Value;
 			public INode LastNonNullChild => (INode?)Tail ?? Value;
 			public SourcePosition SourcePosition { get; }
+			public IEnumerable<INode> GetChildren()
+			{
+				yield return Value;
+				if(Tail is not null)
+					yield return Tail;
+			}
 		}
 
 		public readonly HeadSyntax? Head;
@@ -66,6 +81,12 @@ namespace Compiler
 
 		[ExcludeFromCodeCoverage]
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		public IEnumerable<INode> GetChildren()
+		{
+			if(Head is not null)
+				yield return Head;
+		}
 	}
 
 	public readonly struct SyntaxArray<T> : ISyntax, IReadOnlyList<T> where T : ISyntax
@@ -87,6 +108,8 @@ namespace Compiler
 		public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)Values).GetEnumerator();
 		[ExcludeFromCodeCoverage]
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		public IEnumerable<INode> GetChildren() => Values.CastArray<INode>();
 	}
 
 	public static class SyntaxArray

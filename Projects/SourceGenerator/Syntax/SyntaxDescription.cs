@@ -79,6 +79,13 @@ namespace SourceGenerator
 			cw.WriteLine($"public INode FirstNonNullChild => {FirstNonNullChild()};");
 			cw.WriteLine($"public INode LastNonNullChild => {LastNonNullChild()};");
 			cw.WriteLine("public SourcePosition SourcePosition {get;}");
+			cw.WriteLine("public System.Collections.Generic.IEnumerable<INode> GetChildren()");
+			cw.StartBlock();
+			cw.WriteLines(Elements.Select(e => e.IsNullable
+			? $"if({e.Name} is not null) yield return {e.Name};"
+			: $"yield return {e.Name};"));;
+			cw.EndBlock();
+			cw.WriteLine("public override string ToString() => SyntaxToStringConverter.ExactToString(this);");
 			cw.EndBlock();
 			return cw.ToCode();
 		}
