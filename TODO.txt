@@ -1,4 +1,5 @@
 Handle assignement for diffrent syntax.
+For loop statement
 Add FBs
 Add initializers
 Create roslyn typerules for equatable.
