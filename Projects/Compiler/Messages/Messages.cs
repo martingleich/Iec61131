@@ -122,9 +122,9 @@ namespace Compiler.Messages
 
 		public override string Text => $"There is not type that can contain the value '{Token.Generating}'";
 	}
-	public sealed class InvalidArrayRangesMessages : ACriticalMessage
+	public sealed class InvalidArrayRangesMessage : ACriticalMessage
 	{
-		public InvalidArrayRangesMessages(SourcePosition position) : base(position)
+		public InvalidArrayRangesMessage(SourcePosition position) : base(position)
 		{
 		}
 		public override string Text => $"The array ranges are invalid";

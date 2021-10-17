@@ -27,16 +27,9 @@ namespace Compiler.Types
 			public override bool Equals(object? obj) => throw new NotImplementedException("Use Equals(ArrayRange) instead");
 			public override int GetHashCode() => HashCode.Combine(LowerBound, UpperBound);
 			public override string ToString() => $"{LowerBound}..{UpperBound}";
+			public static bool operator ==(Range left, Range right) => left.Equals(right);
 
-			public static bool operator ==(Range left, Range right)
-			{
-				return left.Equals(right);
-			}
-
-			public static bool operator !=(Range left, Range right)
-			{
-				return !(left == right);
-			}
+			public static bool operator !=(Range left, Range right) => !(left == right);
 		}
 
 		private readonly ArrayTypeSyntax? MaybeSyntax;
@@ -110,7 +103,7 @@ namespace Compiler.Types
 			else if (range.Lower != null && range.Upper != null)
 				if (range.Upper.Value - range.Lower.Value + 1 < 0)
 				{
-					messageBag.Add(new InvalidArrayRangesMessages(range.Syntax.SourcePosition));
+					messageBag.Add(new InvalidArrayRangesMessage(range.Syntax.SourcePosition));
 					return new Range(range.Lower.Value, range.Lower.Value);
 				}
 				else

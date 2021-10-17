@@ -61,8 +61,10 @@ namespace Compiler
 			}
 			return true;
 		}
-		public static bool HasNoNullElement<T>(this T?[] values, [MaybeNullWhen(false)] out T[] nonNulls) where T : class
+		public static bool HasNoNullElement<T>(this T?[] values, [MaybeNullWhen(false)] out T[] nonNulls)
 		{
+			if (values is null)
+				throw new ArgumentNullException(nameof(values));
 			foreach (var value in values)
 			{
 				if (value is null)

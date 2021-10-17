@@ -155,6 +155,7 @@ namespace Tests
 		[InlineData("INT#0 + LREAL#0", "ADD_LREAL")]
 		[InlineData("LREAL#0 + SINT#0", "ADD_LREAL")]
 		[InlineData("UINT#0 + REAL#0", "ADD_REAL")]
+
 		public static void BinaryArithemtic(string expr, string op)
 		{
 			var boundExpression = BindHelper.NewProject
@@ -173,6 +174,9 @@ namespace Tests
 		[InlineData("USINT#5 > INT#5", "GREATER_DINT", false)]
 		[InlineData("BOOL#TRUE = BOOL#FALSE", "EQUAL_BOOL", false)]
 		[InlineData("BOOL#FALSE <> BOOL#TRUE", "NOT_EQUAL_BOOL", true)]
+		[InlineData("BOOL#FALSE AND BOOL#TRUE", "AND_BOOL", false)]
+		[InlineData("BOOL#FALSE OR BOOL#TRUE", "OR_BOOL", true)]
+		[InlineData("BOOL#FALSE XOR BOOL#TRUE", "XOR_BOOL", true)]
 		public static void Comparisions(string expr, string op, bool result)
 		{
 			var boundExpression = BindHelper.NewProject

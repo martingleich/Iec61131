@@ -126,8 +126,8 @@ namespace Compiler
 			BuiltInType boolean,
 			Func<ILiteralValue, ILiteralValue, bool> lessEqual)
 		{
-			ILiteralValue Equal(IType result, ILiteralValue[] args) => new BooleanLiteralValue(lessEqual(args[0], args[1]) && lessEqual(args[1], args[0]), result);
-			ILiteralValue NotEqual(IType result, ILiteralValue[] args) => new BooleanLiteralValue(!lessEqual(args[0], args[1]) || !lessEqual(args[1], args[0]), result);
+			ILiteralValue Equal(IType result, ILiteralValue[] args) => new BooleanLiteralValue(lessEqual(args[0], args[1]) & lessEqual(args[1], args[0]), result);
+			ILiteralValue NotEqual(IType result, ILiteralValue[] args) => new BooleanLiteralValue(!lessEqual(args[0], args[1]) | !lessEqual(args[1], args[0]), result);
 			ILiteralValue LessEqual(IType result, ILiteralValue[] args) => new BooleanLiteralValue(lessEqual(args[0], args[1]), result);
 			ILiteralValue Less(IType result, ILiteralValue[] args) => new BooleanLiteralValue(!lessEqual(args[1], args[0]), result);
 			ILiteralValue Greater(IType result, ILiteralValue[] args) => new BooleanLiteralValue(!lessEqual(args[0], args[1]), result);
