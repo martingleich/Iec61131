@@ -65,7 +65,7 @@ namespace Compiler
 			return EvaluateConstantFunction(binaryOperatorBoundExpression, binaryOperatorBoundExpression.Function, leftValue, rightValue);
 		}
 
-		public ILiteralValue? Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCastBoundExpression)
+		public ILiteralValue? Visit(ImplicitArithmeticCastBoundExpression implicitArithmeticCastBoundExpression)
 		{
 			var value = implicitArithmeticCastBoundExpression.Value.Accept(this);
 			if (value == null)
@@ -96,7 +96,7 @@ namespace Compiler
 			}
 		}
 
-		public ILiteralValue? Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
+		public ILiteralValue? Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
 		{
 			var value = unaryOperatorBoundExpression.Value.Accept(this);
 			return EvaluateConstantFunction(unaryOperatorBoundExpression, unaryOperatorBoundExpression.Function, value);
@@ -127,23 +127,23 @@ namespace Compiler
 
 		public ILiteralValue? Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => NotAConstant(implicitPointerTypeCaseBoundExpression);
 		public ILiteralValue? Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression) => NotAConstant(pointerDiffrenceBoundExpression);
-		public ILiteralValue? Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAConstant(pointerOffsetBoundExpression);
-		public ILiteralValue? Accept(DerefBoundExpression derefBoundExpression) => NotAConstant(derefBoundExpression);
-		public ILiteralValue? Accept(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression) => NotAConstant(aliasToBaseTypeCastBoundExpression);
+		public ILiteralValue? Visit(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAConstant(pointerOffsetBoundExpression);
+		public ILiteralValue? Visit(DerefBoundExpression derefBoundExpression) => NotAConstant(derefBoundExpression);
+		public ILiteralValue? Visit(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression) => NotAConstant(aliasToBaseTypeCastBoundExpression);
 
-		public ILiteralValue? Accept(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression)
+		public ILiteralValue? Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression)
 		{
 			// This is never a constant, since it is only generated for compile errors, report error for the inner values, and go on.
 			implicitErrorCastBoundExpression.Value.Accept(this);
 			return null;
 		}
 
-		public ILiteralValue? Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAConstant(implicitAliasFromBaseTypeCastBoundExpression);
-		public ILiteralValue? Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => NotAConstant(arrayIndexAccessBoundExpression);
-		public ILiteralValue? Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
-		public ILiteralValue? Accept(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
-		public ILiteralValue? Accept(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
-		public ILiteralValue? Accept(FunctionCallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
-		public ILiteralValue? Accept(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
+		public ILiteralValue? Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAConstant(implicitAliasFromBaseTypeCastBoundExpression);
+		public ILiteralValue? Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => NotAConstant(arrayIndexAccessBoundExpression);
+		public ILiteralValue? Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
+		public ILiteralValue? Visit(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
+		public ILiteralValue? Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
+		public ILiteralValue? Visit(FunctionCallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
+		public ILiteralValue? Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
 	}
 }

@@ -276,5 +276,16 @@
 				.AddPou("FUNCTION foo", syntax)
 				.BindBodies(ErrorOfType<SyntaxOnlyAllowedInLoopMessage>());
 		}
+		[Fact]
+		public void Return()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo", "RETURN;")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					AssertEx.AssertNthStatement<ReturnBoundStatement>(st, 0);
+				});
+		}
 	}
 }

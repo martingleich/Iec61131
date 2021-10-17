@@ -19,20 +19,20 @@ namespace Compiler
 			T Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression);
 			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
 			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
-			T Accept(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
-			T Accept(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
+			T Visit(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
+			T Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
 			T Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression);
-			T Accept(PointerOffsetBoundExpression pointerOffsetBoundExpression);
-			T Accept(DerefBoundExpression derefBoundExpression);
-			T Accept(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression);
-			T Accept(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression);
-			T Accept(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression);
-			T Accept(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression);
-			T Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
-			T Accept(FieldAccessBoundExpression fieldAccessBoundExpression);
-			T Accept(StaticVariableBoundExpression staticVariableBoundExpression);
-			T Accept(FunctionCallBoundExpression functionCallBoundExpression);
-			T Accept(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
+			T Visit(PointerOffsetBoundExpression pointerOffsetBoundExpression);
+			T Visit(DerefBoundExpression derefBoundExpression);
+			T Visit(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression);
+			T Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression);
+			T Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression);
+			T Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression);
+			T Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
+			T Visit(FieldAccessBoundExpression fieldAccessBoundExpression);
+			T Visit(StaticVariableBoundExpression staticVariableBoundExpression);
+			T Visit(FunctionCallBoundExpression functionCallBoundExpression);
+			T Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
 		}
 	}
 
@@ -41,13 +41,14 @@ namespace Compiler
 		T Accept<T>(IVisitor<T> visitor);
 		interface IVisitor<T>
 		{
-			T Accept(SequenceBoundStatement sequenceBoundStatement);
-			T Accept(ExpressionBoundStatement expressionBoundStatement);
-			T Accept(AssignBoundStatement assignToExpressionBoundStatement);
-			T Accept(IfBoundStatement ifBoundStatement);
-			T Accept(WhileBoundStatement whileBoundStatement);
-			T Accept(ExitBoundStatement exitBoundStatement);
-			T Accept(ContinueBoundStatement continueBoundStatement);
+			T Visit(SequenceBoundStatement sequenceBoundStatement);
+			T Visit(ExpressionBoundStatement expressionBoundStatement);
+			T Visit(AssignBoundStatement assignToExpressionBoundStatement);
+			T Visit(IfBoundStatement ifBoundStatement);
+			T Visit(WhileBoundStatement whileBoundStatement);
+			T Visit(ExitBoundStatement exitBoundStatement);
+			T Visit(ContinueBoundStatement continueBoundStatement);
+			T Visit(ReturnBoundStatement returnBoundStatement);
 		}
 	}
 
@@ -134,7 +135,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ImplicitErrorCastBoundExpression : IBoundExpression
 	{
@@ -148,7 +149,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ImplicitAliasToBaseTypeCastBoundExpression : IBoundExpression
 	{
@@ -163,7 +164,7 @@ namespace Compiler
 
 		public IType Type { get; }
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ImplicitAliasFromBaseTypeCastBoundExpression : IBoundExpression
 	{
@@ -178,7 +179,7 @@ namespace Compiler
 
 		public IType Type { get; }
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ImplicitDiscardBoundExpression : IBoundExpression
 	{
@@ -191,7 +192,7 @@ namespace Compiler
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class PointerDiffrenceBoundExpression : IBoundExpression
@@ -228,7 +229,7 @@ namespace Compiler
 
 		public IType Type { get; }
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class BinaryOperatorBoundExpression : IBoundExpression
@@ -265,7 +266,7 @@ namespace Compiler
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class DerefBoundExpression : IBoundExpression
@@ -281,7 +282,7 @@ namespace Compiler
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ArrayIndexAccessBoundExpression : IBoundExpression
 	{
@@ -296,7 +297,7 @@ namespace Compiler
 			Indices = indices;
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class PointerIndexAccessBoundExpression : IBoundExpression
 	{
@@ -311,7 +312,7 @@ namespace Compiler
 			Indices = indices;
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class FieldAccessBoundExpression : IBoundExpression
 	{
@@ -327,7 +328,7 @@ namespace Compiler
 			Field = field ?? throw new ArgumentNullException(nameof(field));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class StaticVariableBoundExpression : IBoundExpression
@@ -342,7 +343,7 @@ namespace Compiler
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class FunctionCallBoundExpression : IBoundExpression
@@ -373,7 +374,7 @@ namespace Compiler
 			Arguments = arguments;
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class SequenceBoundStatement : IBoundStatement
@@ -385,7 +386,7 @@ namespace Compiler
 			Statements = statements;
 		}
 
-		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	
 	public sealed class ExpressionBoundStatement : IBoundStatement
@@ -397,7 +398,7 @@ namespace Compiler
 			Expression = expression ?? throw new ArgumentNullException(nameof(expression));
 		}
 
-		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class AssignBoundStatement : IBoundStatement
@@ -411,7 +412,7 @@ namespace Compiler
 			RightSide = rightSide ?? throw new ArgumentNullException(nameof(rightSide));
 		}
 
-		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class IfBoundStatement : IBoundStatement
@@ -434,7 +435,7 @@ namespace Compiler
 			Branches = branches;
 		}
 
-		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class WhileBoundStatement : IBoundStatement
@@ -448,15 +449,19 @@ namespace Compiler
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
-		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class ExitBoundStatement : IBoundStatement
 	{
-		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ContinueBoundStatement : IBoundStatement
 	{
-		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Accept(this);
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
+	}
+	public sealed class ReturnBoundStatement : IBoundStatement
+	{
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 }

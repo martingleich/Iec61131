@@ -84,9 +84,7 @@ namespace Compiler
 		}
 
 		public IBoundStatement Visit(ReturnStatementSyntax returnStatementSyntax)
-		{
-			throw new NotImplementedException();
-		}
+			=> new ReturnBoundStatement();
 
 		public IBoundStatement Visit(ExitStatementSyntax exitStatementSyntax)
 		{
