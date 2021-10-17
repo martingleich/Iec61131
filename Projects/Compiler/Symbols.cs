@@ -117,32 +117,51 @@ namespace Compiler
 
 	public sealed class FunctionSymbol : ISymbol
 	{
-		public bool IsProgram { get; }
+		public readonly bool IsError;
+		public readonly bool IsProgram;
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
 		public readonly OrderedSymbolSet<ParameterSymbol> Parameters;
 
-		public FunctionSymbol(bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
+		public FunctionSymbol(bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters) :
+			this(false, isProgram, name, declaringPosition, parameters)
 		{
+		}
+		private FunctionSymbol(bool isError, bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
+		{
+			IsError = isError;
 			IsProgram = isProgram;
 			Name = name;
 			DeclaringPosition = declaringPosition;
 			Parameters = parameters;
 		}
 
+		public IType ReturnType => Parameters.TryGetValue(Name, out var returnParam)
+			? returnParam.Type
+			: NullType.Instance;
+		public int ParameterCountWithoutReturn => ReturnType is NullType
+			? Parameters.Count
+			: Parameters.Count - 1;
+
 		public override string ToString() => $"{Name}";
 
-		public IType? ReturnType => Parameters.TryGetValue(Name)?.Type;
-
 		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
-			=> new (false, "__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Empty);
+			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourcePosition, ImplicitName.ErrorFunction));
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name)
+			=> CreateError(sourcePosition, name, ITypeSymbol.CreateErrorForFunc(sourcePosition, name));
 		public static FunctionSymbol CreateError(SourcePosition sourcePosition, IType returnType)
-			=> new(false, "__ERROR__".ToCaseInsensitive(), sourcePosition, OrderedSymbolSet<ParameterSymbol>.Create(
-				new[] { new ParameterSymbol(ParameterKind.Output, sourcePosition, "__ERROR__".ToCaseInsensitive(), returnType) }));
+			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, returnType);
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
+			=> new(true, false, name, sourcePosition, OrderedSymbolSet.ToOrderedSymbolSet(
+				new ParameterSymbol(ParameterKind.Output, sourcePosition, name, returnType)));
 	}
 
 	public sealed class ParameterSymbol : IVariableSymbol
 	{
+		public static ParameterSymbol CreateError(int id, SourcePosition position)
+			=> CreateError(ImplicitName.ErrorParam(id), position);
+		public static ParameterSymbol CreateError(CaseInsensitiveString name, SourcePosition position)
+			=> new (ParameterKind.Input, position, name, ITypeSymbol.CreateErrorForVar(position, name));
 		public ParameterSymbol(ParameterKind kind, SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
 		{
 			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
@@ -162,23 +181,25 @@ namespace Compiler
 
 	public sealed class ParameterKind : IEquatable<ParameterKind>
 	{
-		public readonly static ParameterKind Input = new(VarInputToken.DefaultGenerating);
-		public readonly static ParameterKind Output = new(VarOutToken.DefaultGenerating);
-		public readonly static ParameterKind InOut = new(VarInOutToken.DefaultGenerating);
+		public readonly static ParameterKind Input = new(VarInputToken.DefaultGenerating, AssignToken.DefaultGenerating);
+		public readonly static ParameterKind Output = new(VarOutToken.DefaultGenerating, DoubleArrowToken.DefaultGenerating);
+		public readonly static ParameterKind InOut = new(VarInOutToken.DefaultGenerating, AssignToken.DefaultGenerating);
 
-		private ParameterKind(string code)
+		private ParameterKind(string code, string assignCode)
 		{
 			Code = code ?? throw new ArgumentNullException(nameof(code));
+			AssignCode = assignCode ?? throw new ArgumentNullException(nameof(assignCode));
 		}
 
 		public string Code { get; }
+		public string AssignCode { get; }
 
 		public bool Equals(ParameterKind? other) => other != null && other.Code == Code;
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Code.GetHashCode();
 		public override string ToString() => Code;
 
-		public static ParameterKind? TryMap(IVarDeclKindToken token) => token.Accept(ParameterKindMapper.Instance);
+		public static ParameterKind? TryMapDecl(IVarDeclKindToken token) => token.Accept(ParameterKindMapper.Instance);
 		private sealed class ParameterKindMapper : IVarDeclKindToken.IVisitor<ParameterKind?>
 		{
 			public static readonly ParameterKindMapper Instance = new();
@@ -188,6 +209,15 @@ namespace Compiler
 			public ParameterKind? Visit(VarOutToken varOutToken) => Output;
 			public ParameterKind? Visit(VarInOutToken varInOutToken) => InOut;
 			public ParameterKind? Visit(VarTempToken varTempToken) => null;
+		}
+
+		internal bool MatchesAssignKind(IParameterKindToken parameterKind) => parameterKind.Accept(ParameterKindChecker.Instance, this);
+		private sealed class ParameterKindChecker : IParameterKindToken.IVisitor<bool, ParameterKind>
+		{
+			public static readonly ParameterKindChecker Instance = new();
+
+			public bool Visit(AssignToken assignToken, ParameterKind context) => context.Equals(Input) || context.Equals(InOut);
+			public bool Visit(DoubleArrowToken doubleArrowToken, ParameterKind context) => context.Equals(Output);
 		}
 	}
 

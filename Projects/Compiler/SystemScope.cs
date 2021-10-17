@@ -49,6 +49,7 @@ namespace Compiler
 			BuiltInTypeMapper = new TypeMapper(this);
 
 			BuiltInFunctionTable = new BuiltInFunctionTable(this);
+			PointerSize = 4;
 		}
 
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
@@ -174,7 +175,7 @@ namespace Compiler
 				return null;
 		}
 		public IType PointerDiffrenceType => GetSignedIntegerTypeGreaterEqualThan(PointerSize)!;
-		public int PointerSize => 4;
+		public int PointerSize { get; }
 		public bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
 		{
 			// Okay casts:

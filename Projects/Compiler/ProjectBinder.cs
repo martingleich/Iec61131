@@ -153,7 +153,7 @@ namespace Compiler
 				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations));
 			private IEnumerable<ParameterSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls)
 			{
-				var mapped = ParameterKind.TryMap(kind);
+				var mapped = ParameterKind.TryMapDecl(kind);
 				if (mapped == null)
 					return Enumerable.Empty<ParameterSymbol>();
 				else

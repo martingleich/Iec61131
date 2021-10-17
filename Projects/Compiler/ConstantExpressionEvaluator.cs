@@ -143,5 +143,7 @@ namespace Compiler
 		public ILiteralValue? Accept(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
 		public ILiteralValue? Accept(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
 		public ILiteralValue? Accept(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
+		public ILiteralValue? Accept(FunctionCallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
+		public ILiteralValue? Accept(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
 	}
 }

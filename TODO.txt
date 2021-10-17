@@ -1,4 +1,3 @@
-Allow function calls
 Handle assignement for diffrent syntax.
 Add FBs
 Add initializers

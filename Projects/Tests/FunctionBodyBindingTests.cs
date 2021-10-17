@@ -7,14 +7,6 @@
 	using static ErrorTestHelper;
 	public sealed class FunctionBodyBindingTests
 	{
-		private static T AssertNthStatement<T>(IBoundStatement statement, int n) where T : IBoundStatement
-			=> Assert.IsType<T>(Assert.IsType<SequenceBoundStatement>(statement).Statements[n]);
-		private static void AssertStatementBlockMarker(IBoundStatement block, string varName)
-			=> AssertVariableExpression(
-				AssertNthStatement<ExpressionBoundStatement>(block, 0).Expression,
-				varName);
-		private static void AssertVariableExpression(IBoundExpression expression, string varName)
-			=> Assert.Equal(varName.ToCaseInsensitive(), Assert.IsType<VariableBoundExpression>(expression).Variable.Name);
 		[Fact]
 		public void BindEmptyBody()
 		{
@@ -35,7 +27,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var seq2 = AssertNthStatement<SequenceBoundStatement>(st, 0);
+					var seq2 = AssertEx.AssertNthStatement<SequenceBoundStatement>(st, 0);
 					Assert.Empty(seq2.Statements);
 				});
 		}
@@ -51,7 +43,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
+					var exprSt = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					Assert.IsType(exprType, exprSt.Expression);
 				});
 		}
@@ -78,7 +70,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
+					var exprSt = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					var expr = Assert.IsType<VariableBoundExpression>(exprSt.Expression);
 					Assert.Equal("x".ToCaseInsensitive(), expr.Variable.Name);
 				});
@@ -91,7 +83,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var exprSt = AssertNthStatement<ExpressionBoundStatement>(st, 0);
+					var exprSt = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 0);
 					var expr = Assert.IsType<VariableBoundExpression>(exprSt.Expression);
 					Assert.Equal("y".ToCaseInsensitive(), expr.Variable.Name);
 				});
@@ -111,7 +103,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var boundSt = AssertNthStatement<AssignBoundStatement>(st, 0);
+					var boundSt = AssertEx.AssertNthStatement<AssignBoundStatement>(st, 0);
 					var left = Assert.IsType<VariableBoundExpression>(boundSt.LeftSide);
 					var right = Assert.IsType<LiteralBoundExpression>(boundSt.RightSide);
 				});
@@ -132,7 +124,7 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var boundSt = AssertNthStatement<AssignBoundStatement>(st, 0);
+					var boundSt = AssertEx.AssertNthStatement<AssignBoundStatement>(st, 0);
 					var left = Assert.IsType<VariableBoundExpression>(boundSt.LeftSide);
 					var right = Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundSt.RightSide);
 				});
@@ -154,10 +146,10 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					var ifSt = AssertEx.AssertNthStatement<IfBoundStatement>(st, 0);
 					var branch = Assert.Single(ifSt.Branches);
-					AssertVariableExpression(branch.Condition, "xc");
-					AssertStatementBlockMarker(branch.Body, "xb");
+					AssertEx.AssertVariableExpression(branch.Condition, "xc");
+					AssertEx.AssertStatementBlockMarker(branch.Body, "xb");
 				});
 		}
 		[Fact]
@@ -168,17 +160,17 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					var ifSt = AssertEx.AssertNthStatement<IfBoundStatement>(st, 0);
 					Assert.Collection(ifSt.Branches,
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "xc");
-							AssertStatementBlockMarker(b.Body, "xb");
+							AssertEx.AssertVariableExpression(b.Condition, "xc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "xb");
 						},
 						b =>
 						{
 							Assert.Null(b.Condition);
-							AssertStatementBlockMarker(b.Body, "yb");
+							AssertEx.AssertStatementBlockMarker(b.Body, "yb");
 						});
 				});
 		}
@@ -190,22 +182,22 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					var ifSt = AssertEx.AssertNthStatement<IfBoundStatement>(st, 0);
 					Assert.Collection(ifSt.Branches,
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "xc");
-							AssertStatementBlockMarker(b.Body, "xb");
+							AssertEx.AssertVariableExpression(b.Condition, "xc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "xb");
 						},
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "yc");
-							AssertStatementBlockMarker(b.Body, "yb");
+							AssertEx.AssertVariableExpression(b.Condition, "yc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "yb");
 						},
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "zc");
-							AssertStatementBlockMarker(b.Body, "zb");
+							AssertEx.AssertVariableExpression(b.Condition, "zc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "zb");
 						});
 				});
 		}
@@ -217,22 +209,22 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var ifSt = AssertNthStatement<IfBoundStatement>(st, 0);
+					var ifSt = AssertEx.AssertNthStatement<IfBoundStatement>(st, 0);
 					Assert.Collection(ifSt.Branches,
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "xc");
-							AssertStatementBlockMarker(b.Body, "xb");
+							AssertEx.AssertVariableExpression(b.Condition, "xc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "xb");
 						},
 						b =>
 						{
-							AssertVariableExpression(b.Condition, "yc");
-							AssertStatementBlockMarker(b.Body, "yb");
+							AssertEx.AssertVariableExpression(b.Condition, "yc");
+							AssertEx.AssertStatementBlockMarker(b.Body, "yb");
 						},
 						b =>
 						{
 							Assert.Null(b.Condition);
-							AssertStatementBlockMarker(b.Body, "zb");
+							AssertEx.AssertStatementBlockMarker(b.Body, "zb");
 						});
 				});
 		}
@@ -246,9 +238,9 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
-					AssertVariableExpression(whileSt.Condition, "xc");
-					AssertStatementBlockMarker(whileSt.Body, "xb");
+					var whileSt = AssertEx.AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertEx.AssertVariableExpression(whileSt.Condition, "xc");
+					AssertEx.AssertStatementBlockMarker(whileSt.Body, "xb");
 				});
 		}
 		[Fact]
@@ -259,8 +251,8 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
-					AssertNthStatement<ExitBoundStatement>(whileSt.Body, 0);
+					var whileSt = AssertEx.AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertEx.AssertNthStatement<ExitBoundStatement>(whileSt.Body, 0);
 				});
 		}
 		[Fact]
@@ -271,8 +263,8 @@
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
-					var whileSt = AssertNthStatement<WhileBoundStatement>(st, 0);
-					AssertNthStatement<ContinueBoundStatement>(whileSt.Body, 0);
+					var whileSt = AssertEx.AssertNthStatement<WhileBoundStatement>(st, 0);
+					AssertEx.AssertNthStatement<ContinueBoundStatement>(whileSt.Body, 0);
 				});
 		}
 		[Theory]

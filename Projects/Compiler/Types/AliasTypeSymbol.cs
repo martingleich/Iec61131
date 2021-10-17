@@ -67,6 +67,7 @@ namespace Compiler.Types
 						messageBag.Add(new TypeNotCompleteMessage(DeclaringPosition));
 					}
 				}
+		
 			}
 
 			return MaybeLayoutInfo.Value;

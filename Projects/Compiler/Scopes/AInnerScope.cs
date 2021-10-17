@@ -16,5 +16,6 @@ namespace Compiler.Scopes
 		public virtual ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupType(identifier, sourcePosition);
 		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupVariable(identifier, sourcePosition);
 		public virtual ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupGlobalVariableList(identifier, sourcePosition);
+		public virtual ErrorsAnd<FunctionSymbol> LookupFunction(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupFunction(identifier, sourcePosition);
 	}
 }

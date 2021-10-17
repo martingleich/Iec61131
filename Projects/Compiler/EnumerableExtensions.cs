@@ -47,6 +47,20 @@ namespace Compiler
 			}
 		}
 
+		public static bool MoreThan<T>(this IEnumerable<T> self, int minCount)
+		{
+			if (self is null) throw new ArgumentNullException(nameof(self));
+			using (var e = self.GetEnumerator())
+			{
+				while (minCount >= 0)
+				{
+					if (!e.MoveNext())
+						return false;
+					--minCount;
+				}
+			}
+			return true;
+		}
 		public static bool HasNoNullElement<T>(this T?[] values, [MaybeNullWhen(false)] out T[] nonNulls) where T : class
 		{
 			foreach (var value in values)

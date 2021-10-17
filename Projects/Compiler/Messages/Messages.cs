@@ -49,7 +49,7 @@ namespace Compiler.Messages
 	public sealed class MissingEndOfMultilineCommentMessage : ACriticalMessage
 	{
 		public readonly string Expected;
-		public MissingEndOfMultilineCommentMessage( SourcePosition position, string expected) : base(position)
+		public MissingEndOfMultilineCommentMessage(SourcePosition position, string expected) : base(position)
 		{
 			Expected = expected;
 		}
@@ -150,6 +150,30 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"Cannot find a variable named '{Identifier}'.";
+	}
+	public sealed class ParameterNotFoundMessage : ACriticalMessage
+	{
+		public readonly FunctionSymbol Function;
+		public readonly CaseInsensitiveString Identifier;
+
+		public ParameterNotFoundMessage(FunctionSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		{
+			Function = function ?? throw new ArgumentNullException(nameof(function));
+			Identifier = identifier;
+		}
+
+		public override string Text => $"Cannot find a parameter named '{Identifier}' in the function '{Function.Name}'.";
+	}
+	public sealed class FunctionNotFoundMessage : ACriticalMessage
+	{
+		public readonly CaseInsensitiveString Identifier;
+
+		public FunctionNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		{
+			Identifier = identifier;
+		}
+
+		public override string Text => $"Cannot find a function named '{Identifier}'.";
 	}
 	public sealed class TypeNotCompleteMessage : ACriticalMessage
 	{
@@ -317,7 +341,7 @@ namespace Compiler.Messages
 
 		public override string Text => $"The type '{BaseType.Code}' does not have a field '{FieldName}'.";
 	}
-	
+
 	public sealed class OnlyVarGlobalInGvlMessage : ACriticalMessage
 	{
 		public OnlyVarGlobalInGvlMessage(SourcePosition sourcePosition) : base(sourcePosition)
@@ -345,7 +369,7 @@ namespace Compiler.Messages
 		public readonly CaseInsensitiveString Name;
 
 		public static ExpectedVariableOrTypeOrGvlMessage Create(VariableExpressionSyntax expression)
-			=> new (expression.Identifier, expression.SourcePosition);
+			=> new(expression.Identifier, expression.SourcePosition);
 		public ExpectedVariableOrTypeOrGvlMessage(CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
 		{
 			Name = name;
@@ -378,5 +402,98 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"The type '{Type.Code}' does not contain a static variable named '{Name}'.";
+	}
+
+	public sealed class TypeExpectedMessage : ACriticalMessage
+	{
+		public readonly IToken ReceivedToken;
+		public TypeExpectedMessage(IToken receivedToken) : base(receivedToken.SourcePosition)
+		{
+			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
+		}
+
+		public override string Text => $"Expected a type but found '{ReceivedToken.Generating}' instead.";
+	}
+	public sealed class CannotCallSyntaxMessage : ACriticalMessage
+	{
+		public CannotCallSyntaxMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		{
+		}
+
+		public override string Text => $"Syntax is not callable.";
+	}
+	public sealed class WrongNumberOfArgumentsMessage : ACriticalMessage
+	{
+		public readonly FunctionSymbol Function;
+		public readonly int PassedCount;
+
+		public WrongNumberOfArgumentsMessage(FunctionSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Function = function ?? throw new ArgumentNullException(nameof(function));
+			PassedCount = passedCount;
+		}
+
+		public override string Text => $"The function '{Function.Name}' takes {Function.ParameterCountWithoutReturn} arguments, but {PassedCount} arguments were passed.";
+	}
+	public sealed class NonInputParameterMustBePassedExplicit : ACriticalMessage
+	{
+		public readonly ParameterSymbol Symbol;
+
+		public NonInputParameterMustBePassedExplicit(ParameterSymbol symbol, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Symbol = symbol;
+		}
+
+		public override string Text => $"The parameter '{Symbol.Name}' is of type '{Symbol.Kind.Code}' and must be passed explicit.";
+	}
+	
+	public sealed class InoutArgumentMustHaveSameTypeMessage : ACriticalMessage
+	{
+		public readonly IType Type1;
+		public readonly IType Type2;
+
+		public InoutArgumentMustHaveSameTypeMessage(IType type1, IType type2, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Type1 = type1 ?? throw new ArgumentNullException(nameof(type1));
+			Type2 = type2 ?? throw new ArgumentNullException(nameof(type2));
+		}
+
+		public override string Text => $"The argument type '{Type1}' and the type of the inout '{Type2}' must be identical.";
+	}
+	
+	public sealed class ParameterKindDoesNotMatchAssignMessage : ACriticalMessage
+	{
+		public readonly ParameterSymbol Symbol;
+		public readonly IParameterKindToken ParameterKind;
+
+		public ParameterKindDoesNotMatchAssignMessage(ParameterSymbol symbol, IParameterKindToken parameterKind) : base(parameterKind.SourcePosition)
+		{
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+			ParameterKind = parameterKind ?? throw new ArgumentNullException(nameof(parameterKind));
+		}
+
+		public override string Text => $"The argument for a '{Symbol.Kind.Code}' parameter must be passed with the '{Symbol.Kind.AssignCode}'-Assignoperator.";
+	}
+	
+	public sealed class ParameterWasAlreadyPassedMessage : ACriticalMessage
+	{
+		public readonly ParameterSymbol Symbol;
+		public readonly SourcePosition OriginalPosition;
+
+		public ParameterWasAlreadyPassedMessage(ParameterSymbol symbol, SourcePosition originalPosition, SourcePosition duplicatePosition) : base(duplicatePosition)
+		{
+			Symbol = symbol;
+			OriginalPosition = originalPosition;
+		}
+
+		public override string Text => $"The parameter '{Symbol.Name}' was already passed earlier.";
+	}
+	public sealed class CannotUsePositionalParameterAfterExplicitMessage : ACriticalMessage
+	{
+		public CannotUsePositionalParameterAfterExplicitMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => $"Cannot use a positional parameter after explicit ones.";
 	}
 }

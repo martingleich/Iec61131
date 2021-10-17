@@ -18,6 +18,7 @@ namespace Compiler.Types
 			T Visit(ArrayType arrayTypeSymbol, TContext context);
 			T Visit(EnumTypeSymbol enumTypeSymbol, TContext context);
 			T Visit(AliasTypeSymbol aliasTypeSymbol, TContext context);
+			T Visit(NullType nullType, TContext context);
 		}
 	}
 }

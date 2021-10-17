@@ -44,8 +44,7 @@ namespace Compiler
 		{
 			var leftSide = BindExpression(assignStatementSyntax.Left);
 			var rightSide = BindExpressionWithTargetType(assignStatementSyntax.Right, leftSide.Type);
-			if (leftSide is not VariableBoundExpression)
-				MessageBag.Add(new CannotAssignToSyntaxMessage(assignStatementSyntax.Left.SourcePosition));
+			ExpressionBinder.CheckAssignable(leftSide, MessageBag, assignStatementSyntax.Left.SourcePosition);
 			return new AssignBoundStatement(leftSide, rightSide);
 		}
 

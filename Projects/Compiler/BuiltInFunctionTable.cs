@@ -77,7 +77,7 @@ namespace Compiler
 			builder.Add(BinaryOperator("DIV", systemScope.LInt), DivLINT);
 			builder.Add(BinaryOperator("MOD", systemScope.LInt), ModLINT);
 			builder.Add(UnaryOperator("NEG", systemScope.LInt), NegLINT);
-			
+
 			builder.Add(BinaryOperator("MOD", systemScope.ULInt), ModULINT);
 			builder.Add(BinaryOperator("ADD", systemScope.ULInt), AddULINT);
 			builder.Add(BinaryOperator("SUB", systemScope.ULInt), SubULINT);
@@ -99,15 +99,15 @@ namespace Compiler
 			builder.Add(BinaryOperator("MOD", systemScope.LReal), null);
 			builder.Add(BinaryOperator("NEG", systemScope.LReal), null);
 
-			AddComparisons(builder, systemScope.SInt,  systemScope.Bool, (x, y) => ((SIntLiteralValue)x).Value  <= ((SIntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.SInt, systemScope.Bool, (x, y) => ((SIntLiteralValue)x).Value <= ((SIntLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.USInt, systemScope.Bool, (x, y) => ((USIntLiteralValue)x).Value <= ((USIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.Int,   systemScope.Bool, (x, y) => ((IntLiteralValue)x).Value   <= ((IntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.UInt,  systemScope.Bool, (x, y) => ((UIntLiteralValue)x).Value  <= ((UIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.DInt,  systemScope.Bool, (x, y) => ((DIntLiteralValue)x).Value  <= ((DIntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.Int, systemScope.Bool, (x, y) => ((IntLiteralValue)x).Value <= ((IntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.UInt, systemScope.Bool, (x, y) => ((UIntLiteralValue)x).Value <= ((UIntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.DInt, systemScope.Bool, (x, y) => ((DIntLiteralValue)x).Value <= ((DIntLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.UDInt, systemScope.Bool, (x, y) => ((UDIntLiteralValue)x).Value <= ((UDIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.LInt,  systemScope.Bool, (x, y) => ((LIntLiteralValue)x).Value  <= ((LIntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.LInt, systemScope.Bool, (x, y) => ((LIntLiteralValue)x).Value <= ((LIntLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.ULInt, systemScope.Bool, (x, y) => ((ULIntLiteralValue)x).Value <= ((ULIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.Real,  systemScope.Bool);
+			AddComparisons(builder, systemScope.Real, systemScope.Bool);
 			AddComparisons(builder, systemScope.LReal, systemScope.Bool);
 
 			AddEquality(builder, systemScope.Bool, systemScope.Bool, (x, y) => ((BooleanLiteralValue)x).Value == ((BooleanLiteralValue)y).Value);
@@ -226,7 +226,7 @@ namespace Compiler
 		private OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
 		{
 			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionSymbol func)
-				return new (func, op.IsGenericReturn);
+				return new(func, op.IsGenericReturn);
 			else
 				return default;
 		}
@@ -240,6 +240,10 @@ namespace Compiler
 			var op = token.Accept(UnaryOperatorMap.Instance);
 			return TryGetOperatorFunction(op, type);
 		}
+		public string GetBinaryOperatorFunctionName(IBinaryOperatorToken token)
+			=> token.Accept(BinaryOperatorMap.Instance).Name;
+		public string GetUnaryOperatorFunctionName(IUnaryOperatorToken token)
+			=> token.Accept(UnaryOperatorMap.Instance).Name;
 
 		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<(string Name, bool IsGenericReturn)>
 		{
@@ -263,7 +267,7 @@ namespace Compiler
 			public (string, bool) Visit(XorToken xorToken) => ("XOR", true);
 			public (string, bool) Visit(OrToken orToken) => ("OR", true);
 		}
-	
+
 		private sealed class UnaryOperatorMap : IUnaryOperatorToken.IVisitor<(string Name, bool IsGenericReturn)>
 		{
 			public static readonly UnaryOperatorMap Instance = new();

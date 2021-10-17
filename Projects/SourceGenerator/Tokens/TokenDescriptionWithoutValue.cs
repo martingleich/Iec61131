@@ -16,6 +16,7 @@ namespace SourceGenerator
 			cw.WriteLine($"public sealed partial class {Name} : {Interfaces.Prepend("DefaultTokenImplementation").DelimitWith(", ")}");
 			cw.StartBlock();
 			cw.WriteLine($"public {Name}(int startPosition, IToken? leadingNonSyntax) : base(startPosition, leadingNonSyntax) {{ }}");
+			cw.WriteLine($"public static readonly string DefaultGenerating = {LanguageUtils.ToCSharpString(Generating)};");
 			cw.WriteLine($"public override string Generating => {LanguageUtils.ToCSharpString(Generating)};");
 			cw.WriteLine($"public static readonly Func<int, {Name}> Synthesize = startPosition => new {Name}(startPosition, null);");
 			cw.WriteLine($"public override string ToString() => nameof({Name});");

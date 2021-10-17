@@ -9,6 +9,9 @@ namespace Compiler
 		private sealed class IdenticalVisitor : IType.IVisitor<bool, IType>
 		{
 			public static readonly IdenticalVisitor Instance = new ();
+
+			public bool Visit(NullType _, IType context)
+				=> context is NullType;
 			public bool Visit(StructuredTypeSymbol structuredTypeSymbol, IType context)
 				=> context is StructuredTypeSymbol other && structuredTypeSymbol.Name == other.Name;
 			public bool Visit(BuiltInType builtInTypeSymbol, IType context)
@@ -56,6 +59,7 @@ namespace Compiler
 		public static bool IsAliasType(IType? type, [NotNullWhen(true)] out AliasTypeSymbol? aliasTypeSymbol) => IsType(type, out aliasTypeSymbol);
 		public static bool IsPointerType(IType? type, [NotNullWhen(true)] out PointerType? pointerType) => IsType(type, out pointerType);
 		public static bool IsArrayType(IType? type, [NotNullWhen(true)] out ArrayType? arrayType) => IsType(type, out arrayType);
+		public static bool IsNullType(IType targetType) => targetType is NullType;
 		public static IType ResolveAlias(IType type)
 		{
 			if (IsAliasType(type, out var aliasTypeSymbol))

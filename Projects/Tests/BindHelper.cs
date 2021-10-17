@@ -49,7 +49,9 @@ namespace Tests
 			}
 
 			public IBoundExpression BindGlobalExpression(string expression, string? targetType, params Action<IMessage>[] checks)
-				=> new TestGlobalExpression(this).BindGlobalExpression(expression, targetType, checks);
+				=> BindGlobalExpression<IBoundExpression>(expression, targetType, checks);
+			public T BindGlobalExpression<T>(string expression, string? targetType, params Action<IMessage>[] checks) where T:IBoundExpression
+				=> new TestGlobalExpression(this).BindGlobalExpression<T>(expression, targetType, checks);
 			public TestGlobalExpression WithGlobalVar(string name, string type)
 				=> new TestGlobalExpression(this).WithGlobalVar(name, type);
 		}
@@ -92,7 +94,7 @@ namespace Tests
 				return type;
 			}
 
-			public IBoundExpression BindGlobalExpression(string expression, string? targetTypeText, params Action<IMessage>[] checks)
+			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T:IBoundExpression
 			{
 				var expressionParseMessages = new MessageBag();
 				var expressionSyntax = Parser.ParseExpression(expression, expressionParseMessages);
@@ -107,8 +109,10 @@ namespace Tests
 				var targetType = targetTypeText != null ? MapType(moduleScope, targetTypeText) : null;
 				var boundExpression = ExpressionBinder.Bind(expressionSyntax, realScope, bindMessages, targetType);
 				ExactlyMessages(checks)(bindMessages.ToImmutable());
-				return boundExpression;
+				return Assert.IsAssignableFrom<T>(boundExpression);
 			}
+			public IBoundExpression BindGlobalExpression(string expression, string? targetTypeText, params Action<IMessage>[] checks)
+				=> BindGlobalExpression<IBoundExpression>(expression, targetTypeText, checks);
 		}
 
 		public sealed class TestBoundBodies
@@ -159,5 +163,14 @@ namespace Tests
 			ExactlyMessages()(bag);
 			checker(actualValue);
 		}
+
+		public static T AssertNthStatement<T>(IBoundStatement statement, int n) where T : IBoundStatement
+			=> Assert.IsType<T>(Assert.IsType<SequenceBoundStatement>(statement).Statements[n]);
+		public static void AssertStatementBlockMarker(IBoundStatement block, string varName)
+			=> AssertVariableExpression(
+				AssertNthStatement<ExpressionBoundStatement>(block, 0).Expression,
+				varName);
+		public static void AssertVariableExpression(IBoundExpression expression, string varName)
+			=> Assert.Equal(varName.ToCaseInsensitive(), Assert.IsType<VariableBoundExpression>(expression).Variable.Name);
 	}
 }

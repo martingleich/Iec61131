@@ -4,6 +4,7 @@ using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
+using StandardLibraryExtensions;
 
 namespace Compiler
 {
@@ -30,32 +31,36 @@ namespace Compiler
 			{
 				return boundValue;
 			}
+			else if (TypeRelations.IsNullType(targetType))
+			{
+				return new ImplicitDiscardBoundExpression(boundValue);
+			}
 			else if (TypeRelations.IsAliasType(boundValue.Type, out var sourceAliasTypeSymbol))
 			{
-				var cast = new ImplicitAliasToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue, sourceAliasTypeSymbol.AliasedType);
+				var cast = new ImplicitAliasToBaseTypeCastBoundExpression(boundValue, sourceAliasTypeSymbol.AliasedType);
 				return ImplicitCast(cast, targetType);
 			}
 			else if (TypeRelations.IsAliasType(targetType, out var aliasTypeSymbol))
 			{
 				var castBaseValue = ImplicitCast(boundValue, aliasTypeSymbol.AliasedType);
-				return new ImplicitAliasFromBaseTypeCastBoundExpression(boundValue.OriginalNode, castBaseValue, aliasTypeSymbol);
+				return new ImplicitAliasFromBaseTypeCastBoundExpression(castBaseValue, aliasTypeSymbol);
 			}
 			else if (TypeRelations.IsEnumType(boundValue.Type, out _))
 			{
-				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue.OriginalNode, boundValue);
+				var enumValue = new ImplicitEnumToBaseTypeCastBoundExpression(boundValue);
 				return ImplicitCast(enumValue, targetType);
 			}
 			else if (TypeRelations.IsPointerType(targetType, out var targetPointerType) && TypeRelations.IsPointerType(boundValue.Type, out _))
 			{
-				return new ImplicitPointerTypeCastBoundExpression(boundValue.OriginalNode, boundValue, targetPointerType);
+				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
 			else if (TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
 			{
-				return new ImplicitArithmeticCastBoundExpression(boundValue.OriginalNode, boundValue, targetType);
+				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
 			}
 
 			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourcePosition));
-			return new ImplicitErrorCastBoundExpression(boundValue.OriginalNode, boundValue, targetType);
+			return new ImplicitErrorCastBoundExpression(boundValue, targetType);
 		}
 
 		private (IBoundExpression, PointerType)? TryImplicitCastToPointer(IBoundExpression boundValue)
@@ -102,14 +107,15 @@ namespace Compiler
 				if (!operatorFunction.HasValue)
 				{
 					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
-					commonArgType = ITypeSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, default);
-					operatorFunction = new OperatorFunction(FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: commonArgType), false);
+					var function = FunctionSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition,
+						ImplicitName.ErrorBinaryOperator(boundLeft.Type.Code, boundRight.Type.Code, SystemScope.BuiltInFunctionTable.GetBinaryOperatorFunctionName(binaryOperatorExpressionSyntax.TokenOperator)));
+					operatorFunction = new OperatorFunction(function, false);
 				}
 
-				var returnType = operatorFunction.Value.Symbol.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+				var returnType = operatorFunction.Value.Symbol.ReturnType;
 				var castedLeft = ImplicitCast(boundLeft, realCommonArgType);
 				var castedRight = ImplicitCast(boundRight, realCommonArgType);
-				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol );
+				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol);
 				if (operatorFunction.Value.IsGenericReturn)
 					binaryOperatorExpression = ImplicitCast(binaryOperatorExpression, commonArgType);
 				return ImplicitCast(binaryOperatorExpression, context);
@@ -169,10 +175,12 @@ namespace Compiler
 			if (!operatorFunction.HasValue)
 			{
 				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundValue.Type));
-				operatorFunction = new OperatorFunction(FunctionSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, returnType: boundValue.Type), false);
+				var function = FunctionSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition,
+					ImplicitName.ErrorUnaryOperator(boundValue.Type.Code, SystemScope.BuiltInFunctionTable.GetUnaryOperatorFunctionName(unaryOperatorExpressionSyntax.TokenOperator)));
+				operatorFunction = new OperatorFunction(function, false);
 			}
 
-			var returnType = operatorFunction.Value.Symbol.ReturnType ?? throw new InvalidOperationException("Invalid operator function, missing return value");
+			var returnType = operatorFunction.Value.Symbol.ReturnType;
 			IBoundExpression unaryOperatorExpression = new UnaryOperatorBoundExpression(unaryOperatorExpressionSyntax, returnType, boundValue, operatorFunction.Value.Symbol);
 			if (operatorFunction.Value.IsGenericReturn)
 				unaryOperatorExpression = ImplicitCast(unaryOperatorExpression, boundValue.Type);
@@ -188,8 +196,6 @@ namespace Compiler
 			var boundExpression = new VariableBoundExpression(variableExpressionSyntax, variable);
 			return ImplicitCast(boundExpression, context);
 		}
-
-		
 
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
 		{
@@ -231,7 +237,7 @@ namespace Compiler
 				}
 			}
 
-			var boundBase =  indexAccessExpressionSyntax.LeftSide.Accept(this, null);
+			var boundBase = indexAccessExpressionSyntax.LeftSide.Accept(this, null);
 			var castedIndices = indexAccessExpressionSyntax.Indices.Select(idx => ImplicitCast(idx.Accept(this, null), SystemScope.PointerDiffrenceType)).ToImmutableArray();
 			var realBaseType = TypeRelations.ResolveAlias(boundBase.Type);
 			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
@@ -259,7 +265,143 @@ namespace Compiler
 
 		public IBoundExpression Visit(CallExpressionSyntax callExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			if (callExpressionSyntax.Callee is VariableExpressionSyntax vexpr)
+			{
+				var function = Scope.LookupFunction(vexpr.Identifier, vexpr.SourcePosition).Extract(MessageBag);
+				return ImplicitCast(BindFunctionCall(callExpressionSyntax, function, callExpressionSyntax.Arguments), context);
+			}
+			else
+			{
+				MessageBag.Add(new CannotCallSyntaxMessage(callExpressionSyntax.Callee.SourcePosition));
+				var function = FunctionSymbol.CreateError(callExpressionSyntax.Callee.SourcePosition);
+				return ImplicitCast(BindFunctionCall(callExpressionSyntax, function, callExpressionSyntax.Arguments), context);
+			}
+		}
+
+		private IBoundExpression BindFunctionCall(ISyntax originalNode, FunctionSymbol function, SyntaxCommaSeparated<CallArgumentSyntax> args)
+		{
+			// Bind arguments
+			if (args.Count != function.ParameterCountWithoutReturn && !function.IsError)
+			{
+				// Error wrong number of arguments.
+				MessageBag.Add(new WrongNumberOfArgumentsMessage(function, args.Count, args.SourcePosition));
+			}
+
+			var boundArguments = ImmutableArray.CreateBuilder<FunctionCallBoundExpression.Argument>();
+			int nextParamId = 0;
+			bool afterExplicit = false;
+			foreach (var arg in args)
+			{
+				ParameterSymbol symbol;
+				//	Find assigned argument
+				if (arg.ExplicitParameter is ExplicitCallParameterSyntax explicitParameterSyntax)
+				{
+					if (!function.Parameters.TryGetValue(explicitParameterSyntax.Identifier, out var explicitParameter) ||
+						explicitParameterSyntax.Identifier == function.Name) // The implicit output for return is not accessable from the outside
+					{
+						MessageBag.Add(new ParameterNotFoundMessage(function, explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition));
+						symbol = ParameterSymbol.CreateError(explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition);
+					}
+					else
+					{
+						symbol = explicitParameter;
+						if (!explicitParameter.Kind.MatchesAssignKind(explicitParameterSyntax.ParameterKind))
+							MessageBag.Add(new ParameterKindDoesNotMatchAssignMessage(symbol, explicitParameterSyntax.ParameterKind));
+					}
+
+					afterExplicit = true;
+				}
+				else
+				{
+					if (afterExplicit)
+					{
+						MessageBag.Add(new CannotUsePositionalParameterAfterExplicitMessage(arg.SourcePosition));
+						symbol = ParameterSymbol.CreateError(nextParamId, arg.SourcePosition);
+					}
+					else if (nextParamId >= function.Parameters.Length)
+					{
+						symbol = ParameterSymbol.CreateError(nextParamId, arg.SourcePosition);
+					}
+					else
+					{
+						symbol = function.Parameters[nextParamId];
+					}
+
+					if (!symbol.Kind.Equals(ParameterKind.Input))
+						MessageBag.Add(new NonInputParameterMustBePassedExplicit(symbol, arg.SourcePosition));
+
+					++nextParamId;
+				}
+
+				boundArguments.Add(BindCallArgument(symbol, arg.Value));
+			}
+
+			var boundArgumentsFrozen = boundArguments.ToImmutable();
+			CheckForDuplicateParameter(boundArgumentsFrozen);
+			return new FunctionCallBoundExpression(originalNode, function, boundArgumentsFrozen);
+		}
+
+		private void CheckForDuplicateParameter(ImmutableArray<FunctionCallBoundExpression.Argument> boundArguments)
+		{
+			foreach (var d in from arg in boundArguments
+							  group arg by arg.ParameterSymbol.Name into duplicates
+							  where duplicates.MoreThan(1)
+							  select duplicates)
+			{
+				var first = d.First();
+				foreach (var d2 in d.Skip(1))
+				{
+					MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourcePosition, d2.Parameter.OriginalNode.SourcePosition));
+				}
+			}
+		}
+
+		private FunctionCallBoundExpression.Argument BindCallArgument(ParameterSymbol symbol, IExpressionSyntax arg)
+		{
+			if (symbol.Kind.Equals(ParameterKind.Input))
+			{
+				var value = arg.Accept(this, symbol.Type);
+				return new(
+					symbol,
+					new VariableBoundExpression(arg, symbol),
+					value);
+			}
+			else if (symbol.Kind.Equals(ParameterKind.Output))
+			{
+				// The argument must be assignable.
+				// The parameter type must be convertiable to the argument type.
+				var boundArg = arg.Accept(this, null);
+				var castedParameter = ImplicitCast(new VariableBoundExpression(arg, symbol), boundArg.Type);
+				CheckAssignable(boundArg, MessageBag, arg.SourcePosition);
+				return new(
+					symbol,
+					castedParameter,
+					boundArg);
+			}
+			else if (symbol.Kind.Equals(ParameterKind.InOut))
+			{
+				// The argument must be assignable
+				// The type must be identical
+				var boundArg = arg.Accept(this, null);
+				var boundParameter = new VariableBoundExpression(arg, symbol);
+				if (!TypeRelations.IsIdentical(boundArg.Type, boundParameter.Type))
+					MessageBag.Add(new InoutArgumentMustHaveSameTypeMessage(boundArg.Type, boundParameter.Type, arg.SourcePosition));
+				CheckAssignable(boundArg, MessageBag, arg.SourcePosition);
+				return new(
+					symbol,
+					boundParameter,
+					boundArg);
+			}
+			else
+			{
+				throw new ArgumentException($"Unkown parameter kind '{symbol.Kind}'");
+			}
+		}
+
+		public static void CheckAssignable(IBoundExpression expression, MessageBag messageBag, SourcePosition sourcePosition)
+		{
+			if (expression is not VariableBoundExpression)
+				messageBag.Add(new CannotAssignToSyntaxMessage(sourcePosition));
 		}
 	}
 }

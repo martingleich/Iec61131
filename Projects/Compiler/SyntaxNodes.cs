@@ -15,7 +15,7 @@ namespace Compiler
 		public SyntaxCommaSeparated(HeadSyntax? head, SourcePosition startPosition)
 		{
 			Head = head;
-			SourcePosition = head?.SourcePosition ?? startPosition;
+			SourcePosition = head is not null ? head.SourcePosition : startPosition;
 		}
 		public class TailSyntax : ISyntax
 		{
@@ -54,6 +54,7 @@ namespace Compiler
 			public INode FirstNonNullChild => Value;
 			public INode LastNonNullChild => (INode?)Tail ?? Value;
 			public SourcePosition SourcePosition { get; }
+
 			public IEnumerable<INode> GetChildren()
 			{
 				yield return Value;
@@ -67,11 +68,11 @@ namespace Compiler
 
 		public IEnumerator<T> GetEnumerator()
 		{
-			if (Head != null)
+			if (Head is not null)
 			{
 				yield return Head.Value;
 				var tailParam = Head.Tail;
-				while (tailParam != null)
+				while (tailParam is not null)
 				{
 					yield return tailParam.Value;
 					tailParam = tailParam.Tail;
@@ -86,6 +87,28 @@ namespace Compiler
 		{
 			if(Head is not null)
 				yield return Head;
+		}
+
+		public int Count
+		{
+			get
+			{
+				if (Head is not null)
+				{
+					int c = 1;
+					var tailParam = Head.Tail;
+					while (tailParam is not null)
+					{
+						++c;
+						tailParam = tailParam.Tail;
+					}
+					return c;
+				}
+				else
+				{
+					return 0;
+				}
+			}
 		}
 	}
 
