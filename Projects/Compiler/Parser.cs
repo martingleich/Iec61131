@@ -62,7 +62,8 @@ namespace Compiler
 			token is ILiteralToken ||
 			token is IdentifierToken ||
 			token is ParenthesisOpenToken ||
-			token is IUnaryOperatorToken;
+			token is IUnaryOperatorToken ||
+			token is IdentifierToken;
 
 		public static PouInterfaceSyntax ParsePouInterface(string input, Messages.MessageBag messages)
 		{
@@ -682,7 +683,7 @@ namespace Compiler
 
 		private void PutBack(IToken backed)
 		{
-			BackupStack.Push(backed);
+			BackupStack.Push(CurToken);
 			CurToken = backed;
 		}
 
