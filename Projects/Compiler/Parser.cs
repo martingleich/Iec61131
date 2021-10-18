@@ -536,6 +536,7 @@ namespace Compiler
 				else
 				{
 					Messages.Add(new Messages.ExpectedExpressionMessage(CurToken.SourcePosition));
+					Skip(); // Skip the bad token.
 					return new VariableExpressionSyntax(Synthesize(IdentifierToken.Synthesize));
 				}
 			}

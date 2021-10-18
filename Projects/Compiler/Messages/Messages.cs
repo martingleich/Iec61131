@@ -51,7 +51,7 @@ namespace Compiler.Messages
 		public readonly string Expected;
 		public MissingEndOfMultilineCommentMessage(SourcePosition position, string expected) : base(position)
 		{
-			Expected = expected;
+			Expected = expected ?? throw new ArgumentNullException(nameof(expected));
 		}
 
 		public override string Text => $"Could not find the string '{Expected}' terminating the multiline comment.";
@@ -68,7 +68,8 @@ namespace Compiler.Messages
 	{
 		public UnexpectedTokenMessage(IToken receivedToken, params Type[] expectedTokenTypes) : base(receivedToken.SourcePosition)
 		{
-			ReceivedToken = receivedToken;
+			if (expectedTokenTypes is null) throw new ArgumentNullException(nameof(expectedTokenTypes));
+			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
 			ExpectedTokenTypes = expectedTokenTypes.ToImmutableArray();
 		}
 		public IToken ReceivedToken { get; }
@@ -201,8 +202,8 @@ namespace Compiler.Messages
 
 		public TypeIsNotConvertibleMessage(IType from, IType to, SourcePosition position) : base(position)
 		{
-			From = from;
-			To = to;
+			From = from ?? throw new ArgumentNullException(nameof(from));
+			To = to ?? throw new ArgumentNullException(nameof(to));
 		}
 		public override string Text => $"Cannot convert from {From.Code} to {To.Code}.";
 	}
@@ -254,7 +255,7 @@ namespace Compiler.Messages
 		public ConstantValueIsToLargeForTargetMessage(OverflowingInteger value, IType type, SourcePosition position) : base(position)
 		{
 			Value = value;
-			Type = type;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 		public override string Text => $"The value '{Value}' is to large for the type '{Type.Code}'.";
 	}
@@ -288,7 +289,7 @@ namespace Compiler.Messages
 
 		public CannotDereferenceTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Type = type;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public override string Text => $"Cannot dereference a expression of type '{Type.Code}'.";
@@ -299,7 +300,7 @@ namespace Compiler.Messages
 
 		public CannotIndexTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Type = type;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public override string Text => $"Cannot perform a index access on expression of type '{Type.Code}'.";
@@ -310,7 +311,7 @@ namespace Compiler.Messages
 
 		public CannotIndexWithTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Type = type;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public override string Text => $"Cannot perform a index access with expression of type '{Type.Code}'.";
@@ -441,7 +442,7 @@ namespace Compiler.Messages
 
 		public NonInputParameterMustBePassedExplicit(ParameterSymbol symbol, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Symbol = symbol;
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 		}
 
 		public override string Text => $"The parameter '{Symbol.Name}' is of type '{Symbol.Kind.Code}' and must be passed explicit.";
@@ -482,7 +483,7 @@ namespace Compiler.Messages
 
 		public ParameterWasAlreadyPassedMessage(ParameterSymbol symbol, SourcePosition originalPosition, SourcePosition duplicatePosition) : base(duplicatePosition)
 		{
-			Symbol = symbol;
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 			OriginalPosition = originalPosition;
 		}
 
@@ -495,5 +496,16 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"Cannot use a positional parameter after explicit ones.";
+	}
+	
+	public sealed class CannotUseTypeAsLoopIndexMessage : ACriticalMessage
+	{
+		public readonly IType Type;
+		public CannotUseTypeAsLoopIndexMessage(IType type, SourcePosition position) : base(position)
+		{
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public override string Text => $"Cannot use the type '{Type.Code}' as index in a for loop. The type must support addition.";
 	}
 }

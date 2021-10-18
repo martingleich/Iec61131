@@ -49,6 +49,7 @@ namespace Compiler
 			T Visit(ExitBoundStatement exitBoundStatement);
 			T Visit(ContinueBoundStatement continueBoundStatement);
 			T Visit(ReturnBoundStatement returnBoundStatement);
+			T Visit(ForLoopBoundStatement forLoopBoundStatement);
 		}
 	}
 
@@ -287,12 +288,14 @@ namespace Compiler
 	public sealed class ArrayIndexAccessBoundExpression : IBoundExpression
 	{
 		public INode OriginalNode { get; }
+		public readonly IBoundExpression Base;
 		public IType Type { get; }
 		public readonly ImmutableArray<IBoundExpression> Indices;
 
-		public ArrayIndexAccessBoundExpression(INode originalNode, IType type, ImmutableArray<IBoundExpression> indices)
+		public ArrayIndexAccessBoundExpression(INode originalNode, IBoundExpression @base, IType type, ImmutableArray<IBoundExpression> indices)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Base = @base ?? throw new ArgumentNullException(nameof(@base));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Indices = indices;
 		}
@@ -302,12 +305,14 @@ namespace Compiler
 	public sealed class PointerIndexAccessBoundExpression : IBoundExpression
 	{
 		public INode OriginalNode { get; }
+		public readonly IBoundExpression Base;
 		public IType Type { get; }
 		public readonly ImmutableArray<IBoundExpression> Indices;
 
-		public PointerIndexAccessBoundExpression(INode originalNode, IType type, ImmutableArray<IBoundExpression> indices)
+		public PointerIndexAccessBoundExpression(INode originalNode, IBoundExpression @base, IType type, ImmutableArray<IBoundExpression> indices)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			Base = @base ?? throw new ArgumentNullException(nameof(@base));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 			Indices = indices;
 		}
@@ -462,6 +467,27 @@ namespace Compiler
 	}
 	public sealed class ReturnBoundStatement : IBoundStatement
 	{
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
+	}
+	public sealed class ForLoopBoundStatement : IBoundStatement
+	{
+		public readonly IBoundExpression Index;
+		public readonly IBoundExpression Initial;
+		public readonly IBoundExpression UpperBound;
+		public readonly IBoundExpression Step;
+		public readonly FunctionSymbol IncrementFunctionSymbol;
+		public readonly IBoundStatement Body;
+
+		public ForLoopBoundStatement(IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionSymbol incrementFunctionSymbol, IBoundStatement body)
+		{
+			Index = index ?? throw new ArgumentNullException(nameof(index));
+			Initial = initial ?? throw new ArgumentNullException(nameof(initial));
+			UpperBound = upperBound ?? throw new ArgumentNullException(nameof(upperBound));
+			Step = step ?? throw new ArgumentNullException(nameof(step));
+			IncrementFunctionSymbol = incrementFunctionSymbol ?? throw new ArgumentNullException(nameof(incrementFunctionSymbol));
+			Body = body ?? throw new ArgumentNullException(nameof(body));
+		}
+
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
-using StandardLibraryExtensions;
 
 namespace Compiler
 {
@@ -243,17 +242,17 @@ namespace Compiler
 			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
 			{
 				CheckIndexCount(1, castedIndices);
-				return ImplicitCast(new PointerIndexAccessBoundExpression(indexAccessExpressionSyntax, pointerBaseType.BaseType, castedIndices), context);
+				return ImplicitCast(new PointerIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, pointerBaseType.BaseType, castedIndices), context);
 			}
 			else if (TypeRelations.IsArrayType(realBaseType, out var arrayBaseType))
 			{
 				CheckIndexCount(arrayBaseType.Ranges.Length, castedIndices);
-				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, arrayBaseType.BaseType, castedIndices), context);
+				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, arrayBaseType.BaseType, castedIndices), context);
 			}
 			else
 			{
 				MessageBag.Add(new CannotIndexTypeMessage(boundBase.Type, indexAccessExpressionSyntax.TokenBracketOpen.SourcePosition));
-				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase.Type, castedIndices), context);
+				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, boundBase.Type, castedIndices), context);
 			}
 		}
 
@@ -372,7 +371,7 @@ namespace Compiler
 				// The parameter type must be convertiable to the argument type.
 				var boundArg = arg.Accept(this, null);
 				var castedParameter = ImplicitCast(new VariableBoundExpression(arg, symbol), boundArg.Type);
-				CheckAssignable(boundArg, MessageBag, arg.SourcePosition);
+				IsLValueChecker.IsLValue(boundArg).Extract(MessageBag);
 				return new(
 					symbol,
 					castedParameter,
@@ -386,7 +385,7 @@ namespace Compiler
 				var boundParameter = new VariableBoundExpression(arg, symbol);
 				if (!TypeRelations.IsIdentical(boundArg.Type, boundParameter.Type))
 					MessageBag.Add(new InoutArgumentMustHaveSameTypeMessage(boundArg.Type, boundParameter.Type, arg.SourcePosition));
-				CheckAssignable(boundArg, MessageBag, arg.SourcePosition);
+				IsLValueChecker.IsLValue(boundArg).Extract(MessageBag);
 				return new(
 					symbol,
 					boundParameter,
@@ -396,12 +395,6 @@ namespace Compiler
 			{
 				throw new ArgumentException($"Unkown parameter kind '{symbol.Kind}'");
 			}
-		}
-
-		public static void CheckAssignable(IBoundExpression expression, MessageBag messageBag, SourcePosition sourcePosition)
-		{
-			if (expression is not VariableBoundExpression)
-				messageBag.Add(new CannotAssignToSyntaxMessage(sourcePosition));
 		}
 	}
 }

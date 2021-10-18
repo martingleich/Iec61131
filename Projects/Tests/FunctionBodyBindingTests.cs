@@ -288,4 +288,172 @@
 				});
 		}
 	}
+
+	public static class StatementBindingTests_ForLoop
+	{
+		[Theory]
+		[InlineData("SINT")]
+		[InlineData("USINT")]
+		[InlineData("INT")]
+		[InlineData("UINT")]
+		[InlineData("DINT")]
+		[InlineData("UDINT")]
+		[InlineData("LINT")]
+		[InlineData("ULINT")]
+		[InlineData("REAL")]
+		[InlineData("LREAL")]
+		public static void WithType(string type)
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : {type}; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					var indexVar = Assert.IsType<VariableBoundExpression>(forSt.Index);
+					Assert.Equal("i".ToCaseInsensitive(), indexVar.Variable.Name);
+					var initialVar = Assert.IsType<LiteralBoundExpression>(forSt.Initial);
+					AssertEx.EqualType(indexVar.Type, initialVar.Value.Type);
+					var step = Assert.IsType<LiteralBoundExpression>(forSt.Step);
+					AssertEx.EqualType(indexVar.Type, step.Value.Type);
+					AssertEx.AssertNthStatement<SequenceBoundStatement>(forSt.Body, 0);
+				});
+		}
+		[Fact]
+		public static void StepSize1()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					var step = Assert.IsType<LiteralBoundExpression>(forSt.Step);
+					Assert.Equal(1, Assert.IsType<IntLiteralValue>(step.Value).Value);
+					AssertEx.AssertNthStatement<SequenceBoundStatement>(forSt.Body, 0);
+				});
+		}
+		
+		[Fact]
+		public static void ExplicitStep()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 10 TO 0 BY -1 DO ; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					var step = Assert.IsType<LiteralBoundExpression>(forSt.Step);
+					Assert.Equal(-1, Assert.IsType<IntLiteralValue>(step.Value).Value);
+					AssertEx.AssertNthStatement<SequenceBoundStatement>(forSt.Body, 0);
+				});
+		}
+		
+		[Fact]
+		public static void CastedStep()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : DINT; END_VAR", "FOR i := 10 TO 0 BY SINT#2 DO ; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					Assert.IsType<ImplicitArithmeticCastBoundExpression>(forSt.Step);
+				});
+		}
+		
+		[Fact]
+		public static void Error_NonAddableType()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : BOOL; END_VAR", "FOR i := FALSE TO TRUE BY FALSE DO ; END_FOR")
+				.BindBodies(ErrorOfType<CannotUseTypeAsLoopIndexMessage>());
+		}
+		
+		[Fact]
+		public static void Error_BadStep()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 BY LREAL#5 DO ; END_FOR")
+				.BindBodies(ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
+
+		[Fact]
+		public static void Error_IndexNotAssignable()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo", "FOR 19 := 0 TO 10 BY 5 DO ; END_FOR")
+				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+		}
+		
+		[Fact]
+		public static void ComplexIndex_Deref()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR ptr : POINTER TO INT; END_VAR", "FOR ptr^ := 0 TO 10 BY 5 DO ; END_FOR")
+				.BindBodies();
+		}
+		
+		[Fact]
+		public static void ComplexIndex_PointerIndex()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR ptr : POINTER TO INT; END_VAR", "FOR ptr[2] := 0 TO 10 BY 5 DO ; END_FOR")
+				.BindBodies();
+		}
+		[Fact]
+		public static void ComplexIndex_ArrayElem()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR arr : ARRAY[0..10] OF INT; END_VAR", "FOR arr[1] := 0 TO 10 BY 5 DO ; END_FOR")
+				.BindBodies();
+		}
+		[Fact]
+		public static void ComplexIndex_Field()
+		{
+			BindHelper.NewProject
+				.AddDut("TYPE myDut : STRUCT field : INT; END_STRUCT; END_TYPE")
+				.AddPou($"FUNCTION foo VAR dut : myDut; END_VAR", "FOR dut.field := 0 TO 10 BY 5 DO ; END_FOR")
+				.BindBodies();
+		}
+		
+		[Fact]
+		public static void CastedInitial()
+		{
+			BindHelper.NewProject
+				.AddPou($"FUNCTION foo VAR i : DINT; END_VAR", "FOR i := INT#5 TO 10 DO ; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					Assert.IsType<ImplicitArithmeticCastBoundExpression>(forSt.Initial);
+				});
+		}
+
+		[Fact]
+		public static void WithContinue()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO CONTINUE; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var whileSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					AssertEx.AssertNthStatement<ContinueBoundStatement>(whileSt.Body, 0);
+				});
+		}
+
+		[Fact]
+		public static void WithExit()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO EXIT; END_FOR")
+				.BindBodies()
+				.Inspect("foo", st =>
+				{
+					var whileSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					AssertEx.AssertNthStatement<ExitBoundStatement>(whileSt.Body, 0);
+				});
+		}
+	}
 }

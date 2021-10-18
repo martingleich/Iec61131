@@ -223,7 +223,7 @@ namespace Compiler
 		public bool TryGetConstantEvaluator(FunctionSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;
 		public SymbolSet<FunctionSymbol> AllFunctions { get; }
-		private OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
+		public OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
 		{
 			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionSymbol func)
 				return new(func, op.IsGenericReturn);

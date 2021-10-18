@@ -44,7 +44,7 @@ namespace Compiler
 		{
 			var leftSide = BindExpression(assignStatementSyntax.Left);
 			var rightSide = BindExpressionWithTargetType(assignStatementSyntax.Right, leftSide.Type);
-			ExpressionBinder.CheckAssignable(leftSide, MessageBag, assignStatementSyntax.Left.SourcePosition);
+			IsLValueChecker.IsLValue(leftSide).Extract(MessageBag);
 			return new AssignBoundStatement(leftSide, rightSide);
 		}
 
@@ -122,7 +122,39 @@ namespace Compiler
 
 		public IBoundStatement Visit(ForStatementSyntax forStatementSyntax)
 		{
-			throw new NotImplementedException();
+			var boundIndex = BindExpression(forStatementSyntax.IndexVariable);
+			IsLValueChecker.IsLValue(boundIndex).Extract(MessageBag);
+			var boundInitial = BindExpressionWithTargetType(forStatementSyntax.InitialValue, boundIndex.Type);
+			var boundUpperBound = BindExpressionWithTargetType(forStatementSyntax.UpperBound, boundIndex.Type);
+			IBoundExpression boundStep;
+			if (forStatementSyntax.ByClause is not null)
+				boundStep = BindExpressionWithTargetType(forStatementSyntax.ByClause.StepSize, boundIndex.Type);
+			else
+				boundStep = BindExpressionWithTargetType(new LiteralExpressionSyntax(new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", default, default)), boundIndex.Type);
+
+			var realIndexType = TypeRelations.ResolveAlias(boundIndex.Type);
+			FunctionSymbol incrementFunctionSymbol;
+			if (realIndexType is BuiltInType builtInType && Scope.SystemScope.BuiltInFunctionTable.TryGetOperatorFunction(("ADD", true), builtInType) is OperatorFunction incrementOperatorFunction)
+			{
+				incrementFunctionSymbol = incrementOperatorFunction.Symbol;
+			}
+			else
+			{
+				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.IndexVariable.SourcePosition));
+				var errorName = ImplicitName.ErrorBinaryOperator(realIndexType.Code, realIndexType.Code, "ADD");
+				incrementFunctionSymbol = FunctionSymbol.CreateError(forStatementSyntax.SourcePosition, errorName, realIndexType);
+			}
+
+			var bodyScope = new LoopScope(Scope);
+			var boundBody = Bind(forStatementSyntax.Statements, bodyScope, MessageBag);
+
+			return new ForLoopBoundStatement(
+				boundIndex,
+				boundInitial,
+				boundUpperBound,
+				boundStep,
+				incrementFunctionSymbol,
+				boundBody);
 		}
 
 		public IBoundStatement Visit(EmptyStatementSyntax emptyStatementSyntax)

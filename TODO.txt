@@ -1,8 +1,8 @@
-Handle assignement for diffrent syntax.
-For loop statement
 Add FBs
 Add initializers
 Create roslyn typerules for equatable.
 Simple incremental compile
 Libraries
 LateLanguageUpdates
+Parser tests
+Do not use signed literals, make all literals unsigned and handle in typifier.
