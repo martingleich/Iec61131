@@ -1,10 +1,11 @@
 Add FBs
+Use popsicle tree and add file to source position
+Add find expression at source position
+Add find bound expression at source position
 Add initializers
-Create roslyn typerules for equatable.
 Simple incremental compile
 Libraries
 LateLanguageUpdates
 Parser tests
 Do not use signed literals, make all literals unsigned and handle in typifier.
 Strings
-Use Green/Red Trees and add file to source position
