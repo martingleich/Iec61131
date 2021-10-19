@@ -6,4 +6,5 @@ Libraries
 LateLanguageUpdates
 Parser tests
 Do not use signed literals, make all literals unsigned and handle in typifier.
+Strings
 Use Green/Red Trees and add file to source position
