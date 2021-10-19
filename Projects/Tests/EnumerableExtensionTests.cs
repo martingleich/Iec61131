@@ -113,7 +113,7 @@ namespace Tests
 		[Fact]
 		public static void HasNoNullElement_WithoutNull()
 		{
-			var input = new object?[] { new object(), new object(), new object() };
+			var input = new object[] { new object(), new object(), new object() };
 			Assert.True(EnumerableExtensions.HasNoNullElement(input, out var x));
 			Assert.Same(input, x);
 		}

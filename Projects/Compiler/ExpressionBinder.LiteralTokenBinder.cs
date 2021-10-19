@@ -71,12 +71,7 @@ namespace Compiler
 				return new LiteralBoundExpression(realLiteralToken, value);
 			}
 
-			public IBoundExpression Visit(SingleByteStringLiteralToken singleByteStringLiteralToken, IType? context)
-			{
-				throw new NotImplementedException();
-			}
-
-			public IBoundExpression Visit(MultiByteStringLiteralToken multiByteStringLiteralToken, IType? context)
+			public IBoundExpression Visit(StringLiteralToken stringLiteralToken, IType? context)
 			{
 				throw new NotImplementedException();
 			}

@@ -181,11 +181,6 @@ namespace Compiler
 			{
 				throw new NotImplementedException();
 			}
-
-			public FunctionSymbol Visit(MethodToken methodToken, PouInterfaceSyntax context)
-			{
-				throw new NotImplementedException();
-			}
 		}
 
 		private interface ITypeSymbolInWork : ISymbol

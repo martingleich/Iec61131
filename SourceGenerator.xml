@@ -202,11 +202,6 @@
       <Interface>IPouKindToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
-      <Name>MethodToken</Name>
-      <Generating>METHOD</Generating>
-      <Interface>IPouKindToken</Interface>
-    </TokenKeywordClass>
-    <TokenKeywordClass>
       <Name>PointerToken</Name>
       <Generating>POINTER</Generating>
     </TokenKeywordClass>
@@ -537,13 +532,7 @@
       <DefaultValue>default</DefaultValue>
     </TokenWithValueClass>
     <TokenWithValueClass>
-      <Name>SingleByteStringLiteralToken</Name>
-      <ValueType>string</ValueType>
-      <Interface>ILiteralToken</Interface>
-      <DefaultValue>""</DefaultValue>
-    </TokenWithValueClass>
-    <TokenWithValueClass>
-      <Name>MultiByteStringLiteralToken</Name>
+      <Name>StringLiteralToken</Name>
       <ValueType>string</ValueType>
       <Interface>ILiteralToken</Interface>
       <DefaultValue>""</DefaultValue>
