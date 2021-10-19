@@ -246,9 +246,9 @@ namespace Compiler
 
 		private ILiteralToken ScanBoolean(IToken? leadingToken)
 		{
-			if (TryScanKeyword("TRUE", leadingToken) is IToken trueToken)
+			if (TryScanKeyword(TrueToken.DefaultGenerating, leadingToken) is IToken trueToken)
 				return (ILiteralToken)trueToken;
-			else if (TryScanKeyword("FALSE", leadingToken) is IToken falseToken)
+			else if (TryScanKeyword(FalseToken.DefaultGenerating, leadingToken) is IToken falseToken)
 				return (ILiteralToken)falseToken;
 			else if (Cursor < Text.Length && IsDigit(Text[Cursor]))
 				return ScanNumber(leadingToken);
