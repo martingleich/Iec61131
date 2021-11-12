@@ -18,7 +18,12 @@ namespace Compiler
 			MessageBag = messageBag ?? throw new ArgumentNullException(nameof(messageBag));
 		}
 
-		public static IBoundStatement Bind(IStatementSyntax syntax, IStatementScope scope, MessageBag messageBag)
+		public static IBoundStatement Bind(IStatementSyntax syntax, IScope scope, MessageBag messageBag)
+		{
+			var statementScope = new RootStatementScope(scope);
+			return BindInner(syntax, statementScope, messageBag);
+		}
+		private static IBoundStatement BindInner(IStatementSyntax syntax, IStatementScope scope, MessageBag messageBag)
 		{
 			var binder = new StatementBinder(scope, messageBag);
 			return syntax.Accept(binder);
@@ -116,7 +121,7 @@ namespace Compiler
 		{
 			var boundCondition = BindExpressionWithTargetType(whileStatementSyntax.Condition, Scope.SystemScope.Bool);
 			var bodyScope = new LoopScope(Scope);
-			var boundBody = Bind(whileStatementSyntax.Statements, bodyScope, MessageBag);
+			var boundBody = BindInner(whileStatementSyntax.Statements, bodyScope, MessageBag);
 			return new WhileBoundStatement(boundCondition, boundBody);
 		}
 
@@ -146,7 +151,7 @@ namespace Compiler
 			}
 
 			var bodyScope = new LoopScope(Scope);
-			var boundBody = Bind(forStatementSyntax.Statements, bodyScope, MessageBag);
+			var boundBody = BindInner(forStatementSyntax.Statements, bodyScope, MessageBag);
 
 			return new ForLoopBoundStatement(
 				boundIndex,

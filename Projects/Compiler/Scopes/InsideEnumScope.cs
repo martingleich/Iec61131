@@ -3,11 +3,11 @@ using Compiler.Types;
 
 namespace Compiler.Scopes
 {
-	public sealed class InnerEnumScope : AInnerScope<IScope>
+	public sealed class InsideEnumScope : AInnerScope<IScope>
 	{
 		private readonly EnumTypeSymbol EnumTypeSymbol;
 
-		public InnerEnumScope(EnumTypeSymbol enumTypeSymbol, IScope outerScope) : base(outerScope)
+		public InsideEnumScope(EnumTypeSymbol enumTypeSymbol, IScope outerScope) : base(outerScope)
 		{
 			EnumTypeSymbol = enumTypeSymbol;
 		}

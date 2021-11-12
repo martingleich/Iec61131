@@ -69,7 +69,7 @@ namespace Compiler
 				if (Symbol.Parameters.TryGetValue(local.Name, out var existing))
 					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringPosition, local.DeclaringPosition));
 			}
-			var scope = new InsideFunctionScope(Scope, Symbol, localVariables);
+			var scope = new TemporaryVariablesScope(new InsideCallableScope(Scope, Symbol), localVariables);
 			var bound = StatementBinder.Bind(Body, scope, messageBag);
 			return (bound, messageBag.ToImmutable());
 		}
@@ -115,7 +115,7 @@ namespace Compiler
 				if (Symbol.Fields.TryGetValue(local.Name, out var existingField))
 					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringPosition, local.DeclaringPosition));
 			}
-			var scope = new InsideFunctionBlockScope(Scope, Symbol, localVariables);
+			var scope = new TemporaryVariablesScope(new InsideTypeScope(new InsideCallableScope(Scope, Symbol), Symbol.Fields), localVariables);
 			var bound = StatementBinder.Bind(Body, scope, messageBag);
 			return (bound, messageBag.ToImmutable());
 		}
@@ -269,7 +269,7 @@ namespace Compiler
 				Symbol._SetBaseType(baseType);
 				List<EnumVariableSymbol> allValueSymbols = new List<EnumVariableSymbol>();
 				EnumVariableSymbol? prevSymbol = null;
-				var innerScope = new InnerEnumScope(Symbol, projectBinder);
+				var innerScope = new InsideEnumScope(Symbol, projectBinder);
 				foreach (var valueSyntax in BodySyntax.Values)
 				{
 					IExpressionSyntax value;
