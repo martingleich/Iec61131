@@ -33,20 +33,19 @@ namespace Compiler
 		public IType Type { get; }
 		public override string ToString() => $"{Name} : {Type}";
 	}
+	
 	public sealed class FieldVariableSymbol : AVariableSymbol
 	{
 		public FieldVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
 		{
 		}
 	}
-
 	public sealed class LocalVariableSymbol : AVariableSymbol
 	{
 		public LocalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
 		{
 		}
 	}
-
 	public sealed class ErrorVariableSymbol : AVariableSymbol
 	{
 		public ErrorVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
@@ -54,7 +53,6 @@ namespace Compiler
 		}
 
 	}
-
 	public sealed class GlobalVariableSymbol : AVariableSymbol
 	{
 		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
@@ -64,8 +62,7 @@ namespace Compiler
 			declaringPosition, name,
 			ITypeSymbol.CreateErrorForVar(declaringPosition, name));
 	}
-
-	public sealed class EnumValueSymbol : IVariableSymbol
+	public sealed class EnumVariableSymbol : IVariableSymbol
 	{
 		public SourcePosition DeclaringPosition { get; }
 		public CaseInsensitiveString Name { get; }
@@ -74,7 +71,7 @@ namespace Compiler
 		IType IVariableSymbol.Type => Type;
 		public readonly EnumTypeSymbol Type;
 
-		public EnumValueSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, EnumLiteralValue value)
+		public EnumVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, EnumLiteralValue value)
 		{
 			DeclaringPosition = declaringPosition;
 			Name = name;
@@ -86,7 +83,7 @@ namespace Compiler
 
 		private readonly IExpressionSyntax? MaybeValueSyntax;
 		private readonly IScope? MaybeScope;
-		internal EnumValueSymbol(IScope scope, SourcePosition declaringPosition, CaseInsensitiveString name, IExpressionSyntax value, EnumTypeSymbol enumTypeSymbol)
+		internal EnumVariableSymbol(IScope scope, SourcePosition declaringPosition, CaseInsensitiveString name, IExpressionSyntax value, EnumTypeSymbol enumTypeSymbol)
 		{
 			MaybeScope = scope ?? throw new ArgumentNullException(nameof(scope));
 			DeclaringPosition = declaringPosition;
@@ -114,55 +111,13 @@ namespace Compiler
 			return _value = new EnumLiteralValue(Type, literalValue);
 		}
 	}
-
-	public sealed class FunctionSymbol : ISymbol
+	public sealed class ParameterVariableSymbol : IVariableSymbol
 	{
-		public readonly bool IsError;
-		public readonly bool IsProgram;
-		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
-		public readonly OrderedSymbolSet<ParameterSymbol> Parameters;
-
-		public FunctionSymbol(bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters) :
-			this(false, isProgram, name, declaringPosition, parameters)
-		{
-		}
-		private FunctionSymbol(bool isError, bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterSymbol> parameters)
-		{
-			IsError = isError;
-			IsProgram = isProgram;
-			Name = name;
-			DeclaringPosition = declaringPosition;
-			Parameters = parameters;
-		}
-
-		public IType ReturnType => Parameters.TryGetValue(Name, out var returnParam)
-			? returnParam.Type
-			: NullType.Instance;
-		public int ParameterCountWithoutReturn => ReturnType is NullType
-			? Parameters.Count
-			: Parameters.Count - 1;
-
-		public override string ToString() => $"{Name}";
-
-		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
-			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourcePosition, ImplicitName.ErrorFunction));
-		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name)
-			=> CreateError(sourcePosition, name, ITypeSymbol.CreateErrorForFunc(sourcePosition, name));
-		public static FunctionSymbol CreateError(SourcePosition sourcePosition, IType returnType)
-			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, returnType);
-		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
-			=> new(true, false, name, sourcePosition, OrderedSymbolSet.ToOrderedSymbolSet(
-				new ParameterSymbol(ParameterKind.Output, sourcePosition, name, returnType)));
-	}
-
-	public sealed class ParameterSymbol : IVariableSymbol
-	{
-		public static ParameterSymbol CreateError(int id, SourcePosition position)
+		public static ParameterVariableSymbol CreateError(int id, SourcePosition position)
 			=> CreateError(ImplicitName.ErrorParam(id), position);
-		public static ParameterSymbol CreateError(CaseInsensitiveString name, SourcePosition position)
+		public static ParameterVariableSymbol CreateError(CaseInsensitiveString name, SourcePosition position)
 			=> new (ParameterKind.Input, position, name, ITypeSymbol.CreateErrorForVar(position, name));
-		public ParameterSymbol(ParameterKind kind, SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
+		public ParameterVariableSymbol(ParameterKind kind, SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
 		{
 			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
 			DeclaringPosition = declaringPosition;
@@ -179,48 +134,102 @@ namespace Compiler
 
 	}
 
-	public sealed class ParameterKind : IEquatable<ParameterKind>
+	public interface ICallableSymbol : ISymbol
 	{
-		public readonly static ParameterKind Input = new(VarInputToken.DefaultGenerating, AssignToken.DefaultGenerating);
-		public readonly static ParameterKind Output = new(VarOutToken.DefaultGenerating, DoubleArrowToken.DefaultGenerating);
-		public readonly static ParameterKind InOut = new(VarInOutToken.DefaultGenerating, AssignToken.DefaultGenerating);
-
-		private ParameterKind(string code, string assignCode)
-		{
-			Code = code ?? throw new ArgumentNullException(nameof(code));
-			AssignCode = assignCode ?? throw new ArgumentNullException(nameof(assignCode));
-		}
-
-		public string Code { get; }
-		public string AssignCode { get; }
-
-		public bool Equals(ParameterKind? other) => other != null && other.Code == Code;
-		public override bool Equals(object? obj) => throw new NotImplementedException();
-		public override int GetHashCode() => Code.GetHashCode();
-		public override string ToString() => Code;
-
-		public static ParameterKind? TryMapDecl(IVarDeclKindToken token) => token.Accept(ParameterKindMapper.Instance);
-		private sealed class ParameterKindMapper : IVarDeclKindToken.IVisitor<ParameterKind?>
-		{
-			public static readonly ParameterKindMapper Instance = new();
-			public ParameterKind? Visit(VarToken varToken) => null;
-			public ParameterKind? Visit(VarInputToken varInputToken) => Input;
-			public ParameterKind? Visit(VarGlobalToken varGlobalToken) => null;
-			public ParameterKind? Visit(VarOutToken varOutToken) => Output;
-			public ParameterKind? Visit(VarInOutToken varInOutToken) => InOut;
-			public ParameterKind? Visit(VarTempToken varTempToken) => null;
-		}
-
-		internal bool MatchesAssignKind(IParameterKindToken parameterKind) => parameterKind.Accept(ParameterKindChecker.Instance, this);
-		private sealed class ParameterKindChecker : IParameterKindToken.IVisitor<bool, ParameterKind>
-		{
-			public static readonly ParameterKindChecker Instance = new();
-
-			public bool Visit(AssignToken assignToken, ParameterKind context) => context.Equals(Input) || context.Equals(InOut);
-			public bool Visit(DoubleArrowToken doubleArrowToken, ParameterKind context) => context.Equals(Output);
-		}
+		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
+	}
+	public static class CallableSymbol
+	{
+		public static IType GetReturnType(this ICallableSymbol self) => self.Parameters.TryGetValue(self.Name, out var returnParam)
+			? returnParam.Type
+			: NullType.Instance;
+		public static int GetParameterCountWithoutReturn(this ICallableSymbol self) => self.GetReturnType() is NullType
+			? self.Parameters.Count
+			: self.Parameters.Count - 1;
 	}
 
+	public sealed class FunctionSymbol : ICallableSymbol
+	{
+		public readonly bool IsError;
+		public readonly bool IsProgram;
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
+
+		public FunctionSymbol(bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterVariableSymbol> parameters) :
+			this(false, isProgram, name, declaringPosition, parameters)
+		{
+		}
+		private FunctionSymbol(bool isError, bool isProgram, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterVariableSymbol> parameters)
+		{
+			IsError = isError;
+			IsProgram = isProgram;
+			Name = name;
+			DeclaringPosition = declaringPosition;
+			Parameters = parameters;
+		}
+
+		public override string ToString() => $"{Name}";
+
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition)
+			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourcePosition, ImplicitName.ErrorFunction));
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name)
+			=> CreateError(sourcePosition, name, ITypeSymbol.CreateErrorForFunc(sourcePosition, name));
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, IType returnType)
+			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, returnType);
+		public static FunctionSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
+			=> new(true, false, name, sourcePosition, OrderedSymbolSet.ToOrderedSymbolSet(
+				new ParameterVariableSymbol(ParameterKind.Output, sourcePosition, name, returnType)));
+	}
+	public sealed class FunctionBlockSymbol : ICallableSymbol, ITypeSymbol, _IDelayedLayoutType
+	{
+		public string Code => Name.Original;
+		public SourcePosition DeclaringPosition { get; }
+		public CaseInsensitiveString Name { get; }
+
+		private readonly StructuredLayoutHelper _layoutHelper;
+		public SymbolSet<FieldVariableSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized.");
+		private SymbolSet<FieldVariableSymbol> _fields;
+
+		public OrderedSymbolSet<ParameterVariableSymbol> Parameters => !_parameters.IsDefault ? _parameters : throw new InvalidOperationException("Parameters is not initialized.");
+		private OrderedSymbolSet<ParameterVariableSymbol> _parameters;
+
+		public FunctionBlockSymbol(SourcePosition declaringPosition, CaseInsensitiveString name)
+		{
+			DeclaringPosition = declaringPosition;
+			Name = name;
+			_layoutHelper = new StructuredLayoutHelper();
+		}
+
+		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+		public LayoutInfo LayoutInfo => throw new NotImplementedException();
+
+		internal void _SetFields(SymbolSet<FieldVariableSymbol> fields)
+		{
+			if (!_fields.IsDefault)
+				throw new InvalidOperationException();
+			_fields = fields;
+		}
+		internal void _SetParameters(OrderedSymbolSet<ParameterVariableSymbol> parameters)
+		{
+			if (!_parameters.IsDefault)
+				throw new InvalidOperationException();
+			_parameters = parameters;
+		}
+
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position) => _layoutHelper.GetLayoutInfo(
+			messageBag,
+			position,
+			false,
+			Fields);
+
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position) => _layoutHelper.GetLayoutInfo(
+			messageBag,
+			position,
+			false,
+			Fields);
+	}
+	
 	public sealed class GlobalVariableListSymbol : ISymbol
 	{
 		public readonly SymbolSet<GlobalVariableSymbol> Variables;

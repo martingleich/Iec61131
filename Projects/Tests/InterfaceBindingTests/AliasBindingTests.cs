@@ -17,7 +17,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddDut("TYPE myAlias : INT; END_TYPE")
 				.BindInterfaces();
-			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.DutTypes["myAlias"]);
+			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			AssertEx.EqualType(SystemScope.Int, myAlias.AliasedType);
 			Assert.Equal(SystemScope.Int.LayoutInfo, myAlias.LayoutInfo);
 		}
@@ -28,7 +28,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddDut("TYPE myAlias : ARRAY[0..10] OF INT; END_TYPE")
 				.BindInterfaces();
-			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.DutTypes["myAlias"]);
+			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			var arrayType = new ArrayType(SystemScope.Int, ImmutableArray.Create(new ArrayType.Range(0, 10)));
 			AssertEx.EqualType(arrayType, myAlias.AliasedType);
 			Assert.Equal(arrayType.LayoutInfo, myAlias.LayoutInfo);
@@ -40,8 +40,8 @@ namespace Tests
 				.AddDut("TYPE myStruct : STRUCT field : BOOL; END_STRUCT; END_TYPE")
 				.AddDut("TYPE myAlias : myStruct; END_TYPE")
 				.BindInterfaces();
-			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.DutTypes["myAlias"]);
-			var structType = boundInterface.DutTypes["myStruct"];
+			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
+			var structType = boundInterface.Types["myStruct"];
 			AssertEx.EqualType(structType, myAlias.AliasedType);
 			Assert.Equal(structType.LayoutInfo, myAlias.LayoutInfo);
 		}
@@ -52,8 +52,8 @@ namespace Tests
 				.AddDut("TYPE myAlias1 : INT; END_TYPE")
 				.AddDut("TYPE myAlias2 : myAlias1; END_TYPE")
 				.BindInterfaces();
-			var myAlias2 = Assert.IsType<AliasTypeSymbol>(boundInterface.DutTypes["myAlias2"]);
-			var myAlias1 = boundInterface.DutTypes["myAlias1"];
+			var myAlias2 = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias2"]);
+			var myAlias1 = boundInterface.Types["myAlias1"];
 			AssertEx.EqualType(myAlias1, myAlias2.AliasedType);
 			Assert.Equal(SystemScope.Int.LayoutInfo, myAlias1.LayoutInfo);
 			Assert.Equal(myAlias1.LayoutInfo, myAlias2.LayoutInfo);
@@ -64,7 +64,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddDut("TYPE myAlias : myAlias; END_TYPE")
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
-			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.DutTypes["myAlias"]);
+			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			AssertEx.EqualType(myAlias, myAlias.AliasedType);
 		}
 	}

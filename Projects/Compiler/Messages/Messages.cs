@@ -154,10 +154,10 @@ namespace Compiler.Messages
 	}
 	public sealed class ParameterNotFoundMessage : ACriticalMessage
 	{
-		public readonly FunctionSymbol Function;
+		public readonly ICallableSymbol Function;
 		public readonly CaseInsensitiveString Identifier;
 
-		public ParameterNotFoundMessage(FunctionSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public ParameterNotFoundMessage(ICallableSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			Identifier = identifier;
@@ -378,6 +378,19 @@ namespace Compiler.Messages
 
 		public override string Text => $"Expected a variable, type or gvl name.";
 	}
+	public sealed class ExpectedVariableOrFunctionMessage : ACriticalMessage
+	{
+		public readonly CaseInsensitiveString Name;
+
+		public static ExpectedVariableOrFunctionMessage Create(VariableExpressionSyntax expression)
+			=> new(expression.Identifier, expression.SourcePosition);
+		public ExpectedVariableOrFunctionMessage(CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Name = name;
+		}
+
+		public override string Text => $"Expected a variable or function name.";
+	}
 	public sealed class EnumValueNotFoundMessage : ACriticalMessage
 	{
 		public readonly EnumTypeSymbol EnumType;
@@ -415,32 +428,35 @@ namespace Compiler.Messages
 
 		public override string Text => $"Expected a type but found '{ReceivedToken.Generating}' instead.";
 	}
-	public sealed class CannotCallSyntaxMessage : ACriticalMessage
+	public sealed class CannotCallTypeMessage : ACriticalMessage
 	{
-		public CannotCallSyntaxMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		public readonly IType CalledType;
+
+		public CannotCallTypeMessage(IType calledType, SourcePosition sourcePosition) : base(sourcePosition)
 		{
+			CalledType = calledType ?? throw new ArgumentNullException(nameof(calledType));
 		}
 
-		public override string Text => $"Syntax is not callable.";
+		public override string Text => $"The type '{CalledType.Code}' is not callable.";
 	}
 	public sealed class WrongNumberOfArgumentsMessage : ACriticalMessage
 	{
-		public readonly FunctionSymbol Function;
+		public readonly ICallableSymbol Function;
 		public readonly int PassedCount;
 
-		public WrongNumberOfArgumentsMessage(FunctionSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
+		public WrongNumberOfArgumentsMessage(ICallableSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			PassedCount = passedCount;
 		}
 
-		public override string Text => $"The function '{Function.Name}' takes {Function.ParameterCountWithoutReturn} arguments, but {PassedCount} arguments were passed.";
+		public override string Text => $"The function '{Function.Name}' takes {Function.GetParameterCountWithoutReturn()} arguments, but {PassedCount} arguments were passed.";
 	}
 	public sealed class NonInputParameterMustBePassedExplicit : ACriticalMessage
 	{
-		public readonly ParameterSymbol Symbol;
+		public readonly ParameterVariableSymbol Symbol;
 
-		public NonInputParameterMustBePassedExplicit(ParameterSymbol symbol, SourcePosition sourcePosition) : base(sourcePosition)
+		public NonInputParameterMustBePassedExplicit(ParameterVariableSymbol symbol, SourcePosition sourcePosition) : base(sourcePosition)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 		}
@@ -464,10 +480,10 @@ namespace Compiler.Messages
 	
 	public sealed class ParameterKindDoesNotMatchAssignMessage : ACriticalMessage
 	{
-		public readonly ParameterSymbol Symbol;
+		public readonly ParameterVariableSymbol Symbol;
 		public readonly IParameterKindToken ParameterKind;
 
-		public ParameterKindDoesNotMatchAssignMessage(ParameterSymbol symbol, IParameterKindToken parameterKind) : base(parameterKind.SourcePosition)
+		public ParameterKindDoesNotMatchAssignMessage(ParameterVariableSymbol symbol, IParameterKindToken parameterKind) : base(parameterKind.SourcePosition)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 			ParameterKind = parameterKind ?? throw new ArgumentNullException(nameof(parameterKind));
@@ -478,10 +494,10 @@ namespace Compiler.Messages
 	
 	public sealed class ParameterWasAlreadyPassedMessage : ACriticalMessage
 	{
-		public readonly ParameterSymbol Symbol;
+		public readonly ParameterVariableSymbol Symbol;
 		public readonly SourcePosition OriginalPosition;
 
-		public ParameterWasAlreadyPassedMessage(ParameterSymbol symbol, SourcePosition originalPosition, SourcePosition duplicatePosition) : base(duplicatePosition)
+		public ParameterWasAlreadyPassedMessage(ParameterVariableSymbol symbol, SourcePosition originalPosition, SourcePosition duplicatePosition) : base(duplicatePosition)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 			OriginalPosition = originalPosition;

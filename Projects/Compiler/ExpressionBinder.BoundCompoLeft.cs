@@ -9,6 +9,7 @@ namespace Compiler
 		private abstract class BoundCompoLeft
 		{
 			public sealed class Expression : BoundCompoLeft
+			// 
 			{
 				private readonly IBoundExpression boundLeft;
 
@@ -21,8 +22,7 @@ namespace Compiler
 				{
 					if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value, out var field)))
 					{
-						if (!boundLeft.Type.IsError())
-							binder.MessageBag.Add(new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourcePosition));
+						binder.MessageBag.Add(!boundLeft.Type.IsError(), new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourcePosition));
 						field = new FieldVariableSymbol(
 							name.SourcePosition,
 							name.Value,
@@ -91,7 +91,7 @@ namespace Compiler
 
 			public abstract IBoundExpression BindCompo(ISyntax originalNode, IdentifierToken name, ExpressionBinder binder);
 		}
-	
+
 		private BoundCompoLeft BindLeftCompo(IExpressionSyntax syntax)
 		{
 			if (syntax is VariableExpressionSyntax variableExpressionSyntax)
@@ -108,7 +108,7 @@ namespace Compiler
 					return new BoundCompoLeft.Type(maybeType.Value, resolved);
 				}
 				var maybeGvl = Scope.LookupGlobalVariableList(name, pos);
-				if(!maybeGvl.HasErrors)
+				if (!maybeGvl.HasErrors)
 					return new BoundCompoLeft.Gvl(maybeGvl.Value);
 				MessageBag.Add(ExpectedVariableOrTypeOrGvlMessage.Create(variableExpressionSyntax));
 				return new BoundCompoLeft.Expression(new VariableBoundExpression(
@@ -118,5 +118,9 @@ namespace Compiler
 			var expr = syntax.Accept(this, null);
 			return new BoundCompoLeft.Expression(expr);
 		}
+
+	}
+	public sealed partial class ExpressionBinder
+	{
 	}
 }

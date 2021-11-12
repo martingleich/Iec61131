@@ -26,6 +26,8 @@ namespace Compiler
 				=> context is EnumTypeSymbol other && enumTypeSymbol.Name == other.Name;
 			public bool Visit(AliasTypeSymbol aliasTypeSymbol, IType context)
 				=> context is AliasTypeSymbol other && aliasTypeSymbol.Name == other.Name;
+			public bool Visit(FunctionBlockSymbol functionBlockSymbol, IType context)
+				=> context is FunctionBlockSymbol other && functionBlockSymbol.Name == other.Name;
 
 			public bool VisitError(IType context) => true;
 		}

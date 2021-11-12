@@ -13,7 +13,7 @@ namespace Compiler.Scopes
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
 		}
 
-		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.DutTypes.TryGetValue(identifier, out var dutType)
+		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.Types.TryGetValue(identifier, out var dutType)
 			? ErrorsAnd.Create(dutType)
 			: base.LookupType(identifier, sourcePosition);
 		public override ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.GlobalVariableListSymbols.TryGetValue(identifier, out var symbol)

@@ -18,7 +18,7 @@ namespace Tests
 				.AddDut("TYPE MyEnum : (); END_TYPE")
 				.BindInterfaces();
 
-			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
+			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
 			Assert.Empty(myEnum.Values);
 			Assert.Equal(SystemScope.Int, myEnum.BaseType);
 		}
@@ -30,7 +30,7 @@ namespace Tests
 				.AddDut("TYPE MyEnum : (First := 1, Second := 2); END_TYPE")
 				.BindInterfaces();
 
-			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
+			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
@@ -45,7 +45,7 @@ namespace Tests
 				.AddDut("TYPE MyEnum : (First, Second); END_TYPE")
 				.BindInterfaces();
 
-			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
+			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
@@ -60,7 +60,7 @@ namespace Tests
 				.AddDut("TYPE MyEnum : (First := 1, Second := First); END_TYPE")
 				.BindInterfaces();
 
-			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.DutTypes["MyEnum"]);
+			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
 			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }

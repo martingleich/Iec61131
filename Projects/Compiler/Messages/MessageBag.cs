@@ -14,6 +14,11 @@ namespace Compiler.Messages
 		public int Count => Messages.Count;
 		public bool IsReadOnly => false;
 
+		public void Add(bool check, IMessage message)
+		{
+			if (check)
+				Add(message);
+		}
 		public void Add(IMessage message)
 		{
 			Messages.Add(message);

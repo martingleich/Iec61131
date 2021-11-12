@@ -15,7 +15,7 @@ namespace Compiler
 		private static FunctionSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
+			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), type),
 				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, returnType)));
@@ -23,7 +23,7 @@ namespace Compiler
 		private static FunctionSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterSymbol>(
+			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, type)));
 		}

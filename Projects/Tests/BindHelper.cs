@@ -43,7 +43,9 @@ namespace Tests
 			{
 				ExactlyMessages()(MyProject.LazyParseMessages.Value);
 				ExactlyMessages()(MyProject.LazyBoundModule.Value.InterfaceMessages);
-				var boundPous = MyProject.LazyBoundModule.Value.Pous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
+				var boundFunctionPous = MyProject.LazyBoundModule.Value.FunctionPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
+				var boundFBPous = MyProject.LazyBoundModule.Value.FunctionBlockPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
+				var boundPous = boundFunctionPous.Concat(boundFBPous).ToImmutableDictionary(x => x.Key, x => x.Value);
 				ExactlyMessages(checks)(boundPous.Values.SelectMany(x => x.Item2));
 				return new (boundPous);
 			}

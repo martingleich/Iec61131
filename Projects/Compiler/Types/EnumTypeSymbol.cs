@@ -10,14 +10,14 @@ namespace Compiler.Types
 		public LayoutInfo LayoutInfo => BaseType.LayoutInfo;
 		private IType? _baseType;
 		public IType BaseType => _baseType ?? throw new InvalidOperationException("BaseType is not initialized yet");
-		private SymbolSet<EnumValueSymbol> _values;
-		public SymbolSet<EnumValueSymbol> Values => _values.IsDefault
+		private SymbolSet<EnumVariableSymbol> _values;
+		public SymbolSet<EnumVariableSymbol> Values => _values.IsDefault
 			? throw new InvalidOperationException("Elements is not initialzed yet")
 			: _values;
 
 		public SourcePosition DeclaringPosition { get; }
 
-		public EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType baseType, SymbolSet<EnumValueSymbol> values)
+		public EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType baseType, SymbolSet<EnumVariableSymbol> values)
 		{
 			DeclaringPosition = declaringPosition;
 			Name = name;
@@ -34,7 +34,7 @@ namespace Compiler.Types
 		{
 			_baseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 		}
-		internal void _SetValues(SymbolSet<EnumValueSymbol> values)
+		internal void _SetValues(SymbolSet<EnumVariableSymbol> values)
 		{
 			_values = values;
 		}

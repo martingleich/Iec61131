@@ -47,6 +47,8 @@ namespace Compiler
 		public int Length => Values.Length;
 		public int Count => Length;
 
+		public bool IsDefault => Values.IsDefault;
+
 		public static OrderedSymbolSet<T> Create(IEnumerable<T> symbols)
 			=> CreateWithDuplicatesInternal(symbols, null);
 		public static OrderedSymbolSet<T> CreateWithDuplicates(IEnumerable<T> symbols, MessageBag messages)

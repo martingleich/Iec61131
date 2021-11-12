@@ -30,5 +30,6 @@ namespace Compiler
 		public ErrorsAnd<bool> Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAssignable(staticVariableBoundExpression);
 		public ErrorsAnd<bool> Visit(FunctionCallBoundExpression functionCallBoundExpression) => NotAssignable(functionCallBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAssignable(implicitDiscardBoundExpression);
+		public ErrorsAnd<bool> Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression) => NotAssignable(functionBlockCallBoundExpression);
 	}
 }

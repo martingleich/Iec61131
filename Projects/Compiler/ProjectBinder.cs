@@ -5,6 +5,7 @@ using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
+using StandardLibraryExtensions;
 
 namespace Compiler
 {
@@ -12,34 +13,37 @@ namespace Compiler
 	{
 		public readonly ImmutableArray<IMessage> InterfaceMessages;
 		public readonly BoundModuleInterface Interface;
-		public readonly ImmutableDictionary<FunctionSymbol, BoundPou> Pous;
+		public readonly ImmutableDictionary<FunctionSymbol, BoundFunctionPou> FunctionPous;
+		public readonly ImmutableDictionary<FunctionBlockSymbol, BoundFunctionBlockPou> FunctionBlockPous;
 
 		public BoundModule(
 			ImmutableArray<IMessage> interfaceMessages,
 			BoundModuleInterface @interface,
-			ImmutableDictionary<FunctionSymbol, BoundPou> pous)
+			ImmutableDictionary<FunctionSymbol, BoundFunctionPou> functionPous,
+			ImmutableDictionary<FunctionBlockSymbol, BoundFunctionBlockPou> functionBlockPous)
 		{
 			InterfaceMessages = interfaceMessages;
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
-			Pous = pous ?? throw new ArgumentNullException(nameof(pous));
+			FunctionPous = functionPous ?? throw new ArgumentNullException(nameof(functionPous));
+			FunctionBlockPous = functionBlockPous ?? throw new ArgumentNullException(nameof(functionBlockPous));
 		}
 	}
 
 	public sealed class BoundModuleInterface
 	{
-		public readonly SymbolSet<ITypeSymbol> DutTypes;
+		public readonly SymbolSet<ITypeSymbol> Types;
 		public readonly SymbolSet<FunctionSymbol> FunctionSymbols;
 		public readonly SymbolSet<GlobalVariableListSymbol> GlobalVariableListSymbols;
 
-		public BoundModuleInterface(SymbolSet<ITypeSymbol> dutTypes, SymbolSet<FunctionSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
+		public BoundModuleInterface(SymbolSet<ITypeSymbol> types, SymbolSet<FunctionSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
 		{
-			DutTypes = dutTypes;
+			Types = types;
 			FunctionSymbols = functionSymbols;
 			GlobalVariableListSymbols = globalVariableListSymbols;
 		}
 	}
 
-	public sealed class BoundPou
+	public sealed class BoundFunctionPou
 	{
 		private readonly IScope Scope;
 		private readonly FunctionSymbol Symbol;
@@ -47,7 +51,7 @@ namespace Compiler
 		private readonly StatementListSyntax Body;
 		public Lazy<(IBoundStatement, ImmutableArray<IMessage>)> LazyBoundBody;
 
-		public BoundPou(IScope scope, FunctionSymbol symbol, PouInterfaceSyntax @interface, StatementListSyntax body)
+		public BoundFunctionPou(IScope scope, FunctionSymbol symbol, PouInterfaceSyntax @interface, StatementListSyntax body)
 		{
 			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
@@ -70,42 +74,88 @@ namespace Compiler
 			return (bound, messageBag.ToImmutable());
 		}
 
-		private static IEnumerable<LocalVariableSymbol> BindLocalVariables(IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
-			=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations, scope, messages));
-		private static IEnumerable<LocalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
+		private static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
+			=> ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
+				kind => ((IVarDeclKindToken?)(kind as VarToken)) ?? kind as VarTempToken,
+				(_, scope, bag, syntax) =>
+				{
+					IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+					return new LocalVariableSymbol(
+						syntax.TokenIdentifier.SourcePosition,
+						syntax.Identifier,
+						type);
+				});
+	}
+
+	public sealed class BoundFunctionBlockPou
+	{
+		private readonly IScope Scope;
+		private readonly FunctionBlockSymbol Symbol;
+		private readonly PouInterfaceSyntax Interface;
+		private readonly StatementListSyntax Body;
+		public Lazy<(IBoundStatement, ImmutableArray<IMessage>)> LazyBoundBody;
+
+		public BoundFunctionBlockPou(IScope scope, FunctionBlockSymbol symbol, PouInterfaceSyntax @interface, StatementListSyntax body)
 		{
-			if (kind is not VarToken && kind is not VarTempToken)
-				return Enumerable.Empty<LocalVariableSymbol>();
-			else
-				return vardecls.Select(v => BindVarDecl(v, scope, messages));
+			Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
+			Body = body ?? throw new ArgumentNullException(nameof(body));
+			LazyBoundBody = new Lazy<(IBoundStatement, ImmutableArray<IMessage>)>(Bind);
 		}
-		private static LocalVariableSymbol BindVarDecl(VarDeclSyntax syntax, IScope scope, MessageBag messages)
+
+		private (IBoundStatement, ImmutableArray<IMessage>) Bind()
 		{
-			IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
-			return new(
-				syntax.TokenIdentifier.SourcePosition,
-				syntax.Identifier,
-				type);
+			var messageBag = new MessageBag();
+			var localVariables = BindLocalVariables(Interface.VariableDeclarations, Scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
+			foreach (var local in localVariables)
+			{
+				if (Symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
+					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingParameter.DeclaringPosition, local.DeclaringPosition));
+				if (Symbol.Fields.TryGetValue(local.Name, out var existingField))
+					messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringPosition, local.DeclaringPosition));
+			}
+			var scope = new InsideFunctionBlockScope(Scope, Symbol, localVariables);
+			var bound = StatementBinder.Bind(Body, scope, messageBag);
+			return (bound, messageBag.ToImmutable());
 		}
+
+		private static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
+			=> ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
+				kind => kind as VarTempToken,
+				(_, scope, bag, syntax) =>
+				{
+					IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+					return new LocalVariableSymbol(
+						syntax.TokenIdentifier.SourcePosition,
+						syntax.Identifier,
+						type);
+				});
 	}
 
 	public sealed class ProjectBinder : AInnerScope<RootScope>
 	{
 		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
 		private readonly SymbolSet<GlobalVariableListSymbol> WorkingGvlSymbols;
+		private readonly SymbolSet<FunctionSymbolInWork> WorkingFunctionSymbols;
 		private readonly MessageBag MessageBag = new();
-		private readonly PouSymbolCreatorT PouSymbolCreator;
 
 		private ProjectBinder(
 			RootScope rootScope,
 			ImmutableArray<ParsedDutLanguageSource> duts,
-			ImmutableArray<ParsedGVLLanguageSource> gvls) : base(rootScope)
+			ImmutableArray<ParsedGVLLanguageSource> gvls,
+			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous) : base(rootScope)
 		{
-			PouSymbolCreator = new(this, MessageBag);
-			WorkingTypeSymbols = duts.ToSymbolSetWithDuplicates(MessageBag,
-				x => x.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, x.Syntax));
+			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, dut.Syntax));
+			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreatorT.Instance, pou)).WhereNotNull().ToImmutableArray();
+			WorkingTypeSymbols = dutSymbols.Concat(fbTypeSymbols).ToSymbolSetWithDuplicates(MessageBag);
 			WorkingGvlSymbols = gvls.ToSymbolSetWithDuplicates(MessageBag,
 				x => GvlSymbolInWork.Create(x, this, MessageBag));
+			var pouFunctionSymbolCreator = new PouFunctionSymbolCreatorT(this, MessageBag);
+			WorkingFunctionSymbols = (from pou in pous
+									  let symbol = pouFunctionSymbolCreator.ConvertToSymbol(pou.Interface)
+									  where symbol != null
+									  select new FunctionSymbolInWork(symbol, pou.Interface, pou.Body)).ToSymbolSetWithDuplicates(MessageBag);
 		}
 
 		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
@@ -121,27 +171,28 @@ namespace Compiler
 				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, enumTypeDeclarationBodySyntax);
 		}
 
-		private sealed class PouSymbolCreatorT : IPouKindToken.IVisitor<FunctionSymbol, PouInterfaceSyntax>
+		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<FunctionSymbol?, PouInterfaceSyntax>
 		{
 			private readonly IScope Scope;
 			private readonly MessageBag Messages;
 
-			public PouSymbolCreatorT(IScope scope, MessageBag messages)
+			public PouFunctionSymbolCreatorT(IScope scope, MessageBag messages)
 			{
 				Scope = scope ?? throw new ArgumentNullException(nameof(scope));
 				Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			}
 
-			public FunctionSymbol ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
+			public FunctionSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
-			public FunctionSymbol Visit(ProgramToken programToken, PouInterfaceSyntax context)
+			public FunctionSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
 				=> TypifyFunctionOrProgram(isProgram: true, context);
-			public FunctionSymbol Visit(FunctionToken functionToken, PouInterfaceSyntax context)
+			public FunctionSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
 				=> TypifyFunctionOrProgram(isProgram: false, context);
+			public FunctionSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
+
 			private FunctionSymbol TypifyFunctionOrProgram(bool isProgram, PouInterfaceSyntax context)
 			{
-				var allParameters = BindParameters(context.VariableDeclarations).Concat(BindReturnValue(context.Name, context.ReturnDeclaration));
-				var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
+				OrderedSymbolSet<ParameterVariableSymbol> uniqueParameters = BindParameters(Scope, Messages, context);
 				return new FunctionSymbol(
 					isProgram,
 					context.Name,
@@ -149,38 +200,15 @@ namespace Compiler
 					uniqueParameters);
 			}
 
-			private IEnumerable<ParameterSymbol> BindParameters(IEnumerable<VarDeclBlockSyntax> vardecls)
-				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations));
-			private IEnumerable<ParameterSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls)
-			{
-				var mapped = ParameterKind.TryMapDecl(kind);
-				if (mapped == null)
-					return Enumerable.Empty<ParameterSymbol>();
-				else
-					return vardecls.Select(v => BindVarDecl(mapped, v));
-			}
-			private ParameterSymbol BindVarDecl(ParameterKind kind, VarDeclSyntax syntax)
-			{
-				IType type = TypeCompiler.MapComplete(Scope, syntax.Type, Messages);
-				return new(
-					kind,
-					syntax.TokenIdentifier.SourcePosition,
-					syntax.Identifier,
-					type);
-			}
-			private IEnumerable<ParameterSymbol> BindReturnValue(CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
-			{
-				if (syntax != null)
-				{
-					IType type = TypeCompiler.MapComplete(Scope, syntax.Type, Messages);
-					yield return new ParameterSymbol(ParameterKind.Output, syntax.Type.SourcePosition, functionName, type);
-				}
-			}
+		}
 
-			public FunctionSymbol Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context)
-			{
-				throw new NotImplementedException();
-			}
+		private sealed class PouTypeSymbolCreatorT : IPouKindToken.IVisitor<ITypeSymbolInWork?, ParsedTopLevelInterfaceAndBodyPouLanguageSource>
+		{
+			public static readonly PouTypeSymbolCreatorT Instance = new();
+			public ITypeSymbolInWork? Visit(ProgramToken programToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) => null;
+			public ITypeSymbolInWork? Visit(FunctionToken functionToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) => null;
+			public ITypeSymbolInWork? Visit(FunctionBlockToken functionBlockToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) =>
+				new FunctionBlockTypeInWork(context.Interface, context.Body);
 		}
 
 		private interface ITypeSymbolInWork : ISymbol
@@ -207,7 +235,7 @@ namespace Compiler
 			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
 			{
 				var fieldSymbols = FieldsSyntax.ToSymbolSetWithDuplicates(projectBinder.MessageBag, x => CreateFieldSymbol(projectBinder, x));
-				Symbol._SetFields(fieldSymbols);
+				Symbol.InternalSetFields(fieldSymbols);
 				return Symbol;
 			}
 
@@ -239,8 +267,8 @@ namespace Compiler
 					? TypeCompiler.MapSymbolic(projectBinder, BodySyntax.EnumBaseType, projectBinder.MessageBag)
 					: projectBinder.SystemScope.Int;
 				Symbol._SetBaseType(baseType);
-				List<EnumValueSymbol> allValueSymbols = new List<EnumValueSymbol>();
-				EnumValueSymbol? prevSymbol = null;
+				List<EnumVariableSymbol> allValueSymbols = new List<EnumVariableSymbol>();
+				EnumVariableSymbol? prevSymbol = null;
 				var innerScope = new InnerEnumScope(Symbol, projectBinder);
 				foreach (var valueSyntax in BodySyntax.Values)
 				{
@@ -263,7 +291,7 @@ namespace Compiler
 								new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(0, OverflowingInteger.FromUlong(1, false))));
 						}
 					}
-					var valueSymbol = new EnumValueSymbol(innerScope, valueSyntax.SourcePosition, valueSyntax.Identifier, value, Symbol);
+					var valueSymbol = new EnumVariableSymbol(innerScope, valueSyntax.SourcePosition, valueSyntax.Identifier, value, Symbol);
 					allValueSymbols.Add(valueSymbol);
 					prevSymbol = valueSymbol;
 				}
@@ -295,6 +323,53 @@ namespace Compiler
 			}
 		}
 
+		private sealed class FunctionBlockTypeInWork : ITypeSymbolInWork
+		{
+			private readonly PouInterfaceSyntax Syntax;
+			private readonly StatementListSyntax BodySyntax;
+
+			public FunctionBlockTypeInWork(PouInterfaceSyntax syntax, StatementListSyntax body)
+			{
+				Syntax = syntax ?? throw new ArgumentNullException(nameof(syntax));
+				BodySyntax = body ?? throw new ArgumentNullException(nameof(body));
+				Symbol = new FunctionBlockSymbol(syntax.SourcePosition, syntax.Name);
+			}
+
+			public FunctionBlockSymbol Symbol { get; }
+			ITypeSymbol ITypeSymbolInWork.Symbol => Symbol;
+			public CaseInsensitiveString Name => Symbol.Name;
+			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
+			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			{
+				var parameters = BindParameters(projectBinder, projectBinder.MessageBag, Syntax);
+				Symbol._SetParameters(parameters);
+				var fields = BindFields(projectBinder, Syntax.VariableDeclarations).ToSymbolSetWithDuplicates(projectBinder.MessageBag);
+				Symbol._SetFields(fields);
+				foreach (var field in fields)
+				{
+					if (parameters.TryGetValue(field.Name, out var original))
+					{
+						projectBinder.MessageBag.Add(new SymbolAlreadyExistsMessage(field.Name, original.DeclaringPosition, field.DeclaringPosition));
+					}
+				}
+				return Symbol;
+			}
+			public BoundFunctionBlockPou GetBoundPou(IScope moduleScope)
+				=> new(moduleScope, Symbol, Syntax, BodySyntax);
+			private static IEnumerable<FieldVariableSymbol> BindFields(ProjectBinder projectBinder, SyntaxArray<VarDeclBlockSyntax> vardecls)
+				=> BindVariableBlocks(vardecls, projectBinder, projectBinder.MessageBag,
+					kindToken => kindToken as VarToken,
+					(_, scope, bag, syntax) =>
+					{
+						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, bag);
+						return new FieldVariableSymbol(
+							syntax.TokenIdentifier.SourcePosition,
+							syntax.Identifier,
+							type);
+					});
+
+		}
+
 		private static class GvlSymbolInWork
 		{
 			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, ProjectBinder projectBinder, MessageBag messageBag)
@@ -322,12 +397,32 @@ namespace Compiler
 			}
 		}
 
+		private sealed class FunctionSymbolInWork : ISymbol
+		{
+			public FunctionSymbolInWork(FunctionSymbol symbol, PouInterfaceSyntax interfaceSyntax, StatementListSyntax bodySyntax)
+			{
+				Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+				InterfaceSyntax = interfaceSyntax ?? throw new ArgumentNullException(nameof(interfaceSyntax));
+				BodySyntax = bodySyntax ?? throw new ArgumentNullException(nameof(bodySyntax));
+			}
+			public FunctionSymbol Symbol { get; }
+
+			private readonly PouInterfaceSyntax InterfaceSyntax;
+			private readonly StatementListSyntax BodySyntax;
+
+			public CaseInsensitiveString Name => ((ISymbol)Symbol).Name;
+			public SourcePosition DeclaringPosition => ((ISymbol)Symbol).DeclaringPosition;
+
+			public BoundFunctionPou GetBoundPou(IScope moduleScope)
+				=> new(moduleScope, Symbol, InterfaceSyntax, BodySyntax);
+		}
+
 		public static BoundModule Bind(
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
 			ImmutableArray<ParsedGVLLanguageSource> gvls,
 			ImmutableArray<ParsedDutLanguageSource> duts)
 		{
-			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts, gvls);
+			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts, gvls, pous);
 			return binder.Bind(pous);
 		}
 
@@ -335,31 +430,52 @@ namespace Compiler
 		{
 			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
 			foreach (var typeSymbol in typeSymbols)
+			{
 				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, typeSymbol.DeclaringPosition);
+				if (typeSymbol is FunctionBlockSymbol fbSymbol)
+				{
+					foreach (var param in fbSymbol.Parameters)
+					{
+						DelayedLayoutType.RecursiveLayout(param.Type, MessageBag, param.DeclaringPosition);
+					}
+				}
+			}
 			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
 				enumTypeSymbol.RecursiveInitializers(MessageBag);
 			foreach (var gvlSymbol in WorkingGvlSymbols)
 			{
-				foreach(var globalVar in gvlSymbol.Variables)
+				foreach (var globalVar in gvlSymbol.Variables)
 					DelayedLayoutType.RecursiveLayout(globalVar.Type, MessageBag, globalVar.DeclaringPosition);
 			}
-
-			var symbolsWithDuplicate = new List<FunctionSymbol>();
-			var dictionary = ImmutableDictionary.CreateBuilder<FunctionSymbol, BoundPou>(SymbolByNameComparer<FunctionSymbol>.Instance);
-			foreach (var pou in pous)
+			foreach (var functionSymbol in WorkingFunctionSymbols)
 			{
-				var symbol = PouSymbolCreator.ConvertToSymbol(pou.Interface);
-				symbolsWithDuplicate.Add(symbol);
-				var boundPou = new BoundPou(this, symbol, pou.Interface, pou.Body);
-				dictionary.TryAdd(symbol, boundPou);
+				foreach (var param in functionSymbol.Symbol.Parameters)
+					DelayedLayoutType.RecursiveLayout(param.Type, MessageBag, param.DeclaringPosition);
 			}
-			var functionSymbols = symbolsWithDuplicate.ToSymbolSetWithDuplicates(MessageBag);
 
-			var itf = new BoundModuleInterface(typeSymbols, functionSymbols, WorkingGvlSymbols);
+			var itf = new BoundModuleInterface(
+				typeSymbols,
+				WorkingFunctionSymbols.ToSymbolSet(w => w.Symbol),
+				WorkingGvlSymbols);
+
+			var moduleScope = new GlobalModuleScope(itf, OuterScope);
+			var functionSymbols = WorkingFunctionSymbols
+				.ToImmutableDictionary(
+					w => w.Symbol,
+					w => w.GetBoundPou(moduleScope),
+					SymbolByNameComparer<FunctionSymbol>.Instance);
+			var functionBlockSymbols = WorkingTypeSymbols
+				.OfType<FunctionBlockTypeInWork>()
+				.ToImmutableDictionary(
+					w => w.Symbol,
+					w => w.GetBoundPou(moduleScope),
+					SymbolByNameComparer<FunctionBlockSymbol>.Instance);
+
 			return new BoundModule(
 				MessageBag.ToImmutable(),
 				itf,
-				dictionary.ToImmutable());
+				functionSymbols,
+				functionBlockSymbols);
 		}
 
 		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
@@ -370,5 +486,56 @@ namespace Compiler
 			WorkingGvlSymbols.TryGetValue(identifier, out var symbol)
 				? ErrorsAnd.Create(symbol)
 				: base.LookupGlobalVariableList(identifier, sourcePosition);
+
+		public static IEnumerable<TVariableSymbol> BindVariableBlocks<TVariableSymbol, TKind>(
+			SyntaxArray<VarDeclBlockSyntax> vardecls,
+			IScope scope,
+			MessageBag messages,
+			Func<IVarDeclKindToken, TKind?> kindSelector,
+			Func<TKind, IScope, MessageBag, VarDeclSyntax, TVariableSymbol> varMap)
+		{
+			var result = new List<TVariableSymbol>();
+			foreach (var block in vardecls)
+			{
+				var maybeKind = kindSelector(block.TokenKind);
+				if (maybeKind is TKind kind)
+				{
+					foreach (var decl in block.Declarations)
+					{
+						var varSymbol = varMap(kind, scope, messages, decl);
+						result.Add(varSymbol);
+					}
+				}
+			}
+			return result;
+		}
+
+		private static OrderedSymbolSet<ParameterVariableSymbol> BindParameters(IScope Scope, MessageBag Messages, PouInterfaceSyntax context)
+		{
+			var allParameters = BindParameters(Scope, Messages, context.VariableDeclarations).Concat(BindReturnValue(Scope, Messages, context.Name, context.ReturnDeclaration));
+			var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
+			return uniqueParameters;
+
+			static IEnumerable<ParameterVariableSymbol> BindParameters(IScope Scope, MessageBag Messages, SyntaxArray<VarDeclBlockSyntax> vardecls)
+				=> BindVariableBlocks(vardecls, Scope, Messages,
+					kind => ParameterKind.TryMapDecl(kind),
+					(kind, scope, bag, syntax) =>
+					{
+						IType type = TypeCompiler.MapSymbolic(Scope, syntax.Type, Messages);
+						return new ParameterVariableSymbol(
+							kind,
+							syntax.TokenIdentifier.SourcePosition,
+							syntax.Identifier,
+							type);
+					});
+			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope Scope, MessageBag Messages, CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
+			{
+				if (syntax != null)
+				{
+					IType type = TypeCompiler.MapSymbolic(Scope, syntax.Type, Messages);
+					yield return new ParameterVariableSymbol(ParameterKind.Output, syntax.Type.SourcePosition, functionName, type);
+				}
+			}
+		}
 	}
 }

@@ -17,7 +17,7 @@ namespace Tests
 		{
 			var boundInterface = BindHelper.NewProject.BindInterfaces();
 
-			Assert.Empty(boundInterface.DutTypes);
+			Assert.Empty(boundInterface.Types);
 		}
 		[Fact]
 		public void EmptyStructure()
@@ -26,7 +26,7 @@ namespace Tests
 				.AddDut("TYPE MyType : STRUCT END_STRUCT; END_TYPE")
 				.BindInterfaces();
 
-			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.DutTypes));
+			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
 			Assert.Equal(0, myType.LayoutInfo.Size);
 			Assert.Equal("MyType", myType.Name.Original);
 			Assert.Empty(myType.Fields);
@@ -38,7 +38,7 @@ namespace Tests
 				.AddDut("TYPE MySimpleType : STRUCT a : INT; b : REAL; END_STRUCT; END_TYPE")
 				.BindInterfaces();
 
-			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.DutTypes));
+			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
 			Assert.Equal(8, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
@@ -53,7 +53,7 @@ namespace Tests
 				.AddDut("TYPE MySimpleType : UNION a : INT; b : REAL; END_UNION; END_TYPE")
 				.BindInterfaces();
 
-			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.DutTypes));
+			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
 			Assert.Equal(4, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
@@ -68,8 +68,8 @@ namespace Tests
 				.AddDut("TYPE MySimpleType : STRUCT field : MyDut; otherField : REAL; END_STRUCT; END_TYPE")
 				.BindInterfaces();
 
-			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.DutTypes["MySimpleType"]).Fields["field"];
-			Assert.Equal(boundInterface.DutTypes["MyDut"], field.Type);
+			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.Types["MySimpleType"]).Fields["field"];
+			Assert.Equal(boundInterface.Types["MyDut"], field.Type);
 		}
 		[Fact]
 		public void FieldOfIncompleteSelf()
@@ -78,9 +78,9 @@ namespace Tests
 				.AddDut("TYPE MyDut : STRUCT field : POINTER TO MyDut; END_STRUCT; END_TYPE")
 				.BindInterfaces();
 
-			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.DutTypes["MyDut"]).Fields["field"];
+			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.Types["MyDut"]).Fields["field"];
 			var baseType = Assert.IsType<PointerType>(field.Type).BaseType;
-			Assert.Equal(boundInterface.DutTypes["MyDut"], baseType);
+			Assert.Equal(boundInterface.Types["MyDut"], baseType);
 		}
 
 		[Fact]
@@ -143,7 +143,7 @@ namespace Tests
 				.AddDut("TYPE MyDut : STRUCT field : POINTER TO ARRAY[0..SIZEOF(MyDut)] OF INT; END_STRUCT; END_TYPE")
 				.BindInterfaces();
 
-			var dutType = boundInterface.DutTypes["MyDut"];
+			var dutType = boundInterface.Types["MyDut"];
 			var fieldType = Assert.IsType<StructuredTypeSymbol>(dutType).Fields["field"].Type;
 			var arrayUpperBound = Assert.IsType<ArrayType>(Assert.IsType<PointerType>(fieldType).BaseType).Ranges[0].UpperBound;
 			Assert.Equal(dutType.LayoutInfo.Size, arrayUpperBound);

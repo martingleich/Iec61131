@@ -33,6 +33,7 @@ namespace Compiler
 			T Visit(StaticVariableBoundExpression staticVariableBoundExpression);
 			T Visit(FunctionCallBoundExpression functionCallBoundExpression);
 			T Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
+			T Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression);
 		}
 	}
 
@@ -351,31 +352,48 @@ namespace Compiler
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
+	public readonly struct BoundCallArgument
+	{
+		public readonly ParameterVariableSymbol ParameterSymbol;
+		public readonly IBoundExpression Parameter;
+		public readonly IBoundExpression Value;
+
+		public BoundCallArgument(ParameterVariableSymbol parameterSymbol, IBoundExpression parameter, IBoundExpression value)
+		{
+			Parameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
+			Value = value ?? throw new ArgumentNullException(nameof(value));
+			ParameterSymbol = parameterSymbol ?? throw new ArgumentNullException(nameof(parameterSymbol));
+		}
+	}
 	public sealed class FunctionCallBoundExpression : IBoundExpression
 	{
-		public readonly struct Argument
-		{
-			public readonly ParameterSymbol ParameterSymbol;
-			public readonly IBoundExpression Parameter;
-			public readonly IBoundExpression Value;
-
-			public Argument(ParameterSymbol parameterSymbol, IBoundExpression parameter, IBoundExpression value)
-			{
-				Parameter = parameter ?? throw new ArgumentNullException(nameof(parameter));
-				Value = value ?? throw new ArgumentNullException(nameof(value));
-				ParameterSymbol = parameterSymbol ?? throw new ArgumentNullException(nameof(parameterSymbol));
-			}
-		}
-
-		public IType Type => CalledFunction.ReturnType;
+		public IType Type => CalledFunction.GetReturnType();
 		public INode OriginalNode { get; }
 		public FunctionSymbol CalledFunction { get; }
-		public ImmutableArray<Argument> Arguments;
+		public ImmutableArray<BoundCallArgument> Arguments;
 
-		public FunctionCallBoundExpression(INode originalNode, FunctionSymbol calledFunction, ImmutableArray<Argument> arguments)
+		public FunctionCallBoundExpression(INode originalNode, FunctionSymbol calledFunction, ImmutableArray<BoundCallArgument> arguments)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			CalledFunction = calledFunction ?? throw new ArgumentNullException(nameof(calledFunction));
+			Arguments = arguments;
+		}
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
+	}
+
+	public sealed class FunctionBlockCallBoundExpression : IBoundExpression
+	{
+		public IType Type => CalledFunctionBlock.GetReturnType();
+		public INode OriginalNode { get; }
+		public FunctionBlockSymbol CalledFunctionBlock => (FunctionBlockSymbol)CalledInstance.Type;
+		public IBoundExpression CalledInstance { get; }
+		public ImmutableArray<BoundCallArgument> Arguments;
+
+		public FunctionBlockCallBoundExpression(INode originalNode, IBoundExpression calledInstance, ImmutableArray<BoundCallArgument> arguments)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			CalledInstance = calledInstance;
 			Arguments = arguments;
 		}
 

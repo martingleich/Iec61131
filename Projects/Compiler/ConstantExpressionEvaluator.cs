@@ -113,7 +113,7 @@ namespace Compiler
 		}
 		public ILiteralValue? Visit(VariableBoundExpression variableBoundExpression)
 		{
-			if (variableBoundExpression.Variable is EnumValueSymbol enumValueSymbol)
+			if (variableBoundExpression.Variable is EnumVariableSymbol enumValueSymbol)
 				return enumValueSymbol._GetConstantValue(MessageBag);
 			else
 				return NotAConstant(variableBoundExpression.OriginalNode);
@@ -145,5 +145,6 @@ namespace Compiler
 		public ILiteralValue? Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
 		public ILiteralValue? Visit(FunctionCallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
 		public ILiteralValue? Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
+		public ILiteralValue? Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression) => NotAConstant(functionBlockCallBoundExpression);
 	}
 }

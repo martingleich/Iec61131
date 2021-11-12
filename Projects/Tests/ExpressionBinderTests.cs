@@ -1069,7 +1069,7 @@ namespace Tests
 		public static void Error_CannotCallSyntax()
 		{
 			BindHelper.NewProject
-				.BindGlobalExpression<FunctionCallBoundExpression>($"7()", null, ErrorOfType<CannotCallSyntaxMessage>());
+				.BindGlobalExpression($"7()", null, ErrorOfType<CannotCallTypeMessage>());
 		}
 
 		[Fact]
@@ -1124,6 +1124,30 @@ namespace Tests
 				.AddPou($"FUNCTION MyFunc : INT VAR_INPUT x : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
 				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(MyFunc => x)", null, ErrorOfType<ParameterNotFoundMessage>());
+		}
+
+		[Fact]
+		public static void CallFb()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION_BLOCK MyFb VAR_INPUT arg : INT; END_VAR", "")
+				.WithGlobalVar("fb", "MyFb")
+				.BindGlobalExpression<FunctionBlockCallBoundExpression>("fb(arg := 17)", null);
+		}
+		[Fact]
+		public static void CallFb_Complex()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo : MyFb", "")
+				.AddPou("FUNCTION_BLOCK MyFb VAR_INPUT arg : INT; END_VAR", "")
+				.BindGlobalExpression<FunctionBlockCallBoundExpression>("foo()(arg := 17)", null);
+		}
+
+		[Fact]
+		public static void CallUnknownSymbol()
+		{
+			BindHelper.NewProject
+				.BindGlobalExpression("unknown_symbol(arg := 17)", null, ErrorOfType<ExpectedVariableOrFunctionMessage>());
 		}
 	}
 }

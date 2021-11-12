@@ -111,7 +111,7 @@ namespace Compiler
 					operatorFunction = new OperatorFunction(function, false);
 				}
 
-				var returnType = operatorFunction.Value.Symbol.ReturnType;
+				var returnType = operatorFunction.Value.Symbol.GetReturnType();
 				var castedLeft = ImplicitCast(boundLeft, realCommonArgType);
 				var castedRight = ImplicitCast(boundRight, realCommonArgType);
 				IBoundExpression binaryOperatorExpression = new BinaryOperatorBoundExpression(binaryOperatorExpressionSyntax, returnType, castedLeft, castedRight, operatorFunction.Value.Symbol);
@@ -179,7 +179,7 @@ namespace Compiler
 				operatorFunction = new OperatorFunction(function, false);
 			}
 
-			var returnType = operatorFunction.Value.Symbol.ReturnType;
+			var returnType = operatorFunction.Value.Symbol.GetReturnType();
 			IBoundExpression unaryOperatorExpression = new UnaryOperatorBoundExpression(unaryOperatorExpressionSyntax, returnType, boundValue, operatorFunction.Value.Symbol);
 			if (operatorFunction.Value.IsGenericReturn)
 				unaryOperatorExpression = ImplicitCast(unaryOperatorExpression, boundValue.Type);
@@ -264,137 +264,9 @@ namespace Compiler
 
 		public IBoundExpression Visit(CallExpressionSyntax callExpressionSyntax, IType? context)
 		{
-			if (callExpressionSyntax.Callee is VariableExpressionSyntax vexpr)
-			{
-				var function = Scope.LookupFunction(vexpr.Identifier, vexpr.SourcePosition).Extract(MessageBag);
-				return ImplicitCast(BindFunctionCall(callExpressionSyntax, function, callExpressionSyntax.Arguments), context);
-			}
-			else
-			{
-				MessageBag.Add(new CannotCallSyntaxMessage(callExpressionSyntax.Callee.SourcePosition));
-				var function = FunctionSymbol.CreateError(callExpressionSyntax.Callee.SourcePosition);
-				return ImplicitCast(BindFunctionCall(callExpressionSyntax, function, callExpressionSyntax.Arguments), context);
-			}
-		}
-
-		private IBoundExpression BindFunctionCall(ISyntax originalNode, FunctionSymbol function, SyntaxCommaSeparated<CallArgumentSyntax> args)
-		{
-			// Bind arguments
-			if (args.Count != function.ParameterCountWithoutReturn && !function.IsError)
-			{
-				// Error wrong number of arguments.
-				MessageBag.Add(new WrongNumberOfArgumentsMessage(function, args.Count, args.SourcePosition));
-			}
-
-			var boundArguments = ImmutableArray.CreateBuilder<FunctionCallBoundExpression.Argument>();
-			int nextParamId = 0;
-			bool afterExplicit = false;
-			foreach (var arg in args)
-			{
-				ParameterSymbol symbol;
-				//	Find assigned argument
-				if (arg.ExplicitParameter is ExplicitCallParameterSyntax explicitParameterSyntax)
-				{
-					if (!function.Parameters.TryGetValue(explicitParameterSyntax.Identifier, out var explicitParameter) ||
-						explicitParameterSyntax.Identifier == function.Name) // The implicit output for return is not accessable from the outside
-					{
-						MessageBag.Add(new ParameterNotFoundMessage(function, explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition));
-						symbol = ParameterSymbol.CreateError(explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition);
-					}
-					else
-					{
-						symbol = explicitParameter;
-						if (!explicitParameter.Kind.MatchesAssignKind(explicitParameterSyntax.ParameterKind))
-							MessageBag.Add(new ParameterKindDoesNotMatchAssignMessage(symbol, explicitParameterSyntax.ParameterKind));
-					}
-
-					afterExplicit = true;
-				}
-				else
-				{
-					if (afterExplicit)
-					{
-						MessageBag.Add(new CannotUsePositionalParameterAfterExplicitMessage(arg.SourcePosition));
-						symbol = ParameterSymbol.CreateError(nextParamId, arg.SourcePosition);
-					}
-					else if (nextParamId >= function.Parameters.Length)
-					{
-						symbol = ParameterSymbol.CreateError(nextParamId, arg.SourcePosition);
-					}
-					else
-					{
-						symbol = function.Parameters[nextParamId];
-					}
-
-					if (!symbol.Kind.Equals(ParameterKind.Input))
-						MessageBag.Add(new NonInputParameterMustBePassedExplicit(symbol, arg.SourcePosition));
-
-					++nextParamId;
-				}
-
-				boundArguments.Add(BindCallArgument(symbol, arg.Value));
-			}
-
-			var boundArgumentsFrozen = boundArguments.ToImmutable();
-			CheckForDuplicateParameter(boundArgumentsFrozen);
-			return new FunctionCallBoundExpression(originalNode, function, boundArgumentsFrozen);
-		}
-
-		private void CheckForDuplicateParameter(ImmutableArray<FunctionCallBoundExpression.Argument> boundArguments)
-		{
-			foreach (var d in from arg in boundArguments
-							  group arg by arg.ParameterSymbol.Name into duplicates
-							  where duplicates.MoreThan(1)
-							  select duplicates)
-			{
-				var first = d.First();
-				foreach (var d2 in d.Skip(1))
-				{
-					MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourcePosition, d2.Parameter.OriginalNode.SourcePosition));
-				}
-			}
-		}
-
-		private FunctionCallBoundExpression.Argument BindCallArgument(ParameterSymbol symbol, IExpressionSyntax arg)
-		{
-			if (symbol.Kind.Equals(ParameterKind.Input))
-			{
-				var value = arg.Accept(this, symbol.Type);
-				return new(
-					symbol,
-					new VariableBoundExpression(arg, symbol),
-					value);
-			}
-			else if (symbol.Kind.Equals(ParameterKind.Output))
-			{
-				// The argument must be assignable.
-				// The parameter type must be convertiable to the argument type.
-				var boundArg = arg.Accept(this, null);
-				var castedParameter = ImplicitCast(new VariableBoundExpression(arg, symbol), boundArg.Type);
-				IsLValueChecker.IsLValue(boundArg).Extract(MessageBag);
-				return new(
-					symbol,
-					castedParameter,
-					boundArg);
-			}
-			else if (symbol.Kind.Equals(ParameterKind.InOut))
-			{
-				// The argument must be assignable
-				// The type must be identical
-				var boundArg = arg.Accept(this, null);
-				var boundParameter = new VariableBoundExpression(arg, symbol);
-				if (!TypeRelations.IsIdentical(boundArg.Type, boundParameter.Type))
-					MessageBag.Add(new InoutArgumentMustHaveSameTypeMessage(boundArg.Type, boundParameter.Type, arg.SourcePosition));
-				IsLValueChecker.IsLValue(boundArg).Extract(MessageBag);
-				return new(
-					symbol,
-					boundParameter,
-					boundArg);
-			}
-			else
-			{
-				throw new ArgumentException($"Unkown parameter kind '{symbol.Kind}'");
-			}
+			var callee = BindCallee(callExpressionSyntax.Callee);
+			var boundCall = callee.BindCall(callExpressionSyntax, callExpressionSyntax.Arguments, this);
+			return ImplicitCast(boundCall, context);
 		}
 	}
 }

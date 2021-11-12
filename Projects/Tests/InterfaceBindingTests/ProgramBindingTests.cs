@@ -118,7 +118,7 @@ namespace Tests
 				.AddDut("TYPE MyEnum : (First := 1, Second := First); END_TYPE")
 				.AddPou("PROGRAM MyProgram VAR_OUTPUT MyProgram : MyEnum; END_VAR", "")
 				.BindInterfaces();
-			var myEnum = boundInterface.DutTypes["MyEnum"];
+			var myEnum = boundInterface.Types["MyEnum"];
 			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(myEnum.Code, p.Type.Code); });
