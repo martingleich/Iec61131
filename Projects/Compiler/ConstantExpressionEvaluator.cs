@@ -105,7 +105,7 @@ namespace Compiler
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
 		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression)
 		{
-			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, default);
+			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, sizeOfTypeBoundExpression.OriginalNode.SourcePosition);
 			if (undefinedLayoutInf.TryGet(out var layoutInfo))
 				return new IntLiteralValue(checked((short)layoutInfo.Size), sizeOfTypeBoundExpression.Type);
 			else
