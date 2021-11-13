@@ -13,13 +13,13 @@ namespace Compiler
 	{
 		public readonly ImmutableArray<IMessage> InterfaceMessages;
 		public readonly BoundModuleInterface Interface;
-		public readonly ImmutableDictionary<FunctionSymbol, BoundPou> FunctionPous;
+		public readonly ImmutableDictionary<FunctionVariableSymbol, BoundPou> FunctionPous;
 		public readonly ImmutableDictionary<FunctionBlockSymbol, BoundPou> FunctionBlockPous;
 
 		public BoundModule(
 			ImmutableArray<IMessage> interfaceMessages,
 			BoundModuleInterface @interface,
-			ImmutableDictionary<FunctionSymbol, BoundPou> functionPous,
+			ImmutableDictionary<FunctionVariableSymbol, BoundPou> functionPous,
 			ImmutableDictionary<FunctionBlockSymbol, BoundPou> functionBlockPous)
 		{
 			InterfaceMessages = interfaceMessages;
@@ -32,10 +32,10 @@ namespace Compiler
 	public sealed class BoundModuleInterface
 	{
 		public readonly SymbolSet<ITypeSymbol> Types;
-		public readonly SymbolSet<FunctionSymbol> FunctionSymbols;
+		public readonly SymbolSet<FunctionVariableSymbol> FunctionSymbols;
 		public readonly SymbolSet<GlobalVariableListSymbol> GlobalVariableListSymbols;
 
-		public BoundModuleInterface(SymbolSet<ITypeSymbol> types, SymbolSet<FunctionSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
+		public BoundModuleInterface(SymbolSet<ITypeSymbol> types, SymbolSet<FunctionVariableSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
 		{
 			Types = types;
 			FunctionSymbols = functionSymbols;
@@ -64,7 +64,7 @@ namespace Compiler
 						syntax.Identifier,
 						type);
 				});
-		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionSymbol symbol)
+		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, Types.FunctionTypeSymbol symbol)
 		{
 			(IBoundStatement, ImmutableArray<IMessage>) Bind()
 			{
@@ -143,7 +143,7 @@ namespace Compiler
 				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, enumTypeDeclarationBodySyntax);
 		}
 
-		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<FunctionSymbol?, PouInterfaceSyntax>
+		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<Types.FunctionTypeSymbol?, PouInterfaceSyntax>
 		{
 			private readonly IScope Scope;
 			private readonly MessageBag Messages;
@@ -154,19 +154,18 @@ namespace Compiler
 				Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			}
 
-			public FunctionSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
+			public Types.FunctionTypeSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
-			public FunctionSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
-				=> TypifyFunctionOrProgram(isProgram: true, context);
-			public FunctionSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
-				=> TypifyFunctionOrProgram(isProgram: false, context);
-			public FunctionSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
+			public Types.FunctionTypeSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
+				=> TypifyFunctionOrProgram(context);
+			public Types.FunctionTypeSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
+				=> TypifyFunctionOrProgram(context);
+			public Types.FunctionTypeSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
 
-			private FunctionSymbol TypifyFunctionOrProgram(bool isProgram, PouInterfaceSyntax context)
+			private Types.FunctionTypeSymbol TypifyFunctionOrProgram(PouInterfaceSyntax context)
 			{
 				OrderedSymbolSet<ParameterVariableSymbol> uniqueParameters = BindParameters(Scope, Messages, context);
-				return new FunctionSymbol(
-					isProgram,
+				return new Types.FunctionTypeSymbol(
 					context.Name,
 					context.TokenName.SourcePosition,
 					uniqueParameters);
@@ -371,13 +370,14 @@ namespace Compiler
 
 		private sealed class FunctionSymbolInWork : ISymbol
 		{
-			public FunctionSymbolInWork(FunctionSymbol symbol, PouInterfaceSyntax interfaceSyntax, StatementListSyntax bodySyntax)
+			public FunctionSymbolInWork(FunctionTypeSymbol symbol, PouInterfaceSyntax interfaceSyntax, StatementListSyntax bodySyntax)
 			{
-				Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
+				VariableSymbol = new FunctionVariableSymbol(symbol);
 				InterfaceSyntax = interfaceSyntax ?? throw new ArgumentNullException(nameof(interfaceSyntax));
 				BodySyntax = bodySyntax ?? throw new ArgumentNullException(nameof(bodySyntax));
 			}
-			public FunctionSymbol Symbol { get; }
+			public Types.FunctionTypeSymbol Symbol => VariableSymbol.Type;
+			public FunctionVariableSymbol VariableSymbol { get; }
 
 			private readonly PouInterfaceSyntax InterfaceSyntax;
 			private readonly StatementListSyntax BodySyntax;
@@ -427,15 +427,15 @@ namespace Compiler
 
 			var itf = new BoundModuleInterface(
 				typeSymbols,
-				WorkingFunctionSymbols.ToSymbolSet(w => w.Symbol),
+				WorkingFunctionSymbols.ToSymbolSet(w => w.VariableSymbol),
 				WorkingGvlSymbols);
 
 			var moduleScope = new GlobalModuleScope(itf, OuterScope);
 			var functionSymbols = WorkingFunctionSymbols
 				.ToImmutableDictionary(
-					w => w.Symbol,
+					w => w.VariableSymbol,
 					w => w.GetBoundPou(moduleScope),
-					SymbolByNameComparer<FunctionSymbol>.Instance);
+					SymbolByNameComparer<FunctionVariableSymbol>.Instance);
 			var functionBlockSymbols = WorkingTypeSymbols
 				.OfType<FunctionBlockTypeInWork>()
 				.ToImmutableDictionary(
@@ -454,6 +454,10 @@ namespace Compiler
 			WorkingTypeSymbols.TryGetValue(identifier, out var symbolInWork)
 				? ErrorsAnd.Create(symbolInWork.Symbol)
 				: base.LookupType(identifier, sourcePosition);
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+			WorkingFunctionSymbols.TryGetValue(identifier, out var symbolInWork)
+				? ErrorsAnd.Create<IVariableSymbol>(symbolInWork.VariableSymbol)
+				: base.LookupVariable(identifier, sourcePosition);
 		public override ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
 			WorkingGvlSymbols.TryGetValue(identifier, out var symbol)
 				? ErrorsAnd.Create(symbol)

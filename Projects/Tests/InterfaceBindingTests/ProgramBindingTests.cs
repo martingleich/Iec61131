@@ -15,7 +15,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Empty(myProgram.Parameters);
 		}
 
@@ -25,7 +25,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_INPUT myInput : INT; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Input, p.Kind); Assert.Equal("myInput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Int, p.Type); });
 		}
@@ -36,7 +36,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_OUTPUT myOutput : BOOL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("myOutput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
 		}
@@ -46,7 +46,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_IN_OUT myInOut : REAL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.InOut, p.Kind); Assert.Equal("myInOut".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
 		}
@@ -56,7 +56,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_TEMP myTemp : REAL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Empty(myProgram.Parameters);
 		}
 		[Fact]
@@ -65,7 +65,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR myStatic : REAL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Empty(myProgram.Parameters);
 		}
 		[Fact]
@@ -74,7 +74,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_INPUT input1 : REAL; input2 : INT; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => Assert.Equal("input1".ToCaseInsensitive(), p.Name),
 				p => Assert.Equal("input2".ToCaseInsensitive(), p.Name));
@@ -85,7 +85,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_INPUT input1 : REAL; END_VAR VAR_INPUT input2 : INT; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => Assert.Equal("input1".ToCaseInsensitive(), p.Name),
 				p => Assert.Equal("input2".ToCaseInsensitive(), p.Name));
@@ -96,7 +96,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram : REAL VAR_OUTPUT firstOutput : BOOL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("firstOutput".ToCaseInsensitive(), p.Name); },
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
@@ -107,7 +107,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddPou("PROGRAM MyProgram VAR_OUTPUT MyProgram : BOOL; END_VAR", "")
 				.BindInterfaces();
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
 		}
@@ -119,7 +119,7 @@ namespace Tests
 				.AddPou("PROGRAM MyProgram VAR_OUTPUT MyProgram : MyEnum; END_VAR", "")
 				.BindInterfaces();
 			var myEnum = boundInterface.Types["MyEnum"];
-			var myProgram = boundInterface.FunctionSymbols["MyProgram"];
+			var myProgram = boundInterface.FunctionSymbols["MyProgram"].Type;
 			Assert.Collection(myProgram.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyProgram".ToCaseInsensitive(), p.Name); Assert.Equal(myEnum.Code, p.Type.Code); });
 		}

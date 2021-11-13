@@ -1,3 +1,8 @@
+Add special scope seperator "#" instead of "."
+	Replace global variable lists with scopes(using the scope seperator)
+	Use the scope seperator for enum variables access.
+Do not use signed literals, make all literals unsigned and handle in typifier.
+
 Use popsicle tree and add file to source position
 Add find expression at source position
 Add find bound expression at source position
@@ -6,7 +11,4 @@ Simple incremental compile
 Libraries
 LateLanguageUpdates
 Parser tests
-Do not use signed literals, make all literals unsigned and handle in typifier.
 Strings
-Replace function symbol with readonly variables of callable types.
-Replace global variable lists with readonly variables of structured type.

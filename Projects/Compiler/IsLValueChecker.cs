@@ -8,7 +8,13 @@ namespace Compiler
 		public static ErrorsAnd<bool> IsLValue(IBoundExpression expression) => expression.Accept(Instance);
 		private static ErrorsAnd<bool> NotAssignable(IBoundExpression expression) => ErrorsAnd.Create(false, new CannotAssignToSyntaxMessage(expression.OriginalNode.SourcePosition));
 
-		public ErrorsAnd<bool> Visit(VariableBoundExpression variableBoundExpression) => ErrorsAnd.Create(true);
+		public ErrorsAnd<bool> Visit(VariableBoundExpression variableBoundExpression)
+		{
+			if (variableBoundExpression.Variable is FunctionVariableSymbol funcVar)
+				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(funcVar, variableBoundExpression.OriginalNode.SourcePosition));
+			else
+				return ErrorsAnd.Create(true);
+		}
 		public ErrorsAnd<bool> Visit(DerefBoundExpression derefBoundExpression) => ErrorsAnd.Create(true);
 		public ErrorsAnd<bool> Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => IsLValue(arrayIndexAccessBoundExpression.Base);
 		public ErrorsAnd<bool> Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => ErrorsAnd.Create(true);
@@ -28,8 +34,7 @@ namespace Compiler
 		public ErrorsAnd<bool> Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression) => NotAssignable(implicitErrorCastBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAssignable(implicitAliasFromBaseTypeCastBoundExpression);
 		public ErrorsAnd<bool> Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAssignable(staticVariableBoundExpression);
-		public ErrorsAnd<bool> Visit(FunctionCallBoundExpression functionCallBoundExpression) => NotAssignable(functionCallBoundExpression);
+		public ErrorsAnd<bool> Visit(CallBoundExpression functionCallBoundExpression) => NotAssignable(functionCallBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAssignable(implicitDiscardBoundExpression);
-		public ErrorsAnd<bool> Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression) => NotAssignable(functionBlockCallBoundExpression);
 	}
 }

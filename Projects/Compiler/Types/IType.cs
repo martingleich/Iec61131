@@ -9,15 +9,12 @@
 		interface IVisitor<T, TContext>
 		{
 			T VisitError(TContext context);
-			T Visit(StructuredTypeSymbol structuredTypeSymbol, TContext context);
-			T Visit(BuiltInType builtInTypeSymbol, TContext context);
-			T Visit(PointerType pointerTypeSymbol, TContext context);
-			T Visit(StringType stringTypeSymbol, TContext context);
-			T Visit(ArrayType arrayTypeSymbol, TContext context);
-			T Visit(EnumTypeSymbol enumTypeSymbol, TContext context);
-			T Visit(AliasTypeSymbol aliasTypeSymbol, TContext context);
+			T Visit(ITypeSymbol typeSymbol, TContext context);
+			T Visit(BuiltInType builtInType, TContext context);
+			T Visit(PointerType pointerType, TContext context);
+			T Visit(StringType stringType, TContext context);
+			T Visit(ArrayType arrayType, TContext context);
 			T Visit(NullType nullType, TContext context);
-			T Visit(FunctionBlockSymbol functionBlockSymbol, TContext context);
 		}
 	}
 }

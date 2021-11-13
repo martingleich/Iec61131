@@ -138,7 +138,7 @@ namespace Compiler
 				boundStep = BindExpressionWithTargetType(new LiteralExpressionSyntax(new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", default, default)), boundIndex.Type);
 
 			var realIndexType = TypeRelations.ResolveAlias(boundIndex.Type);
-			FunctionSymbol incrementFunctionSymbol;
+			FunctionVariableSymbol incrementFunctionSymbol;
 			if (realIndexType is BuiltInType builtInType && Scope.SystemScope.BuiltInFunctionTable.TryGetOperatorFunction(("ADD", true), builtInType) is OperatorFunction incrementOperatorFunction)
 			{
 				incrementFunctionSymbol = incrementOperatorFunction.Symbol;
@@ -147,7 +147,7 @@ namespace Compiler
 			{
 				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.IndexVariable.SourcePosition));
 				var errorName = ImplicitName.ErrorBinaryOperator(realIndexType.Code, realIndexType.Code, "ADD");
-				incrementFunctionSymbol = FunctionSymbol.CreateError(forStatementSyntax.SourcePosition, errorName, realIndexType);
+				incrementFunctionSymbol = FunctionVariableSymbol.CreateError(forStatementSyntax.SourcePosition, errorName, realIndexType);
 			}
 
 			var bodyScope = new LoopScope(Scope);

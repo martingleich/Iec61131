@@ -374,6 +374,13 @@ namespace Tests
 				.BindGlobalExpression("ptr^", null);
 			AssertEx.NotAConstant(boundExpression, SystemScope);
 		}
+		[Fact]
+		public static void Error_FunctionNotAssignable()
+		{
+			BindHelper.NewProject
+				.AddPou("FUNCTION foo", "")
+				.AddPou("FUNCTION tester", "foo := foo;").BindBodies(ErrorOfType<CannotAssignToVariableMessage>());
+		}
 	}
 
 	public static class ExpressionBinderTests_PointerArithmetic
@@ -898,7 +905,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc : INT", "MyFunc := 0;")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc()", null);
+				.BindGlobalExpression<CallBoundExpression>("MyFunc()", null);
 			Assert.Empty(boundExpression.Arguments);
 			AssertEx.EqualType(SystemScope.Int, boundExpression.Type);
 		}
@@ -907,7 +914,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc()", null);
+				.BindGlobalExpression<CallBoundExpression>("MyFunc()", null);
 			Assert.Empty(boundExpression.Arguments);
 			AssertEx.EqualType(NullType.Instance, boundExpression.Type);
 		}
@@ -937,7 +944,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc VAR_INPUT arg : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc(0)", null);
+				.BindGlobalExpression<CallBoundExpression>("MyFunc(0)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg => { Assert.Equal("arg".ToCaseInsensitive(), arg.ParameterSymbol.Name); });
 		}
@@ -946,7 +953,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc VAR_INPUT arg : DINT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc(INT#0)", null);
+				.BindGlobalExpression<CallBoundExpression>("MyFunc(INT#0)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg =>
 				{
@@ -959,7 +966,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc VAR_INPUT arg : INT; arg2 : BOOL; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc(0, FALSE)", null);
+				.BindGlobalExpression<CallBoundExpression>("MyFunc(0, FALSE)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg => { Assert.Equal("arg".ToCaseInsensitive(), arg.ParameterSymbol.Name); },
 				arg => { Assert.Equal("arg2".ToCaseInsensitive(), arg.ParameterSymbol.Name); });
@@ -969,7 +976,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc VAR_INPUT arg : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>("MyFunc(0, FALSE)", null, ErrorOfType<WrongNumberOfArgumentsMessage>());
+				.BindGlobalExpression<CallBoundExpression>("MyFunc(0, FALSE)", null, ErrorOfType<WrongNumberOfArgumentsMessage>());
 			Assert.Collection(boundExpression.Arguments,
 				arg => { Assert.Equal("arg".ToCaseInsensitive(), arg.ParameterSymbol.Name); },
 				arg => { });
@@ -1000,7 +1007,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc {decl} arg : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg {op} x)", null);
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg {op} x)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg => { Assert.Equal("arg".ToCaseInsensitive(), arg.ParameterSymbol.Name); });
 		}
@@ -1022,7 +1029,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_OUTPUT arg : INT; END_VAR", "")
 				.WithGlobalVar("x", "DINT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg => x)", null);
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg => x)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg =>
 				{
@@ -1037,7 +1044,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_OUTPUT arg : BOOL; END_VAR", "")
 				.WithGlobalVar("x", "DINT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg => x)", null, ErrorOfType<TypeIsNotConvertibleMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg => x)", null, ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 
 		[Fact]
@@ -1045,7 +1052,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_OUTPUT arg : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg => 5)", null, ErrorOfType<CannotAssignToSyntaxMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg => 5)", null, ErrorOfType<CannotAssignToSyntaxMessage>());
 		}
 
 		[Fact]
@@ -1053,7 +1060,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_IN_OUT arg : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg := 5)", null, ErrorOfType<CannotAssignToSyntaxMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg := 5)", null, ErrorOfType<CannotAssignToSyntaxMessage>());
 		}
 
 		[Fact]
@@ -1062,7 +1069,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_IN_OUT arg : INT; END_VAR", "")
 				.WithGlobalVar("x", "DINT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg := x)", null, ErrorOfType<InoutArgumentMustHaveSameTypeMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg := x)", null, ErrorOfType<InoutArgumentMustHaveSameTypeMessage>());
 		}
 
 		[Fact]
@@ -1078,7 +1085,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_INPUT arg : INT; arg2 : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg := x, arg := 6)", null, ErrorOfType<ParameterWasAlreadyPassedMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg := x, arg := 6)", null, ErrorOfType<ParameterWasAlreadyPassedMessage>());
 		}
 
 		[Fact]
@@ -1087,7 +1094,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_INPUT arg : INT; arg2 : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg := x)", null, ErrorOfType<WrongNumberOfArgumentsMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg := x)", null, ErrorOfType<WrongNumberOfArgumentsMessage>());
 		}
 
 		[Fact]
@@ -1096,14 +1103,14 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_INPUT arg : INT; arg2 : INT; arg3 : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(x, arg2 := 5, x)", null, ErrorOfType<CannotUsePositionalParameterAfterExplicitMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(x, arg2 := 5, x)", null, ErrorOfType<CannotUsePositionalParameterAfterExplicitMessage>());
 		}
 		[Fact]
 		public static void ExplicitArgumentDiffrentOrder()
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_INPUT arg1 : INT; arg2 : INT; arg3 : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(arg3 := 0, arg2 := 1, arg1 := 2)", null);
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg3 := 0, arg2 := 1, arg1 := 2)", null);
 			Assert.Collection(boundExpression.Arguments,
 				arg => { Assert.Equal("arg3".ToCaseInsensitive(), arg.ParameterSymbol.Name); },
 				arg => { Assert.Equal("arg2".ToCaseInsensitive(), arg.ParameterSymbol.Name); },
@@ -1114,7 +1121,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc VAR_INPUT arg1 : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(unknownArg := 7)", null, ErrorOfType<ParameterNotFoundMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(unknownArg := 7)", null, ErrorOfType<ParameterNotFoundMessage>());
 		}
 		
 		[Fact]
@@ -1123,7 +1130,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou($"FUNCTION MyFunc : INT VAR_INPUT x : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
-				.BindGlobalExpression<FunctionCallBoundExpression>($"MyFunc(MyFunc => x)", null, ErrorOfType<ParameterNotFoundMessage>());
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(MyFunc => x)", null, ErrorOfType<ParameterNotFoundMessage>());
 		}
 
 		[Fact]
@@ -1132,7 +1139,7 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou("FUNCTION_BLOCK MyFb VAR_INPUT arg : INT; END_VAR", "")
 				.WithGlobalVar("fb", "MyFb")
-				.BindGlobalExpression<FunctionBlockCallBoundExpression>("fb(arg := 17)", null);
+				.BindGlobalExpression<CallBoundExpression>("fb(arg := 17)", null);
 		}
 		[Fact]
 		public static void CallFb_Complex()
@@ -1140,14 +1147,14 @@ namespace Tests
 			BindHelper.NewProject
 				.AddPou("FUNCTION foo : MyFb", "")
 				.AddPou("FUNCTION_BLOCK MyFb VAR_INPUT arg : INT; END_VAR", "")
-				.BindGlobalExpression<FunctionBlockCallBoundExpression>("foo()(arg := 17)", null);
+				.BindGlobalExpression<CallBoundExpression>("foo()(arg := 17)", null);
 		}
 
 		[Fact]
 		public static void CallUnknownSymbol()
 		{
 			BindHelper.NewProject
-				.BindGlobalExpression("unknown_symbol(arg := 17)", null, ErrorOfType<ExpectedVariableOrFunctionMessage>());
+				.BindGlobalExpression("unknown_symbol(arg := 17)", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 	}
 }

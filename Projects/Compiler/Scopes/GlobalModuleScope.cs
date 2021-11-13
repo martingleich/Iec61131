@@ -19,8 +19,8 @@ namespace Compiler.Scopes
 		public override ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.GlobalVariableListSymbols.TryGetValue(identifier, out var symbol)
 			? ErrorsAnd.Create(symbol)
 			: base.LookupGlobalVariableList(identifier, sourcePosition);
-		public override ErrorsAnd<FunctionSymbol> LookupFunction(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.FunctionSymbols.TryGetValue(identifier, out var function)
-			? ErrorsAnd.Create(function)
-			: base.LookupFunction(identifier, sourcePosition);
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.FunctionSymbols.TryGetValue(identifier, out var functionVariable)
+			? ErrorsAnd.Create<IVariableSymbol>(functionVariable)
+			: base.LookupVariable(identifier, sourcePosition);
 	}
 }

@@ -5,7 +5,7 @@ namespace Compiler.Types
 {
 	public sealed class StructuredTypeSymbol : ITypeSymbol, _IDelayedLayoutType
 	{
-		private StructuredLayoutHelper _layoutHelper;
+		private readonly StructuredLayoutHelper _layoutHelper;
 		public bool IsUnion { get; }
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.Original;

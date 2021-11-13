@@ -9,7 +9,6 @@ namespace Compiler
 		private abstract class BoundCompoLeft
 		{
 			public sealed class Expression : BoundCompoLeft
-			// 
 			{
 				private readonly IBoundExpression boundLeft;
 
@@ -118,9 +117,5 @@ namespace Compiler
 			var expr = syntax.Accept(this, null);
 			return new BoundCompoLeft.Expression(expr);
 		}
-
-	}
-	public sealed partial class ExpressionBinder
-	{
 	}
 }

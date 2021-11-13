@@ -1,5 +1,6 @@
 ﻿using Compiler;
 using Compiler.Messages;
+using Compiler.Types;
 using Xunit;
 
 namespace Tests

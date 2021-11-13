@@ -31,9 +31,8 @@ namespace Compiler
 			T Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
 			T Visit(FieldAccessBoundExpression fieldAccessBoundExpression);
 			T Visit(StaticVariableBoundExpression staticVariableBoundExpression);
-			T Visit(FunctionCallBoundExpression functionCallBoundExpression);
 			T Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
-			T Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression);
+			T Visit(CallBoundExpression callBoundExpression);
 		}
 	}
 
@@ -240,9 +239,9 @@ namespace Compiler
 		public IType Type { get; }
 		public readonly IBoundExpression Left;
 		public readonly IBoundExpression Right;
-		public readonly FunctionSymbol Function;
+		public readonly FunctionVariableSymbol Function;
 
-		public BinaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression left, IBoundExpression right, FunctionSymbol function)
+		public BinaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression left, IBoundExpression right, FunctionVariableSymbol function)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
@@ -258,9 +257,9 @@ namespace Compiler
 		public INode OriginalNode { get; }
 		public IType Type { get; }
 		public readonly IBoundExpression Value;
-		public readonly FunctionSymbol Function;
+		public readonly FunctionVariableSymbol Function;
 
-		public UnaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression value, FunctionSymbol function)
+		public UnaryOperatorBoundExpression(INode originalNode, IType type, IBoundExpression value, FunctionVariableSymbol function)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Type = type ?? throw new ArgumentNullException(nameof(type));
@@ -365,36 +364,19 @@ namespace Compiler
 			ParameterSymbol = parameterSymbol ?? throw new ArgumentNullException(nameof(parameterSymbol));
 		}
 	}
-	public sealed class FunctionCallBoundExpression : IBoundExpression
+	public sealed class CallBoundExpression : IBoundExpression
 	{
-		public IType Type => CalledFunction.GetReturnType();
+		public IType Type { get; }
 		public INode OriginalNode { get; }
-		public FunctionSymbol CalledFunction { get; }
-		public ImmutableArray<BoundCallArgument> Arguments;
+		public readonly IBoundExpression Callee;
+		public readonly ImmutableArray<BoundCallArgument> Arguments;
 
-		public FunctionCallBoundExpression(INode originalNode, FunctionSymbol calledFunction, ImmutableArray<BoundCallArgument> arguments)
+		public CallBoundExpression(INode originalNode, IBoundExpression callee, ImmutableArray<BoundCallArgument> arguments, IType type)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
-			CalledFunction = calledFunction ?? throw new ArgumentNullException(nameof(calledFunction));
+			Callee = callee ?? throw new ArgumentNullException(nameof(callee));
 			Arguments = arguments;
-		}
-
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
-	}
-
-	public sealed class FunctionBlockCallBoundExpression : IBoundExpression
-	{
-		public IType Type => CalledFunctionBlock.GetReturnType();
-		public INode OriginalNode { get; }
-		public FunctionBlockSymbol CalledFunctionBlock => (FunctionBlockSymbol)CalledInstance.Type;
-		public IBoundExpression CalledInstance { get; }
-		public ImmutableArray<BoundCallArgument> Arguments;
-
-		public FunctionBlockCallBoundExpression(INode originalNode, IBoundExpression calledInstance, ImmutableArray<BoundCallArgument> arguments)
-		{
-			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
-			CalledInstance = calledInstance;
-			Arguments = arguments;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
@@ -493,10 +475,10 @@ namespace Compiler
 		public readonly IBoundExpression Initial;
 		public readonly IBoundExpression UpperBound;
 		public readonly IBoundExpression Step;
-		public readonly FunctionSymbol IncrementFunctionSymbol;
+		public readonly FunctionVariableSymbol IncrementFunctionSymbol;
 		public readonly IBoundStatement Body;
 
-		public ForLoopBoundStatement(IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionSymbol incrementFunctionSymbol, IBoundStatement body)
+		public ForLoopBoundStatement(IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionVariableSymbol incrementFunctionSymbol, IBoundStatement body)
 		{
 			Index = index ?? throw new ArgumentNullException(nameof(index));
 			Initial = initial ?? throw new ArgumentNullException(nameof(initial));

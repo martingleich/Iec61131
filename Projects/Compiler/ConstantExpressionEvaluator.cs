@@ -30,7 +30,7 @@ namespace Compiler
 			MessageBag.Add(new NotAConstantMessage(node.SourcePosition));
 			return null;
 		}
-		private ILiteralValue? EvaluateConstantFunction(IBoundExpression expression, FunctionSymbol function, params ILiteralValue?[] args)
+		private ILiteralValue? EvaluateConstantFunction(IBoundExpression expression, FunctionVariableSymbol function, params ILiteralValue?[] args)
 		{
 			if (!args.HasNoNullElement(out var nonNullArgs))
 				return null; // The args are not constant, this is already an error. Do not report an error again.
@@ -143,8 +143,7 @@ namespace Compiler
 		public ILiteralValue? Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
 		public ILiteralValue? Visit(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
 		public ILiteralValue? Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
-		public ILiteralValue? Visit(FunctionCallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
+		public ILiteralValue? Visit(CallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
 		public ILiteralValue? Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
-		public ILiteralValue? Visit(FunctionBlockCallBoundExpression functionBlockCallBoundExpression) => NotAConstant(functionBlockCallBoundExpression);
 	}
 }

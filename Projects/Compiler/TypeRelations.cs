@@ -10,25 +10,18 @@ namespace Compiler
 		{
 			public static readonly IdenticalVisitor Instance = new ();
 
+			public bool Visit(ITypeSymbol typeSymbol, IType context) =>
+				context is ITypeSymbol other && typeSymbol.Name == other.Name;
 			public bool Visit(NullType _, IType context)
 				=> context is NullType;
-			public bool Visit(StructuredTypeSymbol structuredTypeSymbol, IType context)
-				=> context is StructuredTypeSymbol other && structuredTypeSymbol.Name == other.Name;
-			public bool Visit(BuiltInType builtInTypeSymbol, IType context)
-				=> context is BuiltInType other && builtInTypeSymbol.Name == other.Name;
-			public bool Visit(PointerType pointerTypeSymbol, IType context)
-				=> context is PointerType other && IsIdentical(pointerTypeSymbol.BaseType, other.BaseType);
-			public bool Visit(StringType stringTypeSymbol, IType context)
-				=> context is StringType other && stringTypeSymbol.Size == other.Size;
-			public bool Visit(ArrayType arrayTypeSymbol, IType context)
-				=> context is ArrayType other && IsIdentical(arrayTypeSymbol.BaseType, other.BaseType) && EnumerableExtensions.Equal(arrayTypeSymbol.Ranges, other.Ranges);
-			public bool Visit(EnumTypeSymbol enumTypeSymbol, IType context)
-				=> context is EnumTypeSymbol other && enumTypeSymbol.Name == other.Name;
-			public bool Visit(AliasTypeSymbol aliasTypeSymbol, IType context)
-				=> context is AliasTypeSymbol other && aliasTypeSymbol.Name == other.Name;
-			public bool Visit(FunctionBlockSymbol functionBlockSymbol, IType context)
-				=> context is FunctionBlockSymbol other && functionBlockSymbol.Name == other.Name;
-
+			public bool Visit(BuiltInType builtInType, IType context)
+				=> context is BuiltInType other && builtInType.Name == other.Name;
+			public bool Visit(PointerType pointerType, IType context)
+				=> context is PointerType other && IsIdentical(pointerType.BaseType, other.BaseType);
+			public bool Visit(StringType stringType, IType context)
+				=> context is StringType other && stringType.Size == other.Size;
+			public bool Visit(ArrayType arrayType, IType context)
+				=> context is ArrayType other && IsIdentical(arrayType.BaseType, other.BaseType) && EnumerableExtensions.Equal(arrayType.Ranges, other.Ranges);
 			public bool VisitError(IType context) => true;
 		}
 

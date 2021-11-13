@@ -23,9 +23,5 @@ namespace Compiler.Types
 		UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position);
 		void RecursiveLayout(MessageBag messageBag, SourcePosition position);
 	}
-	public static class TypeExtensions
-	{
-		public static bool IsError(this IType self) => self is ErrorTypeSymbol;
-	}
 
 }

@@ -1,12 +1,13 @@
 ﻿using System;
 using Compiler.Messages;
+using Compiler.Types;
 
 namespace Compiler.Scopes
 {
 	public sealed class InsideCallableScope : AInnerScope<IScope>
 	{
-		private readonly ICallableSymbol Symbol;
-		public InsideCallableScope(IScope outerScope, ICallableSymbol symbol) : base(outerScope)
+		private readonly ICallableTypeSymbol Symbol;
+		public InsideCallableScope(IScope outerScope, ICallableTypeSymbol symbol) : base(outerScope)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 		}

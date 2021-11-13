@@ -1,6 +1,5 @@
 ﻿using Compiler.Types;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
@@ -8,29 +7,31 @@ namespace Compiler
 {
 	public sealed class BuiltInFunctionTable
 	{
-		private readonly ImmutableDictionary<FunctionSymbol, Func<IType, ILiteralValue[], ILiteralValue>?> Table;
+		private readonly ImmutableDictionary<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?> Table;
 
-		private static FunctionSymbol BinaryOperator(string baseName, BuiltInType type)
+		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type)
 			=> BinaryOperator(baseName, type, type);
-		private static FunctionSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
+		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+			var funcType = new FunctionTypeSymbol(name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), type),
 				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, returnType)));
+			return new FunctionVariableSymbol(funcType);
 		}
-		private static FunctionSymbol UnaryOperator(string baseName, BuiltInType type)
+		private static FunctionVariableSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			return new(isProgram: false, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+			var funcType = new FunctionTypeSymbol(name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, type)));
+			return new FunctionVariableSymbol(funcType);
 		}
 
 		public BuiltInFunctionTable(SystemScope systemScope)
 		{
-			var builder = ImmutableDictionary.CreateBuilder<FunctionSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>(SymbolByNameComparer<FunctionSymbol>.Instance);
+			var builder = ImmutableDictionary.CreateBuilder<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>(SymbolByNameComparer<FunctionVariableSymbol>.Instance);
 
 			builder.Add(BinaryOperator("ADD", systemScope.SInt), AddSINT);
 			builder.Add(BinaryOperator("SUB", systemScope.SInt), SubSINT);
@@ -121,7 +122,7 @@ namespace Compiler
 		}
 
 		private static void AddComparisons(
-			ImmutableDictionary<FunctionSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
+			ImmutableDictionary<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
 			BuiltInType type,
 			BuiltInType boolean,
 			Func<ILiteralValue, ILiteralValue, bool> lessEqual)
@@ -142,7 +143,7 @@ namespace Compiler
 		}
 
 		private static void AddComparisons(
-			ImmutableDictionary<FunctionSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
+			ImmutableDictionary<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
 			BuiltInType type,
 			BuiltInType boolean)
 		{
@@ -155,7 +156,7 @@ namespace Compiler
 		}
 
 		private static void AddEquality(
-			ImmutableDictionary<FunctionSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
+			ImmutableDictionary<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>.Builder builder,
 			BuiltInType type,
 			BuiltInType boolean,
 			Func<ILiteralValue, ILiteralValue, bool> equal)
@@ -220,12 +221,12 @@ namespace Compiler
 		private static ILiteralValue DivULINT(IType result, ILiteralValue[] args) => new ULIntLiteralValue(checked((ulong)(((ULIntLiteralValue)args[0]).Value / ((ULIntLiteralValue)args[1]).Value)), result);
 		private static ILiteralValue ModULINT(IType result, ILiteralValue[] args) => new ULIntLiteralValue(checked((ulong)(((ULIntLiteralValue)args[0]).Value % ((ULIntLiteralValue)args[1]).Value)), result);
 
-		public bool TryGetConstantEvaluator(FunctionSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
+		public bool TryGetConstantEvaluator(FunctionVariableSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;
-		public SymbolSet<FunctionSymbol> AllFunctions { get; }
+		public SymbolSet<FunctionVariableSymbol> AllFunctions { get; }
 		public OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
 		{
-			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionSymbol func)
+			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionVariableSymbol func)
 				return new(func, op.IsGenericReturn);
 			else
 				return default;
@@ -279,12 +280,12 @@ namespace Compiler
 
 	public readonly struct OperatorFunction
 	{
-		public readonly FunctionSymbol Symbol;
+		public readonly FunctionVariableSymbol Symbol;
 		/// Is the operator "generic", i.e. Is the return type equal to the argument types.
 		/// This is only relevant for alias types.
 		public readonly bool IsGenericReturn;
 
-		public OperatorFunction(FunctionSymbol symbol, bool isGenericReturn)
+		public OperatorFunction(FunctionVariableSymbol symbol, bool isGenericReturn)
 		{
 			Symbol = symbol;
 			IsGenericReturn = isGenericReturn;

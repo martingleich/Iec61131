@@ -154,27 +154,16 @@ namespace Compiler.Messages
 	}
 	public sealed class ParameterNotFoundMessage : ACriticalMessage
 	{
-		public readonly ICallableSymbol Function;
+		public readonly ICallableTypeSymbol Function;
 		public readonly CaseInsensitiveString Identifier;
 
-		public ParameterNotFoundMessage(ICallableSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public ParameterNotFoundMessage(ICallableTypeSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			Identifier = identifier;
 		}
 
 		public override string Text => $"Cannot find a parameter named '{Identifier}' in the function '{Function.Name}'.";
-	}
-	public sealed class FunctionNotFoundMessage : ACriticalMessage
-	{
-		public readonly CaseInsensitiveString Identifier;
-
-		public FunctionNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
-		{
-			Identifier = identifier;
-		}
-
-		public override string Text => $"Cannot find a function named '{Identifier}'.";
 	}
 	public sealed class TypeNotCompleteMessage : ACriticalMessage
 	{
@@ -247,6 +236,16 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot assign to this syntax.";
 	}
+	public sealed class CannotAssignToVariableMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol Variable; 
+		public CannotAssignToVariableMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		{
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+		}
+
+		public override string Text => $"Cannot assign to a new value to the variable {Variable.Name}.";
+	}
 	public sealed class ConstantValueIsToLargeForTargetMessage : ACriticalMessage
 	{
 		public readonly OverflowingInteger Value;
@@ -304,17 +303,6 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"Cannot perform a index access on expression of type '{Type.Code}'.";
-	}
-	public sealed class CannotIndexWithTypeMessage : ACriticalMessage
-	{
-		public readonly IType Type;
-
-		public CannotIndexWithTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Type = type ?? throw new ArgumentNullException(nameof(type));
-		}
-
-		public override string Text => $"Cannot perform a index access with expression of type '{Type.Code}'.";
 	}
 	public sealed class WrongNumberOfDimensionInIndexMessage : ACriticalMessage
 	{
@@ -378,19 +366,6 @@ namespace Compiler.Messages
 
 		public override string Text => $"Expected a variable, type or gvl name.";
 	}
-	public sealed class ExpectedVariableOrFunctionMessage : ACriticalMessage
-	{
-		public readonly CaseInsensitiveString Name;
-
-		public static ExpectedVariableOrFunctionMessage Create(VariableExpressionSyntax expression)
-			=> new(expression.Identifier, expression.SourcePosition);
-		public ExpectedVariableOrFunctionMessage(CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Name = name;
-		}
-
-		public override string Text => $"Expected a variable or function name.";
-	}
 	public sealed class EnumValueNotFoundMessage : ACriticalMessage
 	{
 		public readonly EnumTypeSymbol EnumType;
@@ -441,10 +416,10 @@ namespace Compiler.Messages
 	}
 	public sealed class WrongNumberOfArgumentsMessage : ACriticalMessage
 	{
-		public readonly ICallableSymbol Function;
+		public readonly ICallableTypeSymbol Function;
 		public readonly int PassedCount;
 
-		public WrongNumberOfArgumentsMessage(ICallableSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
+		public WrongNumberOfArgumentsMessage(ICallableTypeSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			PassedCount = passedCount;
