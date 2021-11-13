@@ -17,7 +17,7 @@ namespace Compiler
 			T Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression);
 			T Visit(VariableBoundExpression variableBoundExpression);
 			T Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression);
-			T Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
+			T Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression);
 			T Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression);
 			T Visit(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression);
 			T Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression);
@@ -250,7 +250,7 @@ namespace Compiler
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 		}
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Accept(this);
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class UnaryOperatorBoundExpression : IBoundExpression
 	{

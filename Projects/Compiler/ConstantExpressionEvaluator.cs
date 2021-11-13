@@ -58,7 +58,7 @@ namespace Compiler
 			}
 		}
 		
-		public ILiteralValue? Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
+		public ILiteralValue? Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
 		{
 			var leftValue = binaryOperatorBoundExpression.Left.Accept(this);
 			var rightValue = binaryOperatorBoundExpression.Right.Accept(this);

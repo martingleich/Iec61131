@@ -21,7 +21,7 @@ namespace Compiler
 		public ErrorsAnd<bool> Visit(FieldAccessBoundExpression fieldAccessBoundExpression) => IsLValue(fieldAccessBoundExpression.BaseExpression);
 
 
-		public ErrorsAnd<bool> Accept(BinaryOperatorBoundExpression binaryOperatorBoundExpression) => NotAssignable(binaryOperatorBoundExpression);
+		public ErrorsAnd<bool> Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression) => NotAssignable(binaryOperatorBoundExpression);
 		public ErrorsAnd<bool> Visit(LiteralBoundExpression literalBoundExpression) => NotAssignable(literalBoundExpression);
 		public ErrorsAnd<bool> Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => NotAssignable(sizeOfTypeBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression) => NotAssignable(implicitEnumCastBoundExpression);
