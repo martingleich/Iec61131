@@ -132,6 +132,10 @@
       <Interface>IBinaryOperatorToken</Interface>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
+      <Name>DoubleColonToken</Name>
+      <Generating>::</Generating>
+    </TokenWithoutValueClass>
+    <TokenWithoutValueClass>
       <Name>EndToken</Name>
       <Generating></Generating>
     </TokenWithoutValueClass>

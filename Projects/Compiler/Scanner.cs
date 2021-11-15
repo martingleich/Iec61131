@@ -418,6 +418,11 @@ namespace Compiler
 					++Cursor;
 					return new AssignToken(start, leadingToken);
 				}
+				else if (Cursor < Text.Length && Text[Cursor] == ':')
+				{
+					++Cursor;
+					return new DoubleColonToken(start, leadingToken);
+				}
 				else
 				{
 					return new ColonToken(start, leadingToken);

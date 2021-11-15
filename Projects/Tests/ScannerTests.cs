@@ -195,6 +195,7 @@ namespace Tests
 		[InlineData("^", typeof(Compiler.DerefToken))]
 		[InlineData(">=", typeof(Compiler.GreaterEqualToken))]
 		[InlineData(">", typeof(Compiler.GreaterToken))]
+		[InlineData("::", typeof(Compiler.DoubleColonToken))]
 		public void Symbols(string generating, Type tokenType)
 		{
 			AssertAllTokens(generating, tok => Assert.IsType(tokenType, tok));
@@ -277,6 +278,7 @@ namespace Tests
 		[InlineData("*")]
 		[InlineData(":")]
 		[InlineData("<")]
+		[InlineData("::")]
 		public void UnknownToken_AnyEnd(string end)
 		{
 			AssertAllTokens("$|" + end,
