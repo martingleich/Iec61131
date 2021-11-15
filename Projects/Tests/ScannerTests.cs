@@ -124,19 +124,9 @@ namespace Tests
 			AssertAllTokens("123", IntegerLiteralToken(123));
 		}
 		[Fact]
-		public void Integer_Simple_Signed()
+		public void Integer_Simple__WithUnderscore()
 		{
-			AssertAllTokens("-123", IntegerLiteralToken(-123));
-		}
-		[Fact]
-		public void Integer_Simple_Signed_WithUnderscore()
-		{
-			AssertAllTokens("-1_234", IntegerLiteralToken(-1234));
-		}
-		[Fact]
-		public void Integer_Simple_SignedPositive()
-		{
-			AssertAllTokens("+1234", IntegerLiteralToken(1234));
+			AssertAllTokens("1234", IntegerLiteralToken(1234));
 		}
 		[Fact]
 		public void Integer_SpacedSign()

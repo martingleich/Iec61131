@@ -230,6 +230,7 @@ namespace Compiler
 		
 		public bool IsZero => TryGetInt(out var value) && value == 0;
 		public bool IsOne => TryGetInt(out var value) && value == 1;
+		public OverflowingInteger GetNegative() => new (Value, !IsNegative, IsOverflown);
 	}
 
 	public readonly struct OverflowingReal

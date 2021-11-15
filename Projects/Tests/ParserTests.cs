@@ -19,5 +19,14 @@ namespace Tests
 							LiteralExpressionSyntax(IntegerLiteralToken(5)))),
 					VariableExpressionSyntax("y"))))(parsed);
 		}
+		[Fact]
+		public void ParseCompactSubtraction()
+		{
+			var parsed = ParseExpression("x-1");
+			BinaryOperatorExpressionSyntax(
+				VariableExpressionSyntax("x"),
+				MinusToken,
+				LiteralExpressionSyntax(IntegerLiteralToken(1)));
+		}
 	}
 }

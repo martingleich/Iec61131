@@ -5,6 +5,17 @@ namespace Compiler
 {
 	public static class SyntaxToStringConverter
 	{
+		public static string ExactToString(INode node)
+		{
+			var sb = new StringBuilder();
+			if (node is ISyntax syntax)
+				ExactToString(syntax, sb);
+			else if (node is IToken token)
+				ExactToString(token, sb);
+			else
+				throw new ArgumentException($"Unknown node type: {node}");
+			return sb.ToString();
+		}
 		public static string ExactToString(ISyntax syntax)
 		{
 			var sb = new StringBuilder();

@@ -114,14 +114,14 @@ namespace Compiler.Messages
 	}
 	public sealed class ConstantDoesNotFitIntoAnyType : ACriticalMessage
 	{
-		public readonly ILiteralToken Token;
+		public readonly string Generating;
 
-		public ConstantDoesNotFitIntoAnyType(ILiteralToken token) : base(token.SourcePosition)
+		public ConstantDoesNotFitIntoAnyType(string generating, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Token = token ?? throw new ArgumentNullException(nameof(token));
+			Generating = generating;
 		}
 
-		public override string Text => $"There is not type that can contain the value '{Token.Generating}'";
+		public override string Text => $"There is not type that can contain the value '{Generating}'";
 	}
 	public sealed class InvalidArrayRangesMessage : ACriticalMessage
 	{

@@ -29,32 +29,35 @@ namespace Compiler
 				return ExpressionBinder.ImplicitCast(boundValue, context);
 			}
 
-			
+
 			public IBoundExpression Visit(IntegerLiteralToken integerLiteralToken, IType? context)
+				=> BindIntLiteral(ExpressionBinder.SystemScope, context, integerLiteralToken.Value, MessageBag, integerLiteralToken);
+
+			public static IBoundExpression BindIntLiteral(SystemScope systemScope, IType? context, OverflowingInteger value, MessageBag messageBag, INode originalNode)
 			{
-				ILiteralValue finalValue;
+				ILiteralValue finalLiteralValue;
 				if (context != null)
 				{
-					var value = ExpressionBinder.SystemScope.TryCreateLiteralFromIntValue(integerLiteralToken.Value, context);
-					if(value == null)
+					var literalValue = systemScope.TryCreateLiteralFromIntValue(value, context);
+					if(literalValue == null)
 					{
-						MessageBag.Add(new IntegerIsToLargeForTypeMessage(integerLiteralToken.Value, context, integerLiteralToken.SourcePosition));
-						value = new UnknownLiteralValue(context);
+						messageBag.Add(new IntegerIsToLargeForTypeMessage(value, context, originalNode.SourcePosition));
+						literalValue = new UnknownLiteralValue(context);
 					}
-					finalValue = value;
+					finalLiteralValue = literalValue;
 				}
 				else
 				{
-					var value = ExpressionBinder.SystemScope.TryCreateIntLiteral(integerLiteralToken.Value);
-					if (value == null)
+					var literalValue = systemScope.TryCreateIntLiteral(value);
+					if (literalValue == null)
 					{
-						MessageBag.Add(new ConstantDoesNotFitIntoAnyType(integerLiteralToken));
-						value = new UnknownLiteralValue(ExpressionBinder.SystemScope.Int);
+						messageBag.Add(new ConstantDoesNotFitIntoAnyType(SyntaxToStringConverter.ExactToString(originalNode), originalNode.SourcePosition));
+						literalValue = new UnknownLiteralValue(systemScope.Int);
 					}
-					finalValue = value;
+					finalLiteralValue = literalValue;
 				}
 
-				return new LiteralBoundExpression(integerLiteralToken, finalValue);
+				return new LiteralBoundExpression(originalNode, finalLiteralValue);
 			}
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)

@@ -317,7 +317,7 @@ namespace Compiler
 			int start = Cursor;
 			++Cursor;
 			char cur = Text[start];
-			if (IsDigit(cur) || ((cur == '-' || cur == '+') && Cursor < Text.Length && IsDigit(Text[Cursor])))
+			if (IsDigit(cur))
 			{
 				--Cursor;
 				return ScanNumber(leadingToken);

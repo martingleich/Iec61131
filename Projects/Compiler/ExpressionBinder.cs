@@ -163,6 +163,18 @@ namespace Compiler
 
 		public IBoundExpression Visit(UnaryOperatorExpressionSyntax unaryOperatorExpressionSyntax, IType? context)
 		{
+			// Since the parser does not parse integer tokens with the sign, we merge the negative sign into the integer token here.
+			// This must be done in a special case here, because the normal typifier forbids negation for unsigned types and the default type for some literal values for example
+			// (-int.Min) is unsigned, even if the -1 times this value would fit into the signed variant.
+			if (unaryOperatorExpressionSyntax.Value is LiteralExpressionSyntax litExp && litExp.TokenValue is IntegerLiteralToken intLiteralToken)
+			{
+				if (unaryOperatorExpressionSyntax.TokenOperator is MinusToken)
+				{
+					var newValue = intLiteralToken.Value.GetNegative();
+					return LiteralTokenBinder.BindIntLiteral(SystemScope, context, newValue, MessageBag, unaryOperatorExpressionSyntax);
+				}
+			}
+
 			var boundValue = unaryOperatorExpressionSyntax.Value.Accept(this, null);
 			var realBoundType = TypeRelations.ResolveAlias(boundValue.Type);
 			OperatorFunction? operatorFunction;
