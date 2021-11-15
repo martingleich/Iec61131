@@ -10,6 +10,7 @@ namespace Tests
 {
 	public static partial class ScannerTestHelper
 	{
+		public static System.Action<IdentifierToken> IdentifierToken(string identifier) => IdentifierToken(identifier.ToCaseInsensitive());
 		public static TokenTest AnyToken(Type t) => tok => Assert.IsType(t, tok);
 		public static TokenTest IntegerLiteralToken(ulong expected) => IntegerLiteralToken(OverflowingInteger.FromUlong(expected, false));
 		public static TokenTest IntegerLiteralToken(long expected) => IntegerLiteralToken(OverflowingInteger.FromUlong((ulong)Math.Abs(expected), expected < 0));

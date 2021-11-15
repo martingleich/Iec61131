@@ -409,5 +409,10 @@ namespace Compiler
 				}
 			}
 		}
+
+		public IBoundExpression Visit(ScopedVariableExpressionSyntax scopedVariableExpressionSyntax, IType? context)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

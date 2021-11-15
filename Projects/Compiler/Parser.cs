@@ -518,7 +518,17 @@ namespace Compiler
 				}
 				else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
 				{
-					return new VariableExpressionSyntax(tokenIdentifier);
+					ScopeQualifierSyntax? scope = null;
+					while (TryMatch<DoubleColonToken>(out var tokenDoubleColon))
+					{
+						scope = new ScopeQualifierSyntax(scope, tokenIdentifier, tokenDoubleColon);
+						tokenIdentifier = Match(IdentifierToken.Synthesize);
+					}
+
+					if(scope == null)
+						return new VariableExpressionSyntax(tokenIdentifier);
+					else
+						return new ScopedVariableExpressionSyntax(scope, tokenIdentifier);
 				}
 				else if (TryMatch<ParenthesisOpenToken>(out var tokenParenOpen))
 				{

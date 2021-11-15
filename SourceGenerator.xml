@@ -884,6 +884,34 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>ScopeQualifierSyntax</Name>
+      <Element>
+        <Name>Scope</Name>
+        <Kind>Nullable</Kind>
+        <Type>ScopeQualifierSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenScopeName</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenDoubleColon</Name>
+        <Type>DoubleColonToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>ScopedVariableExpressionSyntax</Name>
+      <Interface>IExpressionSyntax</Interface>
+      <Element>
+        <Name>Scope</Name>
+        <Type>ScopeQualifierSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenIdentifier</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>DerefExpressionSyntax</Name>
       <Interface>IExpressionSyntax</Interface>
       <Element>
