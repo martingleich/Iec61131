@@ -25,6 +25,8 @@ namespace Tests
 				MyProject = myProject ?? throw new ArgumentNullException(nameof(myProject));
 			}
 
+			public TestProject AddDutFast(string name, string source)
+				=> new (MyProject.Add(new DutLanguageSource($"TYPE {name} : {source}; END_TYPE")));
 			public TestProject AddDut(string source)
 				=> new (MyProject.Add(new DutLanguageSource(source)));
 			public TestProject AddPou(string itf, string body)

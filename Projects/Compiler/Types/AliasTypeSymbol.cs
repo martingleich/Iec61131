@@ -3,7 +3,7 @@ using System;
 
 namespace Compiler.Types
 {
-	public sealed class AliasTypeSymbol : ITypeSymbol, _IDelayedLayoutType
+	public sealed class AliasTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
 		public SourcePosition DeclaringPosition { get; }
 		public CaseInsensitiveString Name { get; }
@@ -86,6 +86,14 @@ namespace Compiler.Types
 				Inside_RecusiveLayout = false;
 			}
 			RecursiveLayoutWasDone = true;
+		}
+
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		{
+			if (AliasedType is IScopeSymbol aliasedScope)
+				return aliasedScope.LookupVariable(identifier, errorPosition);
+			else
+				return ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
 		}
 	}
 }

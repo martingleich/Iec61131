@@ -811,17 +811,16 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
-				.BindGlobalExpression("myDut.myField", null, ErrorOfType<TypeDoesNotContainStaticVariableMessage>());
+				.BindGlobalExpression("myDut.myField", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 		[Fact]
 		public static void EnumTypeValue()
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
-				.BindGlobalExpression("myEnum.elem2", null);
-			var literalExpr = Assert.IsType<LiteralBoundExpression>(boundExpression);
-			var value = Assert.IsType<EnumLiteralValue>(literalExpr.Value);
-			var innerValue = Assert.IsType<IntLiteralValue>(value.InnerValue);
+				.BindGlobalExpression<VariableBoundExpression>("myEnum::elem2", null);
+			var value = Assert.IsType<EnumVariableSymbol>(boundExpression.Variable);
+			var innerValue = Assert.IsType<IntLiteralValue>(value.Value.InnerValue);
 			Assert.Equal(1, innerValue.Value);
 		}
 		[Fact]
@@ -830,11 +829,10 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
 				.AddDut("TYPE myAlias : myEnum; END_TYPE")
-				.BindGlobalExpression("myAlias.elem2", null);
-			var castExpr = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
-			var literalExpr = Assert.IsType<LiteralBoundExpression>(castExpr.Value);
-			var value = Assert.IsType<EnumLiteralValue>(literalExpr.Value);
-			var innerValue = Assert.IsType<IntLiteralValue>(value.InnerValue);
+				.BindGlobalExpression<ImplicitAliasFromBaseTypeCastBoundExpression>("myAlias::elem2", null);
+			var boundVariable = Assert.IsType<VariableBoundExpression>(boundExpression.Value);
+			var enumVariable = Assert.IsType<EnumVariableSymbol>(boundVariable.Variable);
+			var innerValue = Assert.IsType<IntLiteralValue>(enumVariable.Value.InnerValue);
 			Assert.Equal(1, innerValue.Value);
 		}
 		[Fact]
@@ -842,15 +840,15 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
-				.BindGlobalExpression("myEnum.elem3", null, ErrorOfType<EnumValueNotFoundMessage>());
+				.BindGlobalExpression("myEnum::elem3", null, ErrorOfType<EnumValueNotFoundMessage>());
 		}
 		[Fact]
 		public static void GvlVariable()
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL gVar : INT; END_VAR")
-				.BindGlobalExpression("MyGVL.gVar", null);
-			var staticVarExpr = Assert.IsType<StaticVariableBoundExpression>(boundExpression);
+				.BindGlobalExpression("MyGVL::gVar", null);
+			var staticVarExpr = Assert.IsType<VariableBoundExpression>(boundExpression);
 			Assert.Equal("gVar".ToCaseInsensitive(), staticVarExpr.Variable.Name);
 		}
 		[Fact]
@@ -858,7 +856,7 @@ namespace Tests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL gVar : INT; END_VAR")
-				.BindGlobalExpression("MyGVL.gVar", "DINT");
+				.BindGlobalExpression("MyGVL::gVar", "DINT");
 			Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundExpression);
 		}
 		[Fact]
@@ -866,7 +864,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL gVar : INT; END_VAR")
-				.BindGlobalExpression("MyGVL.abc", null, ErrorOfType<GlobalVariableNotFoundMessage>());
+				.BindGlobalExpression("MyGVL::abc", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 		[Fact]
 		public static void VariableBeforeGvl()
@@ -875,14 +873,14 @@ namespace Tests
 				.AddGVL("MyGVL", "VAR_GLOBAL myVar : INT; END_VAR")
 				.AddDut("TYPE myDut : STRUCT myVar : INT; END_STRUCT; END_TYPE")
 				.WithGlobalVar("MyGvl", "myDut")
-				.BindGlobalExpression("MyGVL.myVar", null);
-			Assert.IsType<FieldAccessBoundExpression>(boundExpression);
+				.BindGlobalExpression("MyGVL::myVar", null);
+			Assert.IsType<VariableBoundExpression>(boundExpression);
 		}
 		[Fact]
 		public static void Error_UnknownLeftSide()
 		{
 			BindHelper.NewProject
-				.BindGlobalExpression("myThing.myVar", null, ErrorOfType<ExpectedVariableOrTypeOrGvlMessage>());
+				.BindGlobalExpression("myThing.myVar", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 		[Fact]
 		public static void DutInGvlAccess()
@@ -890,9 +888,9 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL myVar : MyDut; END_VAR")
 				.AddDut("TYPE MyDut : STRUCT myField : INT; END_STRUCT; END_TYPE")
-				.BindGlobalExpression("MyGVL.myVar.myField", null);
+				.BindGlobalExpression("MyGVL::myVar.myField", null);
 			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
-			Assert.IsType<StaticVariableBoundExpression>(fieldAccess.BaseExpression);
+			Assert.IsType<VariableBoundExpression>(fieldAccess.BaseExpression);
 		}
 	}
 

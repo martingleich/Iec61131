@@ -13,10 +13,10 @@ namespace Compiler.Scopes
 
 		public SystemScope SystemScope { get; }
 
-		public ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition)
 			=> ErrorsAnd.Create(
-				new GlobalVariableListSymbol(sourcePosition, identifier, SymbolSet<GlobalVariableSymbol>.Empty),
-				new VariableNotFoundMessage(identifier, sourcePosition));
+				IScopeSymbol.CreateError(identifier, sourcePosition),
+				new ScopeNotFoundMessage(identifier, sourcePosition));
 
 		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
 			=> ErrorsAnd.Create(

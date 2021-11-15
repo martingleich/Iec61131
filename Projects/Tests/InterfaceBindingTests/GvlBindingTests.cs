@@ -87,5 +87,14 @@ namespace Tests
 				.BindInterfaces();
 			Assert.Equal(BindHelper.SystemScope.PointerSize, boundInterface.GlobalVariableListSymbols["MyGVL"].Variables["ptr"].Type.LayoutInfo.Size);
 		}
+
+		[Fact]
+		public void Error_NameCollisionEnumGvl()
+		{
+			BindHelper.NewProject
+				.AddGVL("MyGvl", "")
+				.AddDutFast("MyGvl", "(First, Second)")
+				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyGvl".ToCaseInsensitive(), err.Name)));
+		}
 	}
 }

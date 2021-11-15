@@ -3,7 +3,7 @@ using System;
 
 namespace Compiler.Types
 {
-	public sealed class EnumTypeSymbol : ITypeSymbol, _IDelayedLayoutType
+	public sealed class EnumTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
 		public CaseInsensitiveString Name { get; }
 		public string Code => Name.Original;
@@ -57,5 +57,9 @@ namespace Compiler.Types
 				value._GetConstantValue(messageBag);
 		}
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => Values.TryGetValue(identifier, out var symbol)
+			? ErrorsAnd.Create<IVariableSymbol>(symbol)
+			: ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new EnumValueNotFoundMessage(this, identifier, errorPosition));
 	}
 }

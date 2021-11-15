@@ -93,5 +93,13 @@ namespace Compiler
 				return false;
 			}
 		}
+		public static IEnumerable<T> Concat<T>(params IEnumerable<T>[] args)
+		{
+			foreach (var xs in args)
+			{
+				foreach (var x in xs)
+					yield return x;
+			}
+		}
 	}
 }

@@ -210,8 +210,19 @@ namespace Compiler
 
 		public IBoundExpression Visit(CompoAccessExpressionSyntax compoAccessExpressionSyntax, IType? context)
 		{
-			var boundLeft = BindLeftCompo(compoAccessExpressionSyntax.LeftSide);
-			return ImplicitCast(boundLeft.BindCompo(compoAccessExpressionSyntax, compoAccessExpressionSyntax.TokenIdentifier, this), context);
+			var boundLeft = compoAccessExpressionSyntax.LeftSide.Accept(this, null);
+			var name = compoAccessExpressionSyntax.TokenIdentifier;
+			if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value, out var field)))
+			{
+				MessageBag.Add(!boundLeft.Type.IsError(), new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourcePosition));
+				field = new FieldVariableSymbol(
+					name.SourcePosition,
+					name.Value,
+					boundLeft.Type);
+			}
+
+			var boundCompo = new FieldAccessBoundExpression(compoAccessExpressionSyntax, boundLeft, field);
+			return ImplicitCast(boundCompo, context);
 		}
 
 		public IBoundExpression Visit(DerefExpressionSyntax derefExpressionSyntax, IType? context)
@@ -412,7 +423,29 @@ namespace Compiler
 
 		public IBoundExpression Visit(ScopedVariableExpressionSyntax scopedVariableExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			var scope = ResolveScope(scopedVariableExpressionSyntax.Scope).Extract(MessageBag);
+			var variable = scope.LookupVariable(scopedVariableExpressionSyntax.Identifier, scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
+			IBoundExpression boundExpression = new VariableBoundExpression(scopedVariableExpressionSyntax, variable);
+			if (scope is AliasTypeSymbol aliasType && variable is EnumVariableSymbol)
+			{
+				// Accessing an enum value via an alias, shall yield an alias value.
+				boundExpression = ImplicitCast(boundExpression, aliasType);
+			}
+			return ImplicitCast(boundExpression, context);
+		}
+
+		private ErrorsAnd<IScopeSymbol> ResolveScope(ScopeQualifierSyntax syntax)
+		{
+			if (syntax.Scope != null)
+			{
+				var childScope = syntax.Scope;
+				return ErrorsAnd.Create(IScopeSymbol.CreateError(childScope.ScopeName, childScope.TokenScopeName.SourcePosition),
+					new ScopeNotFoundMessage(childScope.ScopeName, childScope.TokenScopeName.SourcePosition));
+			}
+			else
+			{
+				return Scope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourcePosition);
+			}
 		}
 	}
 }

@@ -35,11 +35,18 @@ namespace Compiler
 		public readonly SymbolSet<FunctionVariableSymbol> FunctionSymbols;
 		public readonly SymbolSet<GlobalVariableListSymbol> GlobalVariableListSymbols;
 
-		public BoundModuleInterface(SymbolSet<ITypeSymbol> types, SymbolSet<FunctionVariableSymbol> functionSymbols, SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols)
+		public readonly SymbolSet<IScopeSymbol> Scopes;
+
+		public BoundModuleInterface(
+			SymbolSet<ITypeSymbol> types,
+			SymbolSet<FunctionVariableSymbol> functionSymbols,
+			SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols,
+			SymbolSet<IScopeSymbol> scopes)
 		{
 			Types = types;
 			FunctionSymbols = functionSymbols;
 			GlobalVariableListSymbols = globalVariableListSymbols;
+			Scopes = scopes;
 		}
 	}
 
@@ -64,7 +71,7 @@ namespace Compiler
 						syntax.Identifier,
 						type);
 				});
-		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, Types.FunctionTypeSymbol symbol)
+		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
 		{
 			(IBoundStatement, ImmutableArray<IMessage>) Bind()
 			{
@@ -143,7 +150,7 @@ namespace Compiler
 				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, enumTypeDeclarationBodySyntax);
 		}
 
-		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<Types.FunctionTypeSymbol?, PouInterfaceSyntax>
+		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<FunctionTypeSymbol?, PouInterfaceSyntax>
 		{
 			private readonly IScope Scope;
 			private readonly MessageBag Messages;
@@ -154,18 +161,18 @@ namespace Compiler
 				Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			}
 
-			public Types.FunctionTypeSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
+			public FunctionTypeSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
-			public Types.FunctionTypeSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
+			public FunctionTypeSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
 				=> TypifyFunctionOrProgram(context);
-			public Types.FunctionTypeSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
+			public FunctionTypeSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
 				=> TypifyFunctionOrProgram(context);
-			public Types.FunctionTypeSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
+			public FunctionTypeSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
 
-			private Types.FunctionTypeSymbol TypifyFunctionOrProgram(PouInterfaceSyntax context)
+			private FunctionTypeSymbol TypifyFunctionOrProgram(PouInterfaceSyntax context)
 			{
 				OrderedSymbolSet<ParameterVariableSymbol> uniqueParameters = BindParameters(Scope, Messages, context);
-				return new Types.FunctionTypeSymbol(
+				return new FunctionTypeSymbol(
 					context.Name,
 					context.TokenName.SourcePosition,
 					uniqueParameters);
@@ -376,7 +383,7 @@ namespace Compiler
 				InterfaceSyntax = interfaceSyntax ?? throw new ArgumentNullException(nameof(interfaceSyntax));
 				BodySyntax = bodySyntax ?? throw new ArgumentNullException(nameof(bodySyntax));
 			}
-			public Types.FunctionTypeSymbol Symbol => VariableSymbol.Type;
+			public FunctionTypeSymbol Symbol => VariableSymbol.Type;
 			public FunctionVariableSymbol VariableSymbol { get; }
 
 			private readonly PouInterfaceSyntax InterfaceSyntax;
@@ -425,10 +432,15 @@ namespace Compiler
 					DelayedLayoutType.RecursiveLayout(param.Type, MessageBag, param.DeclaringPosition);
 			}
 
+			var scopes = EnumerableExtensions.Concat(
+				WorkingGvlSymbols.Cast<IScopeSymbol>(),
+				typeSymbols.OfType<IScopeSymbol>()).ToSymbolSetWithDuplicates(MessageBag);
+
 			var itf = new BoundModuleInterface(
 				typeSymbols,
 				WorkingFunctionSymbols.ToSymbolSet(w => w.VariableSymbol),
-				WorkingGvlSymbols);
+				WorkingGvlSymbols,
+				scopes);
 
 			var moduleScope = new GlobalModuleScope(itf, OuterScope);
 			var functionSymbols = WorkingFunctionSymbols
@@ -458,10 +470,10 @@ namespace Compiler
 			WorkingFunctionSymbols.TryGetValue(identifier, out var symbolInWork)
 				? ErrorsAnd.Create<IVariableSymbol>(symbolInWork.VariableSymbol)
 				: base.LookupVariable(identifier, sourcePosition);
-		public override ErrorsAnd<GlobalVariableListSymbol> LookupGlobalVariableList(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+		public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
 			WorkingGvlSymbols.TryGetValue(identifier, out var symbol)
-				? ErrorsAnd.Create(symbol)
-				: base.LookupGlobalVariableList(identifier, sourcePosition);
+				? ErrorsAnd.Create<IScopeSymbol>(symbol)
+				: base.LookupScope(identifier, sourcePosition);
 
 		public static IEnumerable<TVariableSymbol> BindVariableBlocks<TVariableSymbol, TKind>(
 			SyntaxArray<VarDeclBlockSyntax> vardecls,

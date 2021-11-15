@@ -152,6 +152,17 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot find a variable named '{Identifier}'.";
 	}
+	public sealed class ScopeNotFoundMessage : ACriticalMessage
+	{
+		public readonly CaseInsensitiveString Identifier;
+
+		public ScopeNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		{
+			Identifier = identifier;
+		}
+
+		public override string Text => $"Cannot find a scope named '{Identifier}'.";
+	}
 	public sealed class ParameterNotFoundMessage : ACriticalMessage
 	{
 		public readonly ICallableTypeSymbol Function;
@@ -340,32 +351,6 @@ namespace Compiler.Messages
 		public override string Text => $"Only VAR_GLOBAL is allowed inside a GVL.";
 	}
 
-	public sealed class GlobalVariableNotFoundMessage : ACriticalMessage
-	{
-		public readonly GlobalVariableListSymbol Gvl;
-		public readonly CaseInsensitiveString VarName;
-
-		public GlobalVariableNotFoundMessage(GlobalVariableListSymbol gvl, CaseInsensitiveString varName, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Gvl = gvl ?? throw new ArgumentNullException(nameof(gvl));
-			VarName = varName;
-		}
-
-		public override string Text => $"The global variable list '{Gvl.Name}' does not have a variable '{VarName}'.";
-	}
-	public sealed class ExpectedVariableOrTypeOrGvlMessage : ACriticalMessage
-	{
-		public readonly CaseInsensitiveString Name;
-
-		public static ExpectedVariableOrTypeOrGvlMessage Create(VariableExpressionSyntax expression)
-			=> new(expression.Identifier, expression.SourcePosition);
-		public ExpectedVariableOrTypeOrGvlMessage(CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Name = name;
-		}
-
-		public override string Text => $"Expected a variable, type or gvl name.";
-	}
 	public sealed class EnumValueNotFoundMessage : ACriticalMessage
 	{
 		public readonly EnumTypeSymbol EnumType;
@@ -378,19 +363,6 @@ namespace Compiler.Messages
 		}
 
 		public override string Text => $"The enumtype '{EnumType.Code}' does not contain a value named '{Name}'.";
-	}
-	public sealed class TypeDoesNotContainStaticVariableMessage : ACriticalMessage
-	{
-		public readonly IType Type;
-		public readonly CaseInsensitiveString Name;
-
-		public TypeDoesNotContainStaticVariableMessage(IType type, CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Type = type ?? throw new ArgumentNullException(nameof(type));
-			Name = name;
-		}
-
-		public override string Text => $"The type '{Type.Code}' does not contain a static variable named '{Name}'.";
 	}
 
 	public sealed class TypeExpectedMessage : ACriticalMessage

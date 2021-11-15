@@ -154,7 +154,7 @@ namespace Compiler
 			=> new(FunctionTypeSymbol.CreateError(sourcePosition, name, returnType));
 	}
 
-	public sealed class GlobalVariableListSymbol : ISymbol
+	public sealed class GlobalVariableListSymbol : IScopeSymbol
 	{
 		public readonly SymbolSet<GlobalVariableSymbol> Variables;
 
@@ -167,5 +167,31 @@ namespace Compiler
 
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
+
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => Variables.TryGetValue(identifier, out var symbol)
+			? ErrorsAnd.Create<IVariableSymbol>(symbol)
+			: ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
+	}
+
+	public interface IScopeSymbol : ISymbol
+	{
+		ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition);
+
+		public static IScopeSymbol CreateError(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> new ErrorScopeSymbol(identifier, errorPosition);
+	}
+
+	public sealed class ErrorScopeSymbol : IScopeSymbol
+	{
+		public ErrorScopeSymbol(CaseInsensitiveString name, SourcePosition declaringPosition)
+		{
+			Name = name;
+			DeclaringPosition = declaringPosition;
+		}
+
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
 	}
 }
