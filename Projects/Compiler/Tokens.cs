@@ -302,17 +302,48 @@ namespace Compiler
 	}
 	public readonly struct OverflowingDuration
 	{
-		private readonly TimeSpan Value;
+		private readonly long Value;
 		private readonly bool IsOverflown;
 
-		private OverflowingDuration(TimeSpan value, bool isOverflown)
+		private OverflowingDuration(long value, bool isOverflown)
 		{
 			Value = value;
 			IsOverflown = isOverflown;
 		}
+		public static readonly OverflowingDuration Zero = new (0, false);
 		public static readonly OverflowingDuration Overflown = new (default, true);
-		public static OverflowingDuration FromDuration(TimeSpan value) => new (value, false);
+		public static OverflowingDuration FromLongNanoseconds(long value) => new (value, false);
+		public static OverflowingDuration FromDoubleNanoseconds(double value)
+		{
+			long longValue;
+			try
+			{
+				longValue = checked((long)value);
+			}
+			catch (OverflowException)
+			{
+				return Overflown;
+			}
+			return FromLongNanoseconds(longValue);
+		}
 
+		public static OverflowingDuration UnsignedAdd(OverflowingDuration a, OverflowingDuration b)
+		{
+			if (a.Value < 0 || b.Value < 0)
+				throw new ArgumentException();
+			if (a.IsOverflown || b.IsOverflown)
+				return Overflown;
+			long value;
+			try
+			{
+				value = checked(a.Value + b.Value);
+			}
+			catch (OverflowException)
+			{
+				return Overflown;
+			}
+			return FromLongNanoseconds(value);
+		}
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
 	public readonly struct OverflowingDateAndTime

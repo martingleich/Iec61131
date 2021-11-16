@@ -131,6 +131,14 @@ namespace Compiler
 					Scanner.Text[builtInType.StartPosition..Scanner.Cursor],
 					builtInType.StartPosition, builtInType.LeadingNonSyntax);
 			}
+			private IToken ScanDuration(IBuiltInTypeToken builtInType)
+			{
+				var literalToken = Scanner.ScanDuration(builtInType.LeadingNonSyntax);
+				return new TypedLiteralToken(
+					new TypedLiteral(builtInType, literalToken),
+					Scanner.Text[builtInType.StartPosition..Scanner.Cursor],
+					builtInType.StartPosition, builtInType.LeadingNonSyntax);
+			}
 
 			public IToken Visit(CharToken charToken)
 			{
@@ -161,15 +169,8 @@ namespace Compiler
 					boolToken.StartPosition, boolToken.LeadingNonSyntax);
 			}
 
-			public IToken Visit(LTimeToken lTimeToken)
-			{
-				throw new System.NotImplementedException();
-			}
-
-			public IToken Visit(TimeToken timeToken)
-			{
-				throw new System.NotImplementedException();
-			}
+			public IToken Visit(LTimeToken lTimeToken) => ScanDuration(lTimeToken);
+			public IToken Visit(TimeToken timeToken) => ScanDuration(timeToken);
 
 			public IToken Visit(LDTToken lDTToken)
 			{
@@ -181,6 +182,7 @@ namespace Compiler
 				throw new System.NotImplementedException();
 			}
 
+			#region Not implemented because they are stupid
 			public IToken Visit(LDateToken lDateToken)
 			{
 				throw new System.NotImplementedException();
@@ -199,6 +201,92 @@ namespace Compiler
 			public IToken Visit(TODToken tODToken)
 			{
 				throw new System.NotImplementedException();
+			}
+			#endregion
+		}
+
+		private static readonly ImmutableArray<double> TimeUnitScales = ImmutableArray.Create(
+			24.0 * 60.0 * 60.0 * 1_000_000_000.0,
+			60.0 * 60.0 * 1_000_000_000.0,
+			60.0 * 1_000_000_000.0,
+			1_000_000_000.0,
+			1_000_000.0,
+			1_000.0,
+			1.0);
+
+		private ILiteralToken ScanDuration(IToken? leadingToken)
+		{
+			// 16d_13m_18s
+			// 15.6423435d_
+			int ScanUnit()
+			{
+				if (Cursor < Text.Length)
+				{
+					var c = Text[Cursor];
+					++Cursor;
+					switch (c)
+					{
+						case 'd': return 1;
+						case 'h': return 2;
+						case 'm':
+							if (Cursor < Text.Length && Text[Cursor] == 's')
+							{
+								++Cursor;
+								return 5;
+							}
+							return 3;
+						case 's': return 4;
+						case 'u':
+							if (Cursor < Text.Length && Text[Cursor] == 's')
+							{
+								++Cursor;
+								return 6;
+							}
+							return 0;
+						case 'n':
+							if (Cursor < Text.Length && Text[Cursor] == 's')
+							{
+								++Cursor;
+								return 7;
+							}
+							return 0;
+						default: return 0;
+					}
+				}
+				return 0;
+			}
+			(int, OverflowingDuration) ScanElement()
+			{
+				int start = Cursor;
+				while (Cursor < Text.Length && (IsDigit(Text[Cursor]) || Text[Cursor] == '_'))
+					++Cursor;
+				if (Cursor < Text.Length && Text[Cursor] == '.' && Cursor < Text.Length - 1 && (Text[Cursor] == '_' || IsDigit(Text[Cursor + 1])))
+				{
+					++Cursor;
+					while (Cursor < Text.Length && IsDigit(Text[Cursor]))
+						++Cursor;
+				}
+				if (start < Cursor)
+				{
+					var value = OverflowingReal.Parse(Text[start..Cursor]);
+					var unit = ScanUnit();
+					if (unit != 0 && value.TryGetDouble(out var realValue))
+					{
+						var doubleNanosecondsValue = realValue * TimeUnitScales[unit - 1];
+						return (unit, OverflowingDuration.FromDoubleNanoseconds(doubleNanosecondsValue));
+					}
+				}
+				return (0, OverflowingDuration.Overflown);
+			}
+
+			int start = Cursor;
+			OverflowingDuration totalDuration = OverflowingDuration.Zero;
+			while (true)
+			{
+				var element = ScanElement();
+				if (element.Item1 == 0)
+					return new DurationLiteralToken(totalDuration, Text[start..Cursor], start, leadingToken);
+				totalDuration = OverflowingDuration.UnsignedAdd(totalDuration, element.Item2);
 			}
 		}
 
@@ -224,6 +312,7 @@ namespace Compiler
 				isNegative = false;
 				valueStart = start;
 			}
+
 			while (Cursor < Text.Length && (IsDigit(Text[Cursor]) || Text[Cursor] == '_'))
 				++Cursor;
 			if (Cursor < Text.Length && Text[Cursor] == '.' && Cursor < Text.Length - 1 && (Text[Cursor] == '_' || IsDigit(Text[Cursor + 1])))
@@ -233,7 +322,7 @@ namespace Compiler
 					++Cursor;
 				var generating = Text[start..Cursor];
 				var literalValue = new RealLiteralToken(OverflowingReal.Parse(generating), generating, start, leadingToken);
-					return literalValue;
+				return literalValue;
 			}
 			else
 			{
