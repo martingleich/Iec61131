@@ -1,10 +1,12 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 
 namespace Compiler
 {
 	public sealed class Scanner
 	{
-		private readonly StringPool StringPool = new ();
+		private readonly StringPool StringPool = new();
 		private readonly string Text;
 		private readonly LiteralScannerT LiteralScanner;
 		private readonly Messages.MessageBag Messages;
@@ -75,7 +77,7 @@ namespace Compiler
 		}
 		private IToken? SkipSingleLineComment(IToken? leadingToken)
 		{
-			if (Cursor < Text.Length - 1&& Text[Cursor] == '/' && Text[Cursor + 1] == '/')
+			if (Cursor < Text.Length - 1 && Text[Cursor] == '/' && Text[Cursor + 1] == '/')
 			{
 				int lineBreakCount = 0;
 				int commentStart = Cursor;
@@ -94,7 +96,7 @@ namespace Compiler
 						++Cursor;
 						if (Cursor < Text.Length && Text[Cursor] == '\n')
 							++Cursor;
-						lineBreakCount = Cursor-start;
+						lineBreakCount = Cursor - start;
 						break;
 					}
 					else
@@ -109,6 +111,7 @@ namespace Compiler
 		}
 
 		private static bool IsDigit(char c) => c >= '0' && c <= '9';
+		private static bool IsUnitChar(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsStartIdentifier(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsMidIdentifier(char c) => IsStartIdentifier(c) || IsDigit(c) || c == '_';
 		private static bool IsSymbol(char c) => c == '_' || c == '^' || c == '*' || c == ';' || c == '.' || c == ':' || c == '>' || c == '<' || c == '=' || c == '(' || c == ')' || c == '{' || c == '}' || c == '+' || c == '-' || c == '*' || c == '/' || c == ',';
@@ -205,113 +208,83 @@ namespace Compiler
 			#endregion
 		}
 
-		private static readonly ImmutableArray<double> TimeUnitScales = ImmutableArray.Create(
-			24.0 * 60.0 * 60.0 * 1_000_000_000.0,
-			60.0 * 60.0 * 1_000_000_000.0,
-			60.0 * 1_000_000_000.0,
-			1_000_000_000.0,
-			1_000_000.0,
-			1_000.0,
-			1.0);
+
 
 		private ILiteralToken ScanDuration(IToken? leadingToken)
 		{
-			// 16d_13m_18s
-			// 15.6423435d_
-			int ScanUnit()
+			DurationUnit? ScanUnit()
 			{
-				if (Cursor < Text.Length)
-				{
-					var c = Text[Cursor];
+				int start = Cursor;
+				while (Cursor < Text.Length && IsUnitChar(Text[Cursor]))
 					++Cursor;
-					switch (c)
-					{
-						case 'd': return 1;
-						case 'h': return 2;
-						case 'm':
-							if (Cursor < Text.Length && Text[Cursor] == 's')
-							{
-								++Cursor;
-								return 5;
-							}
-							return 3;
-						case 's': return 4;
-						case 'u':
-							if (Cursor < Text.Length && Text[Cursor] == 's')
-							{
-								++Cursor;
-								return 6;
-							}
-							return 0;
-						case 'n':
-							if (Cursor < Text.Length && Text[Cursor] == 's')
-							{
-								++Cursor;
-								return 7;
-							}
-							return 0;
-						default: return 0;
-					}
-				}
-				return 0;
+				var text = Text[start..Cursor].ToCaseInsensitive();
+				var unit = DurationUnit.TryMap(text);
+				if (unit is null)
+					Messages.Add(new Messages.UnknownDurationUnitMessage(text, SourcePosition.FromStartLength(start, text.Length)));
+				return unit;
 			}
-			(int, OverflowingDuration) ScanElement()
+			(BigInteger, BigInteger) ScanFixPoint()
 			{
 				int start = Cursor;
 				while (Cursor < Text.Length && (IsDigit(Text[Cursor]) || Text[Cursor] == '_'))
 					++Cursor;
 				if (Cursor < Text.Length && Text[Cursor] == '.' && Cursor < Text.Length - 1 && (Text[Cursor] == '_' || IsDigit(Text[Cursor + 1])))
 				{
+					var prefixString = Text[start..Cursor].Replace("_", "");
+					var prefixValue = BigInteger.Parse(prefixString);
+					start = Cursor;
 					++Cursor;
 					while (Cursor < Text.Length && IsDigit(Text[Cursor]))
 						++Cursor;
+					var postfixString = Text[(start + 1)..Cursor];
+					var postfixValue = BigInteger.Parse(postfixString);
+					var power = BigInteger.Pow(new BigInteger(10), postfixString.Length);
+					return (prefixValue * power + postfixValue, power);
 				}
-				if (start < Cursor)
+				else
 				{
-					var value = OverflowingReal.Parse(Text[start..Cursor]);
-					var unit = ScanUnit();
-					if (unit != 0 && value.TryGetDouble(out var realValue))
-					{
-						var doubleNanosecondsValue = realValue * TimeUnitScales[unit - 1];
-						return (unit, OverflowingDuration.FromDoubleNanoseconds(doubleNanosecondsValue));
-					}
+					var prefixString = Text[start..Cursor].Replace("_", "");
+					var prefixValue = BigInteger.Parse(prefixString);
+					return (prefixValue, BigInteger.One);
 				}
-				return (0, OverflowingDuration.Overflown);
+			}
+			(BigInteger, BigInteger)? ScanElement()
+			{
+				var value = ScanFixPoint();
+				var maybeUnit = ScanUnit();
+				if (maybeUnit is null)
+					return null;
+				return (value.Item1 * new BigInteger(maybeUnit.Value.Factor), value.Item2);
 			}
 
 			int start = Cursor;
-			OverflowingDuration totalDuration = OverflowingDuration.Zero;
+			bool isNegative = ScanSign();
+			(BigInteger, BigInteger) total = (BigInteger.Zero, BigInteger.One);
 			while (true)
 			{
-				var element = ScanElement();
-				if (element.Item1 == 0)
-					return new DurationLiteralToken(totalDuration, Text[start..Cursor], start, leadingToken);
-				totalDuration = OverflowingDuration.UnsignedAdd(totalDuration, element.Item2);
+				if (Cursor >= Text.Length || !(Text[Cursor] == '_' || IsDigit(Text[Cursor])))
+					break;
+				var maybeElement = ScanElement();
+				if (maybeElement is null)
+					break;
+				var value = maybeElement.Value;
+				var commonGcd = BigInteger.GreatestCommonDivisor(total.Item2, value.Item2);
+				var commonLcm = (total.Item2 * value.Item2) / commonGcd;
+				var fac1 = value.Item2 / commonGcd;
+				var fac2 = total.Item2 / commonGcd;
+				total = (fac1 * total.Item1 + fac2 * value.Item1, commonLcm);
 			}
+			var result = total.Item1 / total.Item2;
+			if (isNegative)
+				result = -result;
+			return new DurationLiteralToken(OverflowingDuration.FromBigIntegerNanoseconds(result), Text[start..Cursor], start, leadingToken);
 		}
 
 		private ILiteralToken ScanNumber(IToken? leadingToken)
 		{
 			int start = Cursor;
-			int valueStart;
-			bool isNegative;
-			if (Cursor < Text.Length && Text[Cursor] == '-')
-			{
-				isNegative = true;
-				valueStart = start + 1;
-				++Cursor;
-			}
-			else if (Cursor < Text.Length && Text[Cursor] == '+')
-			{
-				isNegative = false;
-				valueStart = start + 1;
-				++Cursor;
-			}
-			else
-			{
-				isNegative = false;
-				valueStart = start;
-			}
+			bool isNegative = ScanSign();
+			int valueStart = Cursor;
 
 			while (Cursor < Text.Length && (IsDigit(Text[Cursor]) || Text[Cursor] == '_'))
 				++Cursor;
@@ -330,6 +303,24 @@ namespace Compiler
 				var pureValue = Text[valueStart..Cursor];
 				var value = OverflowingInteger.Parse(pureValue, isNegative);
 				return new IntegerLiteralToken(value, generating, start, leadingToken);
+			}
+		}
+
+		private bool ScanSign()
+		{
+			if (Cursor < Text.Length && Text[Cursor] == '-')
+			{
+				++Cursor;
+				return true;
+			}
+			else if (Cursor < Text.Length && Text[Cursor] == '+')
+			{
+				++Cursor;
+				return false;
+			}
+			else
+			{
+				return false;
 			}
 		}
 
@@ -370,7 +361,7 @@ namespace Compiler
 			int start = Cursor - 1;
 			while (Cursor < Text.Length && IsMidIdentifier(Text[Cursor]))
 				++Cursor;
-			var generating = StringPool.GetString(Text, start, Cursor-start);
+			var generating = StringPool.GetString(Text, start, Cursor - start);
 			if (ScannerKeywordTable.TryMap(generating, start, leadingToken) is IToken token)
 			{
 				if (token is IBuiltInTypeToken builtInTypeToken)
@@ -572,6 +563,8 @@ namespace Compiler
 			return allTokens.ToImmutable();
 		}
 
-		public override string ToString() => Text.Insert(Cursor, "^");
+
+		[ExcludeFromCodeCoverage]
+		public override string ToString() => Text.Insert(Cursor, "|");
 	}
 }

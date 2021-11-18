@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Compiler
 {
@@ -33,7 +34,7 @@ namespace Compiler
 		public override string? ToString() => $"{Type}#{LiteralToken}";
 	}
 
-	public readonly struct OverflowingInteger
+	public readonly struct OverflowingInteger : IEquatable<OverflowingInteger>
 	{
 		private readonly ulong Value;
 		private readonly bool IsNegative;
@@ -231,9 +232,20 @@ namespace Compiler
 		public bool IsZero => TryGetInt(out var value) && value == 0;
 		public bool IsOne => TryGetInt(out var value) && value == 1;
 		public OverflowingInteger GetNegative() => new (Value, !IsNegative, IsOverflown);
+
+		public bool Equals(OverflowingInteger other)
+		{
+			if (IsOverflown != other.IsOverflown)
+				return false;
+			if (IsNegative != other.IsNegative)
+				return Value == 0;
+			return Value == other.Value;
+		}
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => HashCode.Combine(Value);
 	}
 
-	public readonly struct OverflowingReal
+	public readonly struct OverflowingReal : IEquatable<OverflowingReal>
 	{
 		private readonly double Value;
 		private readonly bool IsOverflown;
@@ -283,6 +295,16 @@ namespace Compiler
 		}
 
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
+
+		public bool Equals(OverflowingReal other)
+		{
+			if (IsOverflown != other.IsOverflown)
+				return false;
+			return Value == other.Value;
+		}
+
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Value.GetHashCode();
 	}
 
 	public readonly struct OverflowingDate
@@ -300,20 +322,80 @@ namespace Compiler
 
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
-	public readonly struct OverflowingDuration
+
+	public readonly struct Duration : IEquatable<Duration>
 	{
-		private readonly long Value;
+		private readonly long Nanoseconds;
+
+		public static readonly Duration Zero = new(0);
+		public Duration(long nanoseconds)
+		{
+			Nanoseconds = nanoseconds;
+		}
+
+		public const long NanosecondsPerMicrosecond = 1_000;
+		public const long NanosecondsPerMillisecond = 1_000 * NanosecondsPerMicrosecond;
+		public const long NanosecondsPerSecond = 1_000 * NanosecondsPerMillisecond;
+		public const long NanosecondsPerMinute = 60L * NanosecondsPerSecond;
+		public const long NanosecondsPerHour = 60L * NanosecondsPerMinute;
+		public const long NanosecondsPerDay = 24L * NanosecondsPerHour;
+
+		private static long DivRem(ref long value, long div)
+		{
+			long result = value / div;
+			value -= result * div;
+			return result;
+		}
+		public override string ToString()
+		{
+			var value = Nanoseconds;
+			var days = DivRem(ref value, NanosecondsPerDay);
+			var hours = DivRem(ref value, NanosecondsPerHour);
+			var minutes = DivRem(ref value, NanosecondsPerMinute);
+			var seconds = DivRem(ref value, NanosecondsPerSecond);
+			var milliseconds = DivRem(ref value, NanosecondsPerMillisecond);
+			var microseconds = DivRem(ref value, NanosecondsPerMicrosecond);
+			var nanoseconds = value;
+
+			string result = "";
+			if (days != 0)
+				result += $"{days}d";
+			if (hours != 0)
+				result += $"{hours}h";
+			if (minutes != 0)
+				result += $"{minutes}m";
+			if (seconds != 0)
+				result += $"{seconds}s";
+			if (milliseconds != 0)
+				result += $"{milliseconds}ms";
+			if (microseconds != 0)
+				result += $"{microseconds}us";
+			if (nanoseconds != 0)
+				result += $"{nanoseconds}ns";
+			if (result.Length == 0)
+				result = "0";
+			return $"{result}(={Nanoseconds}ns)";
+		}
+
+		public bool Equals(Duration other) => Nanoseconds == other.Nanoseconds;
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Nanoseconds.GetHashCode();
+	}
+
+	public readonly struct OverflowingDuration : IEquatable<OverflowingDuration>
+	{
+		private readonly Duration Value;
 		private readonly bool IsOverflown;
 
-		private OverflowingDuration(long value, bool isOverflown)
+		private OverflowingDuration(Duration value, bool isOverflown)
 		{
 			Value = value;
 			IsOverflown = isOverflown;
 		}
-		public static readonly OverflowingDuration Zero = new (0, false);
+		public static readonly OverflowingDuration Zero = new (Duration.Zero, false);
 		public static readonly OverflowingDuration Overflown = new (default, true);
-		public static OverflowingDuration FromLongNanoseconds(long value) => new (value, false);
-		public static OverflowingDuration FromDoubleNanoseconds(double value)
+		public static OverflowingDuration FromLongNanoseconds(long value) => new (new Duration(value), false);
+		public static OverflowingDuration FromBigIntegerNanoseconds(BigInteger value)
 		{
 			long longValue;
 			try
@@ -327,24 +409,14 @@ namespace Compiler
 			return FromLongNanoseconds(longValue);
 		}
 
-		public static OverflowingDuration UnsignedAdd(OverflowingDuration a, OverflowingDuration b)
-		{
-			if (a.Value < 0 || b.Value < 0)
-				throw new ArgumentException();
-			if (a.IsOverflown || b.IsOverflown)
-				return Overflown;
-			long value;
-			try
-			{
-				value = checked(a.Value + b.Value);
-			}
-			catch (OverflowException)
-			{
-				return Overflown;
-			}
-			return FromLongNanoseconds(value);
-		}
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
+
+		public bool Equals(OverflowingDuration other)
+		{
+			return IsOverflown == other.IsOverflown && Value.Equals(other.Value);
+		}
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Value.GetHashCode();
 	}
 	public readonly struct OverflowingDateAndTime
 	{

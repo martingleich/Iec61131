@@ -10,9 +10,9 @@ namespace Compiler
 		public static SourcePosition FromStartLength(int start, int length)
 		{
 			if (start < 0)
-				throw new ArgumentException($"{nameof(start)} must be zero or positive.");
+				throw new ArgumentException($"{nameof(start)}({start}) must be zero or positive.");
 			if (length < 0)
-				throw new ArgumentException($"{nameof(length)} must be zero or positive.");
+				throw new ArgumentException($"{nameof(length)}({start}) must be zero or positive.");
 			if (start > int.MaxValue - length)
 				throw new ArgumentException($"End of range must fit into int.");
 			return new SourcePosition(start, start + length);

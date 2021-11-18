@@ -1,7 +1,3 @@
-Add special scope seperator "#" instead of "."
-	Replace global variable lists with scopes(using the scope seperator)
-	Use the scope seperator for enum variables access.
-
 Use popsicle tree and add file to source position
 Add find expression at source position
 Add find bound expression at source position

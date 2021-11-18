@@ -471,4 +471,23 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot use the type '{Type.Code}' as index in a for loop. The type must support addition.";
 	}
+	public sealed class UnknownDurationUnitMessage : ACriticalMessage
+	{
+		public readonly CaseInsensitiveString UnitText;
+		public UnknownDurationUnitMessage(CaseInsensitiveString unitText, SourcePosition position) : base(position)
+		{
+			UnitText = unitText; 
+		}
+
+		public override string Text
+		{
+			get
+			{
+				if (UnitText.Length > 0)
+					return $"Unknown unit for a duration '{UnitText}'";
+				else
+					return "Missing unit for duration";
+			}
+		}
+	}
 }

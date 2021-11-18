@@ -1,3 +1,4 @@
+using Compiler;
 using Compiler.Messages;
 using System;
 using Xunit;
@@ -305,6 +306,78 @@ namespace Tests
 			AssertAllTokens_WithError("BOOL#",
 				ExactlyMessages(ErrorOfType<InvalidBooleanLiteralMessage>()),
 				TypedLiteralToken(type => { }, token => { }));
+		}
+	}
+	public class ScannerTests_Duration
+	{
+		private static Action<IToken> TimeLiteral(long ns) => TimeLiteral(OverflowingDuration.FromLongNanoseconds(ns));
+		private static Action<IToken> TimeLiteral(OverflowingDuration duration) => TypedLiteralToken(TimeToken, DurationLiteralToken(duration));
+		private static Action<IToken> LTimeLiteral(long ns) => LTimeLiteral(OverflowingDuration.FromLongNanoseconds(ns));
+		private static Action<IToken> LTimeLiteral(OverflowingDuration duration) => TypedLiteralToken(LTimeToken, DurationLiteralToken(duration));
+		[Fact]
+		public void Simple()
+		{
+			AssertAllTokens("TIME#4d5h3m34s12ms562us17ns", TimeLiteral(363814012562017L));
+		}
+		[Fact]
+		public void Simple_LTime()
+		{
+			AssertAllTokens("LTIME#4d5h3m34s12ms562us17ns", LTimeLiteral(363814012562017L));
+		}
+		[Fact]
+		public void OverflowInUnit()
+		{
+			AssertAllTokens("TIME#120s", TimeLiteral(120000000000L));
+		}
+		[Fact]
+		public void FractionalValue()
+		{
+			AssertAllTokens("TIME#0.5m", TimeLiteral(30000000000));
+		}
+		[Fact]
+		public void DigitSeperator()
+		{
+			AssertAllTokens("TIME#1_500m", TimeLiteral(90000000000000));
+		}
+		[Fact]
+		public void UnitSeperator()
+		{
+			AssertAllTokens("TIME#1m_30s", TimeLiteral(90000000000));
+		}
+		[Fact]
+		public void ValueTrailingSeperator()
+		{
+			AssertAllTokens("TIME#1_m30s", TimeLiteral(90000000000));
+		}
+		[Fact]
+		public void NegativeUnit()
+		{
+			AssertAllTokens("TIME#-1h", TimeLiteral(-3600000000000));
+		}
+		[Fact]
+		public void PositiveUnit()
+		{
+			AssertAllTokens("TIME#+1h", TimeLiteral(3600000000000));
+		}
+		[Fact]
+		public void Error_MissingUnit()
+		{
+			AssertAllTokens_WithError("TIME#0.5", ExactlyMessages(ErrorOfType<UnknownDurationUnitMessage>()), TimeLiteral(0));
+		}
+		[Fact]
+		public void Error_UnknownUnit()
+		{
+			AssertAllTokens_WithError("TIME#0.5blub", ExactlyMessages(ErrorOfType<UnknownDurationUnitMessage>()), TimeLiteral(0));
+		}
+		[Fact]
+		public void Error_ToLargeValue()
+		{
+			AssertAllTokens($"TIME#{long.MaxValue}d", TimeLiteral(OverflowingDuration.Overflown));
+		}
+		[Fact]
+		public void SimpleExactArithmetic()
+		{
+			AssertAllTokens($"TIME#0.0005us0.5ns", TimeLiteral(1));
 		}
 	}
 }
