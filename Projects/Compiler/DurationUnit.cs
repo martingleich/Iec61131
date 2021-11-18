@@ -16,12 +16,12 @@ namespace Compiler
 			"us".ToCaseInsensitive(),
 			"ns".ToCaseInsensitive());
 		private static readonly ImmutableArray<long> TimeUnitScales = ImmutableArray.Create(
-			Duration.NanosecondsPerDay,
-			Duration.NanosecondsPerHour,
-			Duration.NanosecondsPerMinute,
-			Duration.NanosecondsPerSecond,
-			Duration.NanosecondsPerMillisecond,
-			Duration.NanosecondsPerMicrosecond,
+			DurationNs64.NanosecondsPerDay,
+			DurationNs64.NanosecondsPerHour,
+			DurationNs64.NanosecondsPerMinute,
+			DurationNs64.NanosecondsPerSecond,
+			DurationNs64.NanosecondsPerMillisecond,
+			DurationNs64.NanosecondsPerMicrosecond,
 			1L);
 
 		public DurationUnit(int id)

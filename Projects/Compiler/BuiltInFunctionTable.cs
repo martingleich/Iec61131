@@ -86,6 +86,16 @@ namespace Compiler
 			builder.Add(BinaryOperator("DIV", systemScope.ULInt), DivULINT);
 			builder.Add(BinaryOperator("MOD", systemScope.ULInt), ModULINT);
 
+			builder.Add(BinaryOperator("ADD", systemScope.LTime), AddLTIME);
+			builder.Add(BinaryOperator("SUB", systemScope.LTime), SubLTIME);
+			builder.Add(BinaryOperator("NEG", systemScope.LTime), NegLTIME);
+			builder.Add(BinaryOperator("MOD", systemScope.LTime), ModLTIME);
+
+			builder.Add(BinaryOperator("ADD", systemScope.Time), AddTIME);
+			builder.Add(BinaryOperator("SUB", systemScope.Time), SubTIME);
+			builder.Add(BinaryOperator("NEG", systemScope.Time), NegTIME);
+			builder.Add(BinaryOperator("MOD", systemScope.Time), ModTIME);
+
 			builder.Add(BinaryOperator("ADD", systemScope.Real), null);
 			builder.Add(BinaryOperator("SUB", systemScope.Real), null);
 			builder.Add(BinaryOperator("MUL", systemScope.Real), null);
@@ -108,6 +118,8 @@ namespace Compiler
 			AddComparisons(builder, systemScope.UDInt, systemScope.Bool, (x, y) => ((UDIntLiteralValue)x).Value <= ((UDIntLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.LInt, systemScope.Bool, (x, y) => ((LIntLiteralValue)x).Value <= ((LIntLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.ULInt, systemScope.Bool, (x, y) => ((ULIntLiteralValue)x).Value <= ((ULIntLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.Time, systemScope.Bool, (x, y) => ((TimeLiteralValue)x).Value <= ((TimeLiteralValue)y).Value);
+			AddComparisons(builder, systemScope.LTime, systemScope.Bool, (x, y) => ((LTimeLiteralValue)x).Value <= ((LTimeLiteralValue)y).Value);
 			AddComparisons(builder, systemScope.Real, systemScope.Bool);
 			AddComparisons(builder, systemScope.LReal, systemScope.Bool);
 
@@ -220,6 +232,16 @@ namespace Compiler
 		private static ILiteralValue MulULINT(IType result, ILiteralValue[] args) => new ULIntLiteralValue(checked((ulong)(((ULIntLiteralValue)args[0]).Value * ((ULIntLiteralValue)args[1]).Value)), result);
 		private static ILiteralValue DivULINT(IType result, ILiteralValue[] args) => new ULIntLiteralValue(checked((ulong)(((ULIntLiteralValue)args[0]).Value / ((ULIntLiteralValue)args[1]).Value)), result);
 		private static ILiteralValue ModULINT(IType result, ILiteralValue[] args) => new ULIntLiteralValue(checked((ulong)(((ULIntLiteralValue)args[0]).Value % ((ULIntLiteralValue)args[1]).Value)), result);
+
+		private static ILiteralValue AddLTIME(IType result, ILiteralValue[] args) => new LTimeLiteralValue(((LTimeLiteralValue)args[0]).Value.CheckedAdd(((LTimeLiteralValue)args[1]).Value), result);
+		private static ILiteralValue SubLTIME(IType result, ILiteralValue[] args) => new LTimeLiteralValue(((LTimeLiteralValue)args[0]).Value.CheckedSub(((LTimeLiteralValue)args[1]).Value), result);
+		private static ILiteralValue NegLTIME(IType result, ILiteralValue[] args) => new LTimeLiteralValue(((LTimeLiteralValue)args[0]).Value.CheckedNeg(), result);
+		private static ILiteralValue ModLTIME(IType result, ILiteralValue[] args) => new LTimeLiteralValue(((LTimeLiteralValue)args[0]).Value.CheckedMod(((LTimeLiteralValue)args[1]).Value), result);
+
+		private static ILiteralValue AddTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedAdd(((TimeLiteralValue)args[1]).Value), result);
+		private static ILiteralValue SubTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedSub(((TimeLiteralValue)args[1]).Value), result);
+		private static ILiteralValue NegTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedNeg(), result);
+		private static ILiteralValue ModTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedMod(((TimeLiteralValue)args[1]).Value), result);
 
 		public bool TryGetConstantEvaluator(FunctionVariableSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;

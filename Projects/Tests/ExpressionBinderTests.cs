@@ -42,6 +42,9 @@ namespace Tests
 				new object[]{"REAL#1.5", SystemScope.Real },
 				new object[]{"LREAL#1", SystemScope.LReal },
 				new object[]{"LREAL#1.5", SystemScope.LReal },
+				// Typed duration
+				new object[]{"TIME#1d5h16s", SystemScope.Time },
+				new object[]{"LTIME#1.5m", SystemScope.LTime },
 			};
 			public static readonly object[][] TargetType_DoesNotFit_Values = {
 				new object[]{"BOOL#7" },
@@ -83,6 +86,12 @@ namespace Tests
 			{
 				BindHelper.NewProject
 					.BindGlobalExpression(new string('9', 500) + ".0", null, ErrorOfType<RealIsToLargeForTypeMessage>());
+			}
+			[Fact]
+			public static void LTime_NoTargetType_ToBig()
+			{
+				BindHelper.NewProject
+					.BindGlobalExpression($"LTIME#{long.MaxValue}d", null, ErrorOfType<DurationIsToLargeForTypeMessage>());
 			}
 
 			[Fact]
@@ -156,6 +165,14 @@ namespace Tests
 		[InlineData("LREAL#0 + SINT#0", "ADD_LREAL")]
 		[InlineData("UINT#0 + REAL#0", "ADD_REAL")]
 
+		[InlineData("LTIME#0d + LTIME#0h", "ADD_LTIME")]
+		[InlineData("LTIME#0d - LTIME#0h", "SUB_LTIME")]
+		[InlineData("LTIME#0d MOD LTIME#0h", "MOD_LTIME")]
+
+		[InlineData("TIME#0d + TIME#0h", "ADD_TIME")]
+		[InlineData("TIME#0d - TIME#0h", "SUB_TIME")]
+		[InlineData("TIME#0d MOD TIME#0h", "MOD_TIME")]
+
 		public static void BinaryArithemtic(string expr, string op)
 		{
 			var boundExpression = BindHelper.NewProject
@@ -172,6 +189,8 @@ namespace Tests
 		[InlineData("INT#7 > INT#5", "GREATER_INT", true)]
 		[InlineData("SINT#3 > LINT#5", "GREATER_LINT", false)]
 		[InlineData("USINT#5 > INT#5", "GREATER_DINT", false)]
+		[InlineData("TIME#1h > TIME#1m", "GREATER_TIME", true)]
+		[InlineData("LTIME#1s >= LTIME#1d", "GREATER_EQUAL_LTIME", false)]
 		[InlineData("BOOL#TRUE = BOOL#FALSE", "EQUAL_BOOL", false)]
 		[InlineData("BOOL#FALSE <> BOOL#TRUE", "NOT_EQUAL_BOOL", true)]
 		[InlineData("BOOL#FALSE AND BOOL#TRUE", "AND_BOOL", false)]
@@ -261,6 +280,8 @@ namespace Tests
 		[InlineData("-(LINT#7)", "NEG_LINT")]
 		[InlineData("-(REAL#7)", "NEG_REAL")]
 		[InlineData("-(LREAL#7)", "NEG_LREAL")]
+		[InlineData("-(TIME#7m)", "NEG_TIME")]
+		[InlineData("-(LTIME#7m)", "NEG_LTIME")]
 		public static void UnaryExpression(string expr, string op)
 		{
 			var boundExpression = BindHelper.NewProject

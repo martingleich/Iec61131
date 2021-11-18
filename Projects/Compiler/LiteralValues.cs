@@ -265,4 +265,40 @@ namespace Compiler
 		public override int GetHashCode() => 0;
 		public override string ToString() => "0";
 	}
+
+	public sealed class LTimeLiteralValue : ILiteralValue, IEquatable<LTimeLiteralValue>
+	{
+		public readonly DurationNs64 Value;
+
+		public LTimeLiteralValue(DurationNs64 value, IType type)
+		{
+			Value = value;
+			Type = type;
+		}
+
+		public IType Type { get; }
+
+		public bool Equals(LTimeLiteralValue? other) => other != null && Value == other.Value;
+		public bool Equals(ILiteralValue? other) => Equals(other as LTimeLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Value.GetHashCode();
+	}
+
+	public sealed class TimeLiteralValue : ILiteralValue, IEquatable<TimeLiteralValue>
+	{
+		public readonly DurationMs32 Value;
+
+		public TimeLiteralValue(DurationMs32 value, IType type)
+		{
+			Value = value;
+			Type = type;
+		}
+
+		public IType Type { get; }
+
+		public bool Equals(TimeLiteralValue? other) => other != null && Value == other.Value;
+		public bool Equals(ILiteralValue? other) => Equals(other as TimeLiteralValue);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Value.GetHashCode();
+	}
 }

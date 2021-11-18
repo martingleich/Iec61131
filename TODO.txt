@@ -7,3 +7,11 @@ Libraries
 LateLanguageUpdates
 Parser tests
 Strings
+Durations
+	Add casts:
+		TIME->LTIME
+	Add scalar operations:
+		(L)TIME * ANY_NUM -> (L)TIME
+		(L)TIME / ANY_NUM -> (L)TIME
+		(L)TIME / (L)TIME -> (L)REAL
+		(L)TIME MOD (L)TIME -> (L)TIME

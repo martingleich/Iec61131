@@ -243,6 +243,9 @@ namespace Compiler
 		}
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => HashCode.Combine(Value);
+
+		public static bool operator ==(OverflowingInteger left, OverflowingInteger right) => left.Equals(right);
+		public static bool operator !=(OverflowingInteger left, OverflowingInteger right) => !(left == right);
 	}
 
 	public readonly struct OverflowingReal : IEquatable<OverflowingReal>
@@ -305,6 +308,9 @@ namespace Compiler
 
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
+
+		public static bool operator ==(OverflowingReal left, OverflowingReal right) => left.Equals(right);
+		public static bool operator !=(OverflowingReal left, OverflowingReal right) => !(left == right);
 	}
 
 	public readonly struct OverflowingDate
@@ -323,12 +329,12 @@ namespace Compiler
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 	}
 
-	public readonly struct Duration : IEquatable<Duration>
+	public readonly struct DurationNs64 : IEquatable<DurationNs64>, IComparable<DurationNs64>
 	{
 		private readonly long Nanoseconds;
 
-		public static readonly Duration Zero = new(0);
-		public Duration(long nanoseconds)
+		public static readonly DurationNs64 Zero = new(0);
+		public DurationNs64(long nanoseconds)
 		{
 			Nanoseconds = nanoseconds;
 		}
@@ -377,24 +383,118 @@ namespace Compiler
 			return $"{result}(={Nanoseconds}ns)";
 		}
 
-		public bool Equals(Duration other) => Nanoseconds == other.Nanoseconds;
+		public bool Equals(DurationNs64 other) => Nanoseconds == other.Nanoseconds;
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Nanoseconds.GetHashCode();
-	}
 
+		public static bool operator ==(DurationNs64 left, DurationNs64 right) => left.Equals(right);
+		public static bool operator !=(DurationNs64 left, DurationNs64 right) => !(left == right);
+
+		public bool TryGetMs32(out DurationMs32 value)
+		{
+			var milliseconds = Nanoseconds / NanosecondsPerMillisecond;
+			try
+			{
+				value = new DurationMs32(checked((int)milliseconds));
+				return true;
+			}
+			catch (OverflowException)
+			{
+				value = default;
+				return false;
+			}
+		}
+
+		public int CompareTo(DurationNs64 other) => Nanoseconds.CompareTo(other.Nanoseconds);
+		public static bool operator <(DurationNs64 left, DurationNs64 right) => left.CompareTo(right) < 0;
+		public static bool operator <=(DurationNs64 left, DurationNs64 right) => left.CompareTo(right) <= 0;
+		public static bool operator >(DurationNs64 left, DurationNs64 right) => left.CompareTo(right) > 0;
+		public static bool operator >=(DurationNs64 left, DurationNs64 right) => left.CompareTo(right) >= 0;
+
+		public DurationNs64 CheckedAdd(DurationNs64 value) => new (checked(Nanoseconds + value.Nanoseconds));
+		public DurationNs64 CheckedSub(DurationNs64 value) => new(checked(Nanoseconds - value.Nanoseconds));
+		public DurationNs64 CheckedNeg() => new(checked(-Nanoseconds));
+		public DurationNs64 CheckedMod(DurationNs64 value) => new(checked(Nanoseconds % value.Nanoseconds));
+	}
+	
+	public readonly struct DurationMs32 : IEquatable<DurationMs32>, IComparable<DurationMs32>
+	{
+		private readonly int Milliseconds;
+
+		public static readonly DurationMs32 Zero = new(0);
+		public DurationMs32(int milliseconds)
+		{
+			Milliseconds = milliseconds;
+		}
+
+		public const int MillisecondsPerMillisecond = 1;
+		public const int MillisecondsPerSecond = 1_000 * MillisecondsPerMillisecond;
+		public const int MillisecondsPerMinute = 60 * MillisecondsPerSecond;
+		public const int MillisecondsPerHour = 60 * MillisecondsPerMinute;
+		public const int MillisecondsPerDay = 24 * MillisecondsPerHour;
+
+		private static int DivRem(ref int value, int div)
+		{
+			int result = value / div;
+			value -= result * div;
+			return result;
+		}
+		public override string ToString()
+		{
+			var value = Milliseconds;
+			var days = DivRem(ref value, MillisecondsPerDay);
+			var hours = DivRem(ref value, MillisecondsPerHour);
+			var minutes = DivRem(ref value, MillisecondsPerMinute);
+			var seconds = DivRem(ref value, MillisecondsPerSecond);
+			var milliseconds = value;
+
+			string result = "";
+			if (days != 0)
+				result += $"{days}d";
+			if (hours != 0)
+				result += $"{hours}h";
+			if (minutes != 0)
+				result += $"{minutes}m";
+			if (seconds != 0)
+				result += $"{seconds}s";
+			if (milliseconds != 0)
+				result += $"{milliseconds}ms";
+			if (result.Length == 0)
+				result = "0";
+			return $"{result}(={Milliseconds}ms)";
+		}
+
+		public bool Equals(DurationMs32 other) => Milliseconds == other.Milliseconds;
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+		public override int GetHashCode() => Milliseconds.GetHashCode();
+
+		public int CompareTo(DurationMs32 other) => Milliseconds.CompareTo(other.Milliseconds);
+
+		public static bool operator ==(DurationMs32 left, DurationMs32 right) => left.Equals(right);
+		public static bool operator !=(DurationMs32 left, DurationMs32 right) => !(left == right);
+		public static bool operator <(DurationMs32 left, DurationMs32 right) => left.CompareTo(right) < 0;
+		public static bool operator <=(DurationMs32 left, DurationMs32 right) => left.CompareTo(right) <= 0;
+		public static bool operator >(DurationMs32 left, DurationMs32 right) => left.CompareTo(right) > 0;
+		public static bool operator >=(DurationMs32 left, DurationMs32 right) => left.CompareTo(right) >= 0;
+		public DurationMs32 CheckedAdd(DurationMs32 value) => new (checked(Milliseconds + value.Milliseconds));
+		public DurationMs32 CheckedSub(DurationMs32 value) => new(checked(Milliseconds - value.Milliseconds));
+		public DurationMs32 CheckedNeg() => new(checked(-Milliseconds));
+		public DurationMs32 CheckedMod(DurationMs32 value) => new(checked(Milliseconds % value.Milliseconds));
+	}
+	
 	public readonly struct OverflowingDuration : IEquatable<OverflowingDuration>
 	{
-		private readonly Duration Value;
+		private readonly DurationNs64 Value;
 		private readonly bool IsOverflown;
 
-		private OverflowingDuration(Duration value, bool isOverflown)
+		private OverflowingDuration(DurationNs64 value, bool isOverflown)
 		{
 			Value = value;
 			IsOverflown = isOverflown;
 		}
-		public static readonly OverflowingDuration Zero = new (Duration.Zero, false);
+		public static readonly OverflowingDuration Zero = new (DurationNs64.Zero, false);
 		public static readonly OverflowingDuration Overflown = new (default, true);
-		public static OverflowingDuration FromLongNanoseconds(long value) => new (new Duration(value), false);
+		public static OverflowingDuration FromLongNanoseconds(long value) => new (new DurationNs64(value), false);
 		public static OverflowingDuration FromBigIntegerNanoseconds(BigInteger value)
 		{
 			long longValue;
@@ -409,6 +509,32 @@ namespace Compiler
 			return FromLongNanoseconds(longValue);
 		}
 
+		public bool TryGetDurationNs64(out DurationNs64 value)
+		{
+			if (IsOverflown)
+			{
+				value = default;
+				return false;
+			}
+			else
+			{
+				value = Value;
+				return true;
+			}
+		}
+		public bool TryGetDurationMs32(out DurationMs32 value)
+		{
+			if (IsOverflown)
+			{
+				value = default;
+				return false;
+			}
+			else
+			{
+				return Value.TryGetMs32(out value);
+			}
+		}
+
 		public override string ToString() => IsOverflown ? "Overflown" : Value.ToString();
 
 		public bool Equals(OverflowingDuration other)
@@ -417,7 +543,11 @@ namespace Compiler
 		}
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
+
+		public static bool operator ==(OverflowingDuration left, OverflowingDuration right) => left.Equals(right);
+		public static bool operator !=(OverflowingDuration left, OverflowingDuration right) => !(left == right);
 	}
+	
 	public readonly struct OverflowingDateAndTime
 	{
 		private readonly DateTime Value;

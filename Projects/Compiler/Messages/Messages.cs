@@ -112,6 +112,19 @@ namespace Compiler.Messages
 
 		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
 	}
+	public sealed class DurationIsToLargeForTypeMessage : ACriticalMessage
+	{
+		public readonly OverflowingDuration Value;
+		public readonly IType TargetType;
+
+		public DurationIsToLargeForTypeMessage(OverflowingDuration value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
+		{
+			Value = value;
+			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
+		}
+
+		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
+	}
 	public sealed class ConstantDoesNotFitIntoAnyType : ACriticalMessage
 	{
 		public readonly string Generating;

@@ -64,7 +64,23 @@ namespace Compiler
 			else if (TypeRelations.IsIdentical(targetType, UDInt)) return new UDIntLiteralValue(0, targetType);
 			else if (TypeRelations.IsIdentical(targetType, LInt)) return new LIntLiteralValue(0, targetType);
 			else if (TypeRelations.IsIdentical(targetType, ULInt)) return new ULIntLiteralValue(0, targetType);
-			else throw new NotImplementedException();
+			else if (TypeRelations.IsIdentical(targetType, Time)) return new TimeLiteralValue(DurationMs32.Zero, targetType);
+			else if (TypeRelations.IsIdentical(targetType, LTime)) return new LTimeLiteralValue(DurationNs64.Zero, targetType);
+			else return new UnknownLiteralValue(targetType);
+		}
+		public ILiteralValue? TryCreateLiteralFromDurationValue(OverflowingDuration value, IType targetType)
+		{
+			if (TypeRelations.IsIdentical(targetType, LTime))
+			{
+				if (value.TryGetDurationNs64(out var x))
+					return new LTimeLiteralValue(x, targetType);
+			}
+			else if (TypeRelations.IsIdentical(targetType, Time))
+			{
+				if (value.TryGetDurationMs32(out var x))
+					return new TimeLiteralValue(x, targetType);
+			}
+			return null;
 		}
 		public ILiteralValue? TryCreateLiteralFromRealValue(OverflowingReal value, IType targetType)
 		{

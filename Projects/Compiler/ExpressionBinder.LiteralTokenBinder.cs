@@ -29,7 +29,6 @@ namespace Compiler
 				return ExpressionBinder.ImplicitCast(boundValue, context);
 			}
 
-
 			public IBoundExpression Visit(IntegerLiteralToken integerLiteralToken, IType? context)
 				=> BindIntLiteral(ExpressionBinder.SystemScope, context, integerLiteralToken.Value, MessageBag, integerLiteralToken);
 
@@ -86,7 +85,16 @@ namespace Compiler
 
 			public IBoundExpression Visit(DurationLiteralToken durationLiteralToken, IType? context)
 			{
-				throw new NotImplementedException();
+				if (context == null)
+					context = ExpressionBinder.SystemScope.Time;
+
+				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromDurationValue(durationLiteralToken.Value, context);
+				if (value == null)
+				{
+					MessageBag.Add(new DurationIsToLargeForTypeMessage(durationLiteralToken.Value, context, durationLiteralToken.SourcePosition));
+					value = new UnknownLiteralValue(context);
+				}
+				return new LiteralBoundExpression(durationLiteralToken, value);
 			}
 
 			public IBoundExpression Visit(DateAndTimeLiteralToken dateAndTimeLiteralToken, IType? context)
