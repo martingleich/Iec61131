@@ -112,29 +112,37 @@ namespace Compiler
 		}
 	}
 
-	public sealed class ProjectBinder : AInnerScope<RootScope>
+	public static class ProjectBinder
 	{
-		private readonly SymbolSet<ITypeSymbolInWork> WorkingTypeSymbols;
-		private readonly SymbolSet<GlobalVariableListSymbol> WorkingGvlSymbols;
-		private readonly SymbolSet<FunctionSymbolInWork> WorkingFunctionSymbols;
-		private readonly MessageBag MessageBag = new();
-
-		private ProjectBinder(
-			RootScope rootScope,
-			ImmutableArray<ParsedDutLanguageSource> duts,
-			ImmutableArray<ParsedGVLLanguageSource> gvls,
-			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous) : base(rootScope)
+		private sealed class Scope : AInnerScope<RootScope>
 		{
-			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, dut.Syntax));
-			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreatorT.Instance, pou)).WhereNotNull().ToImmutableArray();
-			WorkingTypeSymbols = dutSymbols.Concat(fbTypeSymbols).ToSymbolSetWithDuplicates(MessageBag);
-			WorkingGvlSymbols = gvls.ToSymbolSetWithDuplicates(MessageBag,
-				x => GvlSymbolInWork.Create(x, this, MessageBag));
-			var pouFunctionSymbolCreator = new PouFunctionSymbolCreatorT(this, MessageBag);
-			WorkingFunctionSymbols = (from pou in pous
-									  let symbol = pouFunctionSymbolCreator.ConvertToSymbol(pou.Interface)
-									  where symbol != null
-									  select new FunctionSymbolInWork(symbol, pou.Interface, pou.Body)).ToSymbolSetWithDuplicates(MessageBag);
+			public readonly SymbolSet<ITypeSymbol> TypeSymbols;
+			public readonly SymbolSet<GlobalVariableListSymbol> GvlSymbols;
+			public readonly SymbolSet<FunctionVariableSymbol> WorkingFunctionSymbols;
+
+			public Scope(
+				SymbolSet<ITypeSymbol> workingTypeSymbols,
+				SymbolSet<GlobalVariableListSymbol> workingGvlSymbols,
+				SymbolSet<FunctionVariableSymbol> workingFunctionSymbols,
+				RootScope outerScope) : base(outerScope)
+			{
+				TypeSymbols = workingTypeSymbols;
+				GvlSymbols = workingGvlSymbols;
+				WorkingFunctionSymbols = workingFunctionSymbols;
+			}
+
+			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+				TypeSymbols.TryGetValue(identifier, out var symbolInWork)
+					? ErrorsAnd.Create(symbolInWork)
+					: base.LookupType(identifier, sourcePosition);
+			public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+				WorkingFunctionSymbols.TryGetValue(identifier, out var symbolInWork)
+					? ErrorsAnd.Create<IVariableSymbol>(symbolInWork)
+					: base.LookupVariable(identifier, sourcePosition);
+			public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+				GvlSymbols.TryGetValue(identifier, out var symbol)
+					? ErrorsAnd.Create<IScopeSymbol>(symbol)
+					: base.LookupScope(identifier, sourcePosition);
 		}
 
 		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
@@ -192,7 +200,7 @@ namespace Compiler
 		private interface ITypeSymbolInWork : ISymbol
 		{
 			ITypeSymbol Symbol { get; }
-			ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder);
+			ITypeSymbol CompleteSymbolic(IScope scope, MessageBag messageBag);
 		}
 
 		private sealed class StructuredTypeInWork : ITypeSymbolInWork
@@ -210,16 +218,16 @@ namespace Compiler
 			public CaseInsensitiveString Name => Symbol.Name;
 			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
 
-			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			public ITypeSymbol CompleteSymbolic(IScope scope, MessageBag messageBag)
 			{
-				var fieldSymbols = FieldsSyntax.ToSymbolSetWithDuplicates(projectBinder.MessageBag, x => CreateFieldSymbol(projectBinder, x));
+				var fieldSymbols = FieldsSyntax.ToSymbolSetWithDuplicates(messageBag, x => CreateFieldSymbol(scope, messageBag, x));
 				Symbol.InternalSetFields(fieldSymbols);
 				return Symbol;
 			}
 
-			private static FieldVariableSymbol CreateFieldSymbol(ProjectBinder projectBinder, VarDeclSyntax fieldSyntax)
+			private static FieldVariableSymbol CreateFieldSymbol(IScope scope, MessageBag messageBag, VarDeclSyntax fieldSyntax)
 			{
-				var typeSymbol = TypeCompiler.MapSymbolic(projectBinder, fieldSyntax.Type, projectBinder.MessageBag);
+				var typeSymbol = TypeCompiler.MapSymbolic(scope, fieldSyntax.Type, messageBag);
 				return new FieldVariableSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifier, typeSymbol);
 			}
 		}
@@ -239,15 +247,15 @@ namespace Compiler
 			public CaseInsensitiveString Name => Symbol.Name;
 			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
 
-			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			public ITypeSymbol CompleteSymbolic(IScope scope, MessageBag messageBag)
 			{
 				var baseType = BodySyntax.EnumBaseType != null
-					? TypeCompiler.MapSymbolic(projectBinder, BodySyntax.EnumBaseType, projectBinder.MessageBag)
-					: projectBinder.SystemScope.Int;
+					? TypeCompiler.MapSymbolic(scope, BodySyntax.EnumBaseType, messageBag)
+					: scope.SystemScope.Int;
 				Symbol._SetBaseType(baseType);
 				List<EnumVariableSymbol> allValueSymbols = new List<EnumVariableSymbol>();
 				EnumVariableSymbol? prevSymbol = null;
-				var innerScope = new InsideEnumScope(Symbol, projectBinder);
+				var innerScope = new InsideEnumScope(Symbol, scope);
 				foreach (var valueSyntax in BodySyntax.Values)
 				{
 					IExpressionSyntax value;
@@ -273,7 +281,7 @@ namespace Compiler
 					allValueSymbols.Add(valueSymbol);
 					prevSymbol = valueSymbol;
 				}
-				var uniqueValueSymbols = allValueSymbols.ToSymbolSetWithDuplicates(projectBinder.MessageBag);
+				var uniqueValueSymbols = allValueSymbols.ToSymbolSetWithDuplicates(messageBag);
 				Symbol._SetValues(uniqueValueSymbols);
 				return Symbol;
 			}
@@ -294,9 +302,9 @@ namespace Compiler
 			public CaseInsensitiveString Name => Symbol.Name;
 			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
 
-			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			public ITypeSymbol CompleteSymbolic(IScope scope, MessageBag messageBag)
 			{
-				Symbol._SetAliasedType(TypeCompiler.MapSymbolic(projectBinder, AliasedTypeSyntax, projectBinder.MessageBag));
+				Symbol._SetAliasedType(TypeCompiler.MapSymbolic(scope, AliasedTypeSyntax, messageBag));
 				return Symbol;
 			}
 		}
@@ -317,25 +325,25 @@ namespace Compiler
 			ITypeSymbol ITypeSymbolInWork.Symbol => Symbol;
 			public CaseInsensitiveString Name => Symbol.Name;
 			public SourcePosition DeclaringPosition => Symbol.DeclaringPosition;
-			public ITypeSymbol CompleteSymbolic(ProjectBinder projectBinder)
+			public ITypeSymbol CompleteSymbolic(IScope scope, MessageBag messageBag)
 			{
-				var parameters = BindParameters(projectBinder, projectBinder.MessageBag, Syntax);
+				var parameters = BindParameters(scope, messageBag, Syntax);
 				Symbol._SetParameters(parameters);
-				var fields = BindFields(projectBinder, Syntax.VariableDeclarations).ToSymbolSetWithDuplicates(projectBinder.MessageBag);
+				var fields = BindFields(scope, messageBag, Syntax.VariableDeclarations).ToSymbolSetWithDuplicates(messageBag);
 				Symbol._SetFields(fields);
 				foreach (var field in fields)
 				{
 					if (parameters.TryGetValue(field.Name, out var original))
 					{
-						projectBinder.MessageBag.Add(new SymbolAlreadyExistsMessage(field.Name, original.DeclaringPosition, field.DeclaringPosition));
+						messageBag.Add(new SymbolAlreadyExistsMessage(field.Name, original.DeclaringPosition, field.DeclaringPosition));
 					}
 				}
 				return Symbol;
 			}
 			public BoundPou GetBoundPou(IScope moduleScope)
 				=> BoundPou.FromFunctionBlock(moduleScope, Syntax, BodySyntax, Symbol);
-			private static IEnumerable<FieldVariableSymbol> BindFields(ProjectBinder projectBinder, SyntaxArray<VarDeclBlockSyntax> vardecls)
-				=> BindVariableBlocks(vardecls, projectBinder, projectBinder.MessageBag,
+			private static IEnumerable<FieldVariableSymbol> BindFields(IScope scope, MessageBag messageBag, SyntaxArray<VarDeclBlockSyntax> vardecls)
+				=> BindVariableBlocks(vardecls, scope, messageBag,
 					kindToken => kindToken as VarToken,
 					(_, scope, bag, syntax) =>
 					{
@@ -350,11 +358,10 @@ namespace Compiler
 
 		private static class GvlSymbolInWork
 		{
-			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, ProjectBinder projectBinder, MessageBag messageBag)
+			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, IScope scope, MessageBag messageBag)
 			{
-				var variables = BindVariables(x.Syntax.VariableDeclarations, projectBinder, messageBag).ToSymbolSetWithDuplicates(messageBag);
-				var symbol = new GlobalVariableListSymbol(x.Syntax.SourcePosition, x.Name, variables);
-				return symbol;
+				var variables = BindVariables(x.Syntax.VariableDeclarations, scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				return new GlobalVariableListSymbol(x.Syntax.SourcePosition, x.Name, variables);
 			}
 
 			private static IEnumerable<GlobalVariableSymbol> BindVariables(IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
@@ -401,54 +408,67 @@ namespace Compiler
 			ImmutableArray<ParsedGVLLanguageSource> gvls,
 			ImmutableArray<ParsedDutLanguageSource> duts)
 		{
-			var binder = new ProjectBinder(new RootScope(new SystemScope()), duts, gvls, pous);
-			return binder.Bind(pous);
-		}
+			var rootScope = new RootScope(new SystemScope());
+			var messageBag = new MessageBag();
 
-		private BoundModule Bind(ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous)
-		{
-			var typeSymbols = WorkingTypeSymbols.ToSymbolSet(symbolInWork => symbolInWork.CompleteSymbolic(this));
-			foreach (var typeSymbol in typeSymbols)
-			{
-				DelayedLayoutType.RecursiveLayout(typeSymbol, MessageBag, typeSymbol.DeclaringPosition);
-				if (typeSymbol is FunctionBlockSymbol fbSymbol)
-				{
-					foreach (var param in fbSymbol.Parameters)
-					{
-						DelayedLayoutType.RecursiveLayout(param.Type, MessageBag, param.DeclaringPosition);
-					}
-				}
-			}
-			foreach (var enumTypeSymbol in typeSymbols.OfType<EnumTypeSymbol>())
-				enumTypeSymbol.RecursiveInitializers(MessageBag);
-			foreach (var gvlSymbol in WorkingGvlSymbols)
-			{
-				foreach (var globalVar in gvlSymbol.Variables)
-					DelayedLayoutType.RecursiveLayout(globalVar.Type, MessageBag, globalVar.DeclaringPosition);
-			}
-			foreach (var functionSymbol in WorkingFunctionSymbols)
-			{
-				foreach (var param in functionSymbol.Symbol.Parameters)
-					DelayedLayoutType.RecursiveLayout(param.Type, MessageBag, param.DeclaringPosition);
-			}
+			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, dut.Syntax));
+			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreatorT.Instance, pou)).WhereNotNull().ToImmutableArray();
+			var workingTypeSymbols = dutSymbols.Concat(fbTypeSymbols).ToSymbolSetWithDuplicates(messageBag);
+			var typeScope = new Scope(
+				workingTypeSymbols.ToSymbolSet(t => t.Symbol),
+				SymbolSet<GlobalVariableListSymbol>.Empty,
+				SymbolSet<FunctionVariableSymbol>.Empty,
+				rootScope);
+			var workingGvlSymbols = gvls.ToSymbolSetWithDuplicates(messageBag,
+				x => GvlSymbolInWork.Create(x, typeScope, messageBag));
+			var typeFuncScope = new Scope(
+				typeScope.TypeSymbols,
+				workingGvlSymbols,
+				SymbolSet<FunctionVariableSymbol>.Empty,
+				rootScope);
 
+			var pouFunctionSymbolCreator = new PouFunctionSymbolCreatorT(typeFuncScope, messageBag);
+			var workingFunctionSymbols = (from pou in pous
+										  let symbol = pouFunctionSymbolCreator.ConvertToSymbol(pou.Interface)
+										  where symbol != null
+										  select new FunctionSymbolInWork(symbol, pou.Interface, pou.Body)).ToSymbolSetWithDuplicates(messageBag);
+			var fullScope = new Scope(
+				typeFuncScope.TypeSymbols,
+				typeFuncScope.GvlSymbols,
+				workingFunctionSymbols.ToSymbolSet(f => f.VariableSymbol),
+				rootScope);
+
+			////////////////////////////////////////////////////////////
+			// Mutate all symbols
+			// To add sizes, and corrected layout.
+			CompleteSymbols(
+				fullScope,
+				messageBag,
+				workingTypeSymbols,
+				workingGvlSymbols,
+				workingFunctionSymbols);
+			// After this point all symbols are frozen
+			////////////////////////////////////////////////////////////
+
+			var typeSymbols = workingTypeSymbols.ToSymbolSet(type => type.Symbol);
 			var scopes = EnumerableExtensions.Concat(
-				WorkingGvlSymbols.Cast<IScopeSymbol>(),
-				typeSymbols.OfType<IScopeSymbol>()).ToSymbolSetWithDuplicates(MessageBag);
+				workingGvlSymbols.Cast<IScopeSymbol>(),
+				typeSymbols.OfType<IScopeSymbol>()).ToSymbolSetWithDuplicates(messageBag);
+			var functionSymbolSet = workingFunctionSymbols.ToSymbolSet(w => w.VariableSymbol);
 
 			var itf = new BoundModuleInterface(
 				typeSymbols,
-				WorkingFunctionSymbols.ToSymbolSet(w => w.VariableSymbol),
-				WorkingGvlSymbols,
+				functionSymbolSet,
+				workingGvlSymbols,
 				scopes);
 
-			var moduleScope = new GlobalModuleScope(itf, OuterScope);
-			var functionSymbols = WorkingFunctionSymbols
+			var moduleScope = new GlobalModuleScope(itf, rootScope);
+			var functionSymbols = workingFunctionSymbols
 				.ToImmutableDictionary(
 					w => w.VariableSymbol,
 					w => w.GetBoundPou(moduleScope),
 					SymbolByNameComparer<FunctionVariableSymbol>.Instance);
-			var functionBlockSymbols = WorkingTypeSymbols
+			var functionBlockSymbols = workingTypeSymbols
 				.OfType<FunctionBlockTypeInWork>()
 				.ToImmutableDictionary(
 					w => w.Symbol,
@@ -456,24 +476,54 @@ namespace Compiler
 					SymbolByNameComparer<FunctionBlockSymbol>.Instance);
 
 			return new BoundModule(
-				MessageBag.ToImmutable(),
+				messageBag.ToImmutable(),
 				itf,
 				functionSymbols,
 				functionBlockSymbols);
 		}
 
-		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
-			WorkingTypeSymbols.TryGetValue(identifier, out var symbolInWork)
-				? ErrorsAnd.Create(symbolInWork.Symbol)
-				: base.LookupType(identifier, sourcePosition);
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
-			WorkingFunctionSymbols.TryGetValue(identifier, out var symbolInWork)
-				? ErrorsAnd.Create<IVariableSymbol>(symbolInWork.VariableSymbol)
-				: base.LookupVariable(identifier, sourcePosition);
-		public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
-			WorkingGvlSymbols.TryGetValue(identifier, out var symbol)
-				? ErrorsAnd.Create<IScopeSymbol>(symbol)
-				: base.LookupScope(identifier, sourcePosition);
+		private static void CompleteSymbols(
+			IScope scope,
+			MessageBag messageBag,
+			SymbolSet<ITypeSymbolInWork> typesToComplete,
+			SymbolSet<GlobalVariableListSymbol> gvlsToComplete,
+			SymbolSet<FunctionSymbolInWork> functionsToComplete)
+
+		{
+			// Complete the symbolic layout for all types.
+			List<ITypeSymbol> typeSymbols = new List<ITypeSymbol>();
+			foreach (var workingSymbol in typesToComplete)
+				typeSymbols.Add(workingSymbol.CompleteSymbolic(scope, messageBag));
+
+			// Perform the layout for all symbols.
+			foreach (var typeSymbol in typeSymbols)
+			{
+				DelayedLayoutType.RecursiveLayout(typeSymbol, messageBag, typeSymbol.DeclaringPosition);
+
+				if (typeSymbol is FunctionBlockSymbol fbSymbol)
+				{
+					foreach (var param in fbSymbol.Parameters)
+					{
+						DelayedLayoutType.RecursiveLayout(param.Type, messageBag, param.DeclaringPosition);
+					}
+				}
+				else if (typeSymbol is EnumTypeSymbol enumTypeSymbol)
+				{
+					enumTypeSymbol.RecursiveInitializers(messageBag);
+				}
+			}
+			foreach (var gvlSymbol in gvlsToComplete)
+			{
+				foreach (var globalVar in gvlSymbol.Variables)
+					DelayedLayoutType.RecursiveLayout(globalVar.Type, messageBag, globalVar.DeclaringPosition);
+			}
+			foreach (var functionSymbol in functionsToComplete)
+			{
+				foreach (var param in functionSymbol.Symbol.Parameters)
+					DelayedLayoutType.RecursiveLayout(param.Type, messageBag, param.DeclaringPosition);
+			}
+		}
+
 
 		public static IEnumerable<TVariableSymbol> BindVariableBlocks<TVariableSymbol, TKind>(
 			SyntaxArray<VarDeclBlockSyntax> vardecls,
