@@ -10,7 +10,6 @@ namespace Tests
 
 	public sealed class AliasBindingTests
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void AliasToBuiltIn()
 		{
@@ -18,8 +17,8 @@ namespace Tests
 				.AddDut("TYPE myAlias : INT; END_TYPE")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
-			AssertEx.EqualType(SystemScope.Int, myAlias.AliasedType);
-			Assert.Equal(SystemScope.Int.LayoutInfo, myAlias.LayoutInfo);
+			AssertEx.EqualType(boundInterface.SystemScope.Int, myAlias.AliasedType);
+			Assert.Equal(boundInterface.SystemScope.Int.LayoutInfo, myAlias.LayoutInfo);
 		}
 
 		[Fact]
@@ -29,7 +28,7 @@ namespace Tests
 				.AddDut("TYPE myAlias : ARRAY[0..10] OF INT; END_TYPE")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
-			var arrayType = new ArrayType(SystemScope.Int, ImmutableArray.Create(new ArrayType.Range(0, 10)));
+			var arrayType = new ArrayType(boundInterface.SystemScope.Int, ImmutableArray.Create(new ArrayType.Range(0, 10)));
 			AssertEx.EqualType(arrayType, myAlias.AliasedType);
 			Assert.Equal(arrayType.LayoutInfo, myAlias.LayoutInfo);
 		}
@@ -55,7 +54,7 @@ namespace Tests
 			var myAlias2 = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias2"]);
 			var myAlias1 = boundInterface.Types["myAlias1"];
 			AssertEx.EqualType(myAlias1, myAlias2.AliasedType);
-			Assert.Equal(SystemScope.Int.LayoutInfo, myAlias1.LayoutInfo);
+			Assert.Equal(boundInterface.SystemScope.Int.LayoutInfo, myAlias1.LayoutInfo);
 			Assert.Equal(myAlias1.LayoutInfo, myAlias2.LayoutInfo);
 		}
 		[Fact]

@@ -14,8 +14,7 @@ namespace Tests
 
 	public static class BindHelper
 	{
-		public static readonly SystemScope SystemScope = new ();
-		public static readonly RootScope RootScope = new (SystemScope);
+		public static readonly SystemScope SystemScope = new("Test".ToCaseInsensitive());
 
 		public sealed class TestProject
 		{
@@ -26,13 +25,15 @@ namespace Tests
 			}
 
 			public TestProject AddDutFast(string name, string source)
-				=> new (MyProject.Add(new DutLanguageSource($"TYPE {name} : {source}; END_TYPE")));
+				=> new(MyProject.Add(new DutLanguageSource($"TYPE {name} : {source}; END_TYPE")));
 			public TestProject AddDut(string source)
-				=> new (MyProject.Add(new DutLanguageSource(source)));
+				=> new(MyProject.Add(new DutLanguageSource(source)));
 			public TestProject AddPou(string itf, string body)
-				=> new (MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource(itf, body)));
+				=> new(MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource(itf, body)));
 			public TestProject AddGVL(string name, string source)
-				=> new (MyProject.Add(new GlobalVariableListLanguageSource(name.ToCaseInsensitive(), source)));
+				=> new(MyProject.Add(new GlobalVariableListLanguageSource(name.ToCaseInsensitive(), source)));
+			public TestProject AddLibrary(BoundModuleInterface @interface)
+				=> new(MyProject.Add(new LibraryLanguageSource(@interface)));
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{
@@ -49,12 +50,12 @@ namespace Tests
 				var boundFBPous = MyProject.LazyBoundModule.Value.FunctionBlockPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
 				var boundPous = boundFunctionPous.Concat(boundFBPous).ToImmutableDictionary(x => x.Key, x => x.Value);
 				ExactlyMessages(checks)(boundPous.Values.SelectMany(x => x.Item2));
-				return new (boundPous);
+				return new(boundPous);
 			}
 
 			public IBoundExpression BindGlobalExpression(string expression, string? targetType, params Action<IMessage>[] checks)
 				=> BindGlobalExpression<IBoundExpression>(expression, targetType, checks);
-			public T BindGlobalExpression<T>(string expression, string? targetType, params Action<IMessage>[] checks) where T:IBoundExpression
+			public T BindGlobalExpression<T>(string expression, string? targetType, params Action<IMessage>[] checks) where T : IBoundExpression
 				=> new TestGlobalExpression(this).BindGlobalExpression<T>(expression, targetType, checks);
 			public TestGlobalExpression WithGlobalVar(string name, string type)
 				=> new TestGlobalExpression(this).WithGlobalVar(name, type);
@@ -98,7 +99,7 @@ namespace Tests
 				return type;
 			}
 
-			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T:IBoundExpression
+			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
 			{
 				var expressionParseMessages = new MessageBag();
 				var expressionSyntax = Parser.ParseExpression(expression, expressionParseMessages);
@@ -106,7 +107,7 @@ namespace Tests
 				ExactlyMessages()(Project.MyProject.LazyParseMessages.Value);
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
-				var moduleScope = new GlobalModuleScope(boundModuleInterface, RootScope);
+				var moduleScope = new GlobalInternalModuleScope(boundModuleInterface, new RootScope(boundModuleInterface.SystemScope));
 				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(default, x.Key, MapType(moduleScope, x.Value)));
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();
@@ -127,16 +128,16 @@ namespace Tests
 				BoundPous = boundPous;
 			}
 
-			public TestBoundBodies Inspect(string name, Action< IBoundStatement> check) => Inspect(name.ToCaseInsensitive(), check);
+			public TestBoundBodies Inspect(string name, Action<IBoundStatement> check) => Inspect(name.ToCaseInsensitive(), check);
 			public TestBoundBodies Inspect(CaseInsensitiveString name, Action<IBoundStatement> check)
 			{
 				check(BoundPous[name].Item1);
 				return this;
 			}
 		}
-		
-		public static readonly TestProject NewProject = new (Project.Empty);
 
+		public static readonly TestProject NewProject = NewNamedProject("Test");
+		public static TestProject NewNamedProject(string name) => new(Project.Empty(name.ToCaseInsensitive()));
 	}
 
 	public static class AssertEx

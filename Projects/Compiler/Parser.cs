@@ -356,7 +356,11 @@ namespace Compiler
 			}
 			else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
 			{
-				return new IdentifierTypeSyntax(tokenIdentifier);
+				var scope = TryParseScopeQualifier(ref tokenIdentifier);
+				if (scope != null)
+					return new ScopedIdentifierTypeSyntax(scope, tokenIdentifier);
+				else
+					return new IdentifierTypeSyntax(tokenIdentifier);
 			}
 			else if (TryMatch<ArrayToken>(out var tokenArray))
 			{
@@ -380,6 +384,7 @@ namespace Compiler
 			else
 			{
 				Messages.Add(new Messages.TypeExpectedMessage(CurToken));
+				SkipUntil<SemicolonToken>();
 				return new BuiltInTypeSyntax(Synthesize(IntToken.Synthesize));
 			}
 
@@ -518,17 +523,11 @@ namespace Compiler
 				}
 				else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
 				{
-					ScopeQualifierSyntax? scope = null;
-					while (TryMatch<DoubleColonToken>(out var tokenDoubleColon))
-					{
-						scope = new ScopeQualifierSyntax(scope, tokenIdentifier, tokenDoubleColon);
-						tokenIdentifier = Match(IdentifierToken.Synthesize);
-					}
-
-					if(scope == null)
-						return new VariableExpressionSyntax(tokenIdentifier);
-					else
+					var scope = TryParseScopeQualifier(ref tokenIdentifier);
+					if (scope != null)
 						return new ScopedVariableExpressionSyntax(scope, tokenIdentifier);
+					else
+						return new VariableExpressionSyntax(tokenIdentifier);
 				}
 				else if (TryMatch<ParenthesisOpenToken>(out var tokenParenOpen))
 				{
@@ -550,6 +549,17 @@ namespace Compiler
 					return new VariableExpressionSyntax(Synthesize(IdentifierToken.Synthesize));
 				}
 			}
+		}
+
+		private ScopeQualifierSyntax? TryParseScopeQualifier(ref IdentifierToken tokenIdentifier)
+		{
+			ScopeQualifierSyntax? scope = null;
+			while (TryMatch<DoubleColonToken>(out var tokenDoubleColon))
+			{
+				scope = new ScopeQualifierSyntax(scope, tokenIdentifier, tokenDoubleColon);
+				tokenIdentifier = Match(IdentifierToken.Synthesize);
+			}
+			return scope;
 		}
 
 		private TypeDeclarationSyntax ParseTypeDeclaration()

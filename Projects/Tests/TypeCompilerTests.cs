@@ -4,7 +4,6 @@ using Compiler.Scopes;
 using Compiler.Types;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
 
@@ -13,8 +12,8 @@ namespace Tests
 	using static ErrorTestHelper;
 	public sealed class TypeCompilerTests
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
-		private static readonly StructuredTypeSymbol MyType = new(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldVariableSymbol>.Empty, new LayoutInfo(23, 8));
+		private static readonly StructuredTypeSymbol MyType = new(
+			default, false, "Test".ToCaseInsensitive(), "MyType".ToCaseInsensitive(), SymbolSet<FieldVariableSymbol>.Empty, new LayoutInfo(23, 8));
 		private sealed class TypeSetScope : AInnerScope<IScope>
 		{
 			private readonly SymbolSet<ITypeSymbol> Types;
@@ -32,7 +31,8 @@ namespace Tests
 
 		private static void AssertTypeCompiler(string input, Action<IType> check, params Action<IMessage>[] errorChecks)
 		{
-			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), BindHelper.RootScope);
+			var rootScope = new RootScope(new SystemScope("Test".ToCaseInsensitive()));
+			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), rootScope);
 			var source = ParserTestHelper.ParseType(input);
 			var bag = new MessageBag();
 			var bound = Compiler.TypeCompiler.MapComplete(naiveScope, source, bag);
@@ -40,27 +40,22 @@ namespace Tests
 			check(bound);
 		}
 
-		public static IEnumerable<object[]> TypeCompiler_Data() => TypeCompilerData_Typed().Select(v => new object[] { v.Item1, v.Item2 });
-		public static IEnumerable<(string, IType)> TypeCompilerData_Typed()
-		{
-			yield return ("INT", SystemScope.Int);
-			yield return ("BOOL", SystemScope.Bool);
-			yield return ("ARRAY[0..1] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, 1))));
-			yield return ("ARRAY[0..1,2..5] OF DATE", new ArrayType(SystemScope.Date, ImmutableArray.Create(new ArrayType.Range(0, 1), new ArrayType.Range(2, 5))));
-			yield return ("ARRAY[0..0] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, 0))));
-			yield return ("ARRAY[0..-1] OF LREAL", new ArrayType(SystemScope.LReal, ImmutableArray.Create(new ArrayType.Range(0, -1))));
-			yield return ("MyType", new StructuredTypeSymbol(default, false, "MyType".ToCaseInsensitive(), SymbolSet<FieldVariableSymbol>.Empty, default));
-			yield return ("STRING[17]", new StringType(17));
-			yield return ("STRING", new StringType(80));
-			yield return ("STRING[SIZEOF(MyType)]", new StringType(23));
-			yield return ("POINTER TO BYTE", new PointerType(SystemScope.Byte));
-			yield return ("POINTER TO POINTER TO SINT", new PointerType(new PointerType(SystemScope.SInt)));
-		}
 		[Theory]
-		[MemberData(nameof(TypeCompiler_Data))]
-		public void TypeCompiler(string str, IType expected)
+		[InlineData ("INT", "Int")]
+		[InlineData ("BOOL", "Bool")]
+		[InlineData ("ARRAY[0..1] OF LREAL", "ARRAY[0..1] OF LReal")]
+		[InlineData ("ARRAY[0..1,2..5] OF DATE", "ARRAY[0..1, 2..5] OF Date")]
+		[InlineData ("ARRAY[0..0] OF LREAL", "ARRAY[0..0] OF LReal")]
+		[InlineData ("ARRAY[0..-1] OF LREAL", "ARRAY[0..-1] OF LReal")]
+		[InlineData ("MyType", "MyType")]
+		[InlineData ("STRING[17]", "STRING[17]")]
+		[InlineData ("STRING", "STRING[80]")]
+		[InlineData ("STRING[SIZEOF(MyType)]", "STRING[23]")]
+		[InlineData ("POINTER TO BYTE", "POINTER TO Byte")]
+		[InlineData ("POINTER TO POINTER TO SINT", "POINTER TO POINTER TO SInt")]
+		public void TypeCompiler(string str, string expected)
 		{
-			AssertTypeCompiler(str, bound => Assert.Equal(bound.Code, expected.Code));
+			AssertTypeCompiler(str, bound => Assert.Equal(expected, bound.Code));
 		}
 
 		[Fact]

@@ -9,7 +9,6 @@ namespace Tests
 
 	public sealed class FunctionBlockBindingTests
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void Empty()
 		{
@@ -29,7 +28,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Input, p.Kind); Assert.Equal("myInput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Int, p.Type); });
+				p => { Assert.Equal(ParameterKind.Input, p.Kind); Assert.Equal("myInput".ToCaseInsensitive(), p.Name); Assert.Equal(boundInterface.SystemScope.Int, p.Type); });
 		}
 
 		[Fact]
@@ -40,7 +39,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("myOutput".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("myOutput".ToCaseInsensitive(), p.Name); Assert.Equal(boundInterface.SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void Function_WithInOut()
@@ -50,7 +49,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.InOut, p.Kind); Assert.Equal("myInOut".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.InOut, p.Kind); Assert.Equal("myInOut".ToCaseInsensitive(), p.Name); Assert.Equal(boundInterface.SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void Function_TempIsIgnored()
@@ -101,7 +100,7 @@ namespace Tests
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
 				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("firstOutput".ToCaseInsensitive(), p.Name); },
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Real, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(boundInterface.SystemScope.Real, p.Type); });
 		}
 		[Fact]
 		public void Function_ExplicitReturnOutput()
@@ -111,7 +110,7 @@ namespace Tests
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
-				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(SystemScope.Bool, p.Type); });
+				p => { Assert.Equal(ParameterKind.Output, p.Kind); Assert.Equal("MyFunction".ToCaseInsensitive(), p.Name); Assert.Equal(boundInterface.SystemScope.Bool, p.Type); });
 		}
 		[Fact]
 		public void Function_ComplexTypeArg()

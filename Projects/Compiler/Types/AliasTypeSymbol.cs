@@ -6,7 +6,8 @@ namespace Compiler.Types
 	public sealed class AliasTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
 		public SourcePosition DeclaringPosition { get; }
-		public CaseInsensitiveString Name { get; }
+		public CaseInsensitiveString Name => UniqueId.Name;
+		public UniqueSymbolId UniqueId { get; }
 		public IType? _aliasedType;
 		private bool Inside_GetLayoutInfo;
 		private bool RecursiveLayoutWasDone;
@@ -14,19 +15,19 @@ namespace Compiler.Types
 
 		public IType AliasedType => _aliasedType ?? throw new InvalidOperationException();
 
-		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name)
+		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
 			DeclaringPosition = declaringPosition;
-			Name = name;
 			_aliasedType = null;
+			UniqueId = new UniqueSymbolId(module, name);
 		}
-		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType aliasedType)
+		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name, IType aliasedType)
 		{
 			DeclaringPosition = declaringPosition;
-			Name = name;
 			_aliasedType = aliasedType ?? throw new ArgumentNullException(nameof(aliasedType));
 			MaybeLayoutInfo = aliasedType.LayoutInfo;
 			RecursiveLayoutWasDone = false;
+			UniqueId = new UniqueSymbolId(module, name);
 		}
 
 		private UndefinedLayoutInfo? MaybeLayoutInfo { get; set; }
@@ -93,7 +94,12 @@ namespace Compiler.Types
 			if (AliasedType is IScopeSymbol aliasedScope)
 				return aliasedScope.LookupVariable(identifier, errorPosition);
 			else
-				return ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
+				return EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
 		}
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
+		public override string ToString() => UniqueId.ToString();
 	}
 }

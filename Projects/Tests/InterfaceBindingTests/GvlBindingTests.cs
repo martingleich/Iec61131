@@ -9,7 +9,6 @@ namespace Tests
 
 	public sealed class GvlBindingTests
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public void EmptyGvl()
 		{
@@ -28,8 +27,8 @@ namespace Tests
 				.BindInterfaces();
 			var myGvl = boundInterface.GlobalVariableListSymbols["MyOtherGVL"];
 			Assert.Collection(myGvl.Variables.OrderBy(v => v.Name),
-				v => AssertEx.CheckVariable(v, "abc", SystemScope.Real),
-				v => AssertEx.CheckVariable(v, "xyz", SystemScope.Int));
+				v => AssertEx.CheckVariable(v, "abc", boundInterface.SystemScope.Real),
+				v => AssertEx.CheckVariable(v, "xyz", boundInterface.SystemScope.Int));
 		}
 		
 		[Fact]
@@ -41,10 +40,10 @@ namespace Tests
 				.BindInterfaces();
 			var myGvl = boundInterface.GlobalVariableListSymbols["myGvl"];
 			Assert.Collection(myGvl.Variables.OrderBy(v => v.Name),
-				v => AssertEx.CheckVariable(v, "xyz", SystemScope.Int));
+				v => AssertEx.CheckVariable(v, "xyz", boundInterface.SystemScope.Int));
 			var myOtherGvl = boundInterface.GlobalVariableListSymbols["myOtherGVL"];
 			Assert.Collection(myOtherGvl.Variables.OrderBy(v => v.Name),
-				v => AssertEx.CheckVariable(v, "abc", SystemScope.Real));
+				v => AssertEx.CheckVariable(v, "abc", boundInterface.SystemScope.Real));
 		}
 		[Fact]
 		public void Multiple_VarGlobal_Blocks()
@@ -54,8 +53,8 @@ namespace Tests
 				.BindInterfaces();
 			var myGvl = boundInterface.GlobalVariableListSymbols["MyGVL"];
 			Assert.Collection(myGvl.Variables.OrderBy(v => v.Name),
-				v => AssertEx.CheckVariable(v, "abc", SystemScope.Real),
-				v => AssertEx.CheckVariable(v, "xyz", SystemScope.Int));
+				v => AssertEx.CheckVariable(v, "abc", boundInterface.SystemScope.Real),
+				v => AssertEx.CheckVariable(v, "xyz", boundInterface.SystemScope.Int));
 		}
 		[Fact]
 		public void Error_GVL_VAR_Block()
@@ -85,7 +84,7 @@ namespace Tests
 			var boundInterface = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL ptr : POINTER TO INT; END_VAR")
 				.BindInterfaces();
-			Assert.Equal(BindHelper.SystemScope.PointerSize, boundInterface.GlobalVariableListSymbols["MyGVL"].Variables["ptr"].Type.LayoutInfo.Size);
+			Assert.Equal(boundInterface.SystemScope.PointerSize, boundInterface.GlobalVariableListSymbols["MyGVL"].Variables["ptr"].Type.LayoutInfo.Size);
 		}
 
 		[Fact]

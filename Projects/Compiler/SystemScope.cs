@@ -40,7 +40,7 @@ namespace Compiler
 
 		private readonly TypeMapper BuiltInTypeMapper;
 
-		public SystemScope()
+		public SystemScope(CaseInsensitiveString moduleName)
 		{
 			AllBuiltInTypes = ImmutableArray.Create(Char, LReal, Real, LInt, DInt, Int, SInt, ULInt, UDInt, UInt, USInt, LWord, DWord, Word, Byte, Bool, LTime, Time, LDT, DT, LDate, Date, LTOD, TOD);
 			ArithmeticTypes = AllBuiltInTypes.Where(t => t.IsArithmetic).ToImmutableArray();
@@ -50,7 +50,10 @@ namespace Compiler
 
 			BuiltInFunctionTable = new BuiltInFunctionTable(this);
 			PointerSize = 4;
+			ModuleName = moduleName;
 		}
+
+		public CaseInsensitiveString ModuleName { get; }
 
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
 

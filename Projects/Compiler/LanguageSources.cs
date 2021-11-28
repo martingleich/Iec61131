@@ -89,4 +89,15 @@ namespace Compiler
 			Messages = messages;
 		}
 	}
+
+	public readonly struct LibraryLanguageSource
+	{
+		public readonly BoundModuleInterface Interface;
+
+		public LibraryLanguageSource(BoundModuleInterface @interface)
+		{
+			Interface = @interface;
+		}
+		public CaseInsensitiveString Namespace => Interface.Name;
+	}
 }

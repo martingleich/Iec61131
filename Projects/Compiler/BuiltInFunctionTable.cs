@@ -9,12 +9,14 @@ namespace Compiler
 	{
 		private readonly ImmutableDictionary<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?> Table;
 
+		private static readonly CaseInsensitiveString SystemModuleName = "__System".ToCaseInsensitive();
+
 		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type)
 			=> BinaryOperator(baseName, type, type);
 		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			var funcType = new FunctionTypeSymbol(name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), type),
 				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, returnType)));
@@ -23,7 +25,7 @@ namespace Compiler
 		private static FunctionVariableSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
 			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
-			var funcType = new FunctionTypeSymbol(name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, type)));
 			return new FunctionVariableSymbol(funcType);

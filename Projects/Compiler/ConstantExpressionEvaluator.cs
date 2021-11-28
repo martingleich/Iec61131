@@ -142,7 +142,6 @@ namespace Compiler
 		public ILiteralValue? Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => NotAConstant(arrayIndexAccessBoundExpression);
 		public ILiteralValue? Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => NotAConstant(pointerIndexAccessBoundExpression);
 		public ILiteralValue? Visit(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
-		public ILiteralValue? Visit(StaticVariableBoundExpression staticVariableBoundExpression) => NotAConstant(staticVariableBoundExpression);
 		public ILiteralValue? Visit(CallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
 		public ILiteralValue? Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
 	}

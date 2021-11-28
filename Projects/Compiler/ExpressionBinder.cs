@@ -423,8 +423,12 @@ namespace Compiler
 
 		public IBoundExpression Visit(ScopedVariableExpressionSyntax scopedVariableExpressionSyntax, IType? context)
 		{
-			var scope = ResolveScope(scopedVariableExpressionSyntax.Scope).Extract(MessageBag);
-			var variable = scope.LookupVariable(scopedVariableExpressionSyntax.Identifier, scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
+			var scope = Scope.ResolveScope(scopedVariableExpressionSyntax.Scope).Extract(MessageBag, out bool missingScope);
+			IVariableSymbol variable;
+			if (missingScope)
+				variable = IVariableSymbol.CreateError(scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition, scopedVariableExpressionSyntax.Identifier);
+			else
+				variable = scope.LookupVariable(scopedVariableExpressionSyntax.Identifier, scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
 			IBoundExpression boundExpression = new VariableBoundExpression(scopedVariableExpressionSyntax, variable);
 			if (scope is AliasTypeSymbol aliasType && variable is EnumVariableSymbol)
 			{
@@ -434,18 +438,5 @@ namespace Compiler
 			return ImplicitCast(boundExpression, context);
 		}
 
-		private ErrorsAnd<IScopeSymbol> ResolveScope(ScopeQualifierSyntax syntax)
-		{
-			if (syntax.Scope != null)
-			{
-				var childScope = syntax.Scope;
-				return ErrorsAnd.Create(IScopeSymbol.CreateError(childScope.ScopeName, childScope.TokenScopeName.SourcePosition),
-					new ScopeNotFoundMessage(childScope.ScopeName, childScope.TokenScopeName.SourcePosition));
-			}
-			else
-			{
-				return Scope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourcePosition);
-			}
-		}
 	}
 }

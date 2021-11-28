@@ -27,6 +27,8 @@ namespace Compiler
 		public static bool operator >(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) > 0;
 		public static bool operator >=(CaseInsensitiveString left, CaseInsensitiveString right) => left.CompareTo(right) >= 0;
 		public int Length => Original.Length;
+
+		public static readonly CaseInsensitiveString Empty = "".ToCaseInsensitive();
 	}
 
 	public static class CaseInsensitiveStringExt

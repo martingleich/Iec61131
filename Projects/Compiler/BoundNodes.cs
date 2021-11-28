@@ -30,7 +30,6 @@ namespace Compiler
 			T Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression);
 			T Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression);
 			T Visit(FieldAccessBoundExpression fieldAccessBoundExpression);
-			T Visit(StaticVariableBoundExpression staticVariableBoundExpression);
 			T Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
 			T Visit(CallBoundExpression callBoundExpression);
 		}
@@ -331,21 +330,6 @@ namespace Compiler
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			BaseExpression = baseExpression ?? throw new ArgumentNullException(nameof(baseExpression));
 			Field = field ?? throw new ArgumentNullException(nameof(field));
-		}
-
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
-	}
-
-	public sealed class StaticVariableBoundExpression : IBoundExpression
-	{
-		public INode OriginalNode { get; }
-		public IType Type => Variable.Type;
-		public readonly GlobalVariableSymbol Variable;
-
-		public StaticVariableBoundExpression(INode originalNode, GlobalVariableSymbol variable)
-		{
-			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
-			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);

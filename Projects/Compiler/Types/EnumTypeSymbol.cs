@@ -5,7 +5,8 @@ namespace Compiler.Types
 {
 	public sealed class EnumTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
-		public CaseInsensitiveString Name { get; }
+		public CaseInsensitiveString Name => UniqueId.Name;
+		public UniqueSymbolId UniqueId { get; }
 		public string Code => Name.Original;
 		public LayoutInfo LayoutInfo => BaseType.LayoutInfo;
 		private IType? _baseType;
@@ -17,18 +18,18 @@ namespace Compiler.Types
 
 		public SourcePosition DeclaringPosition { get; }
 
-		public EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType baseType, SymbolSet<EnumVariableSymbol> values)
+		public EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name, IType baseType, SymbolSet<EnumVariableSymbol> values)
 		{
 			DeclaringPosition = declaringPosition;
-			Name = name;
 			_baseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 			_values = values;
+			UniqueId = new UniqueSymbolId(module, name);
 		}
 
-		internal EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString name)
+		internal EnumTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
 			DeclaringPosition = declaringPosition;
-			Name = name;
+			UniqueId = new UniqueSymbolId(module, name);
 		}
 		internal void _SetBaseType(IType baseType)
 		{
@@ -39,7 +40,7 @@ namespace Compiler.Types
 			_values = values;
 		}
 
-		public override string ToString() => Name.ToString();
+		public override string ToString() => UniqueId.ToString();
 
 		public UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position)
 		{
@@ -61,5 +62,9 @@ namespace Compiler.Types
 		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => Values.TryGetValue(identifier, out var symbol)
 			? ErrorsAnd.Create<IVariableSymbol>(symbol)
 			: ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new EnumValueNotFoundMessage(this, identifier, errorPosition));
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
 	}
 }

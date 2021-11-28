@@ -3,7 +3,6 @@ Add find expression at source position
 Add find bound expression at source position
 Add initializers
 Simple incremental compile
-Libraries
 LateLanguageUpdates
 Parser tests
 Strings

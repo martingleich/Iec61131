@@ -7,7 +7,8 @@ namespace Compiler.Types
 	{
 		private readonly StructuredLayoutHelper _layoutHelper;
 		public bool IsUnion { get; }
-		public CaseInsensitiveString Name { get; }
+		public CaseInsensitiveString Name => UniqueId.Name;
+		public UniqueSymbolId UniqueId { get; }
 		public string Code => Name.Original;
 
 		public LayoutInfo LayoutInfo => _layoutHelper.LayoutInfo;
@@ -18,15 +19,16 @@ namespace Compiler.Types
 		public StructuredTypeSymbol(
 			SourcePosition declaringPosition,
 			bool isUnion,
+			CaseInsensitiveString module,
 			CaseInsensitiveString name,
 			SymbolSet<FieldVariableSymbol> fields,
 			LayoutInfo layoutInfo)
 		{
 			DeclaringPosition = declaringPosition;
 			IsUnion = isUnion;
-			Name = name;
 			_fields = fields;
 			_layoutHelper = new StructuredLayoutHelper(layoutInfo);
+			UniqueId = new( module, name);
 		}
 
 		public override string ToString() => Name.ToString();
@@ -34,12 +36,13 @@ namespace Compiler.Types
 		internal StructuredTypeSymbol(
 			SourcePosition declaringPosition,
 			bool isUnion,
+			CaseInsensitiveString module,
 			CaseInsensitiveString name)
 		{
 			DeclaringPosition = declaringPosition;
 			IsUnion = isUnion;
-			Name = name;
 			_layoutHelper = new StructuredLayoutHelper();
+			UniqueId = new( module, name);
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);

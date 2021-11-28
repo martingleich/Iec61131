@@ -7,7 +7,8 @@ namespace Compiler.Types
 	{
 		public string Code => Name.Original;
 		public SourcePosition DeclaringPosition { get; }
-		public CaseInsensitiveString Name { get; }
+		public CaseInsensitiveString Name => UniqueId.Name;
+		public UniqueSymbolId UniqueId { get; }
 
 		private readonly StructuredLayoutHelper _layoutHelper;
 		public SymbolSet<FieldVariableSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized.");
@@ -16,15 +17,16 @@ namespace Compiler.Types
 		public OrderedSymbolSet<ParameterVariableSymbol> Parameters => !_parameters.IsDefault ? _parameters : throw new InvalidOperationException("Parameters is not initialized.");
 		private OrderedSymbolSet<ParameterVariableSymbol> _parameters;
 
-		public FunctionBlockSymbol(SourcePosition declaringPosition, CaseInsensitiveString name)
+		public FunctionBlockSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
 			DeclaringPosition = declaringPosition;
-			Name = name;
 			_layoutHelper = new StructuredLayoutHelper();
+			UniqueId = new UniqueSymbolId(module, name);
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 		public LayoutInfo LayoutInfo => throw new NotImplementedException();
+
 
 		internal void _SetFields(SymbolSet<FieldVariableSymbol> fields)
 		{
@@ -50,6 +52,7 @@ namespace Compiler.Types
 			position,
 			false,
 			Fields);
+		public override string ToString() => UniqueId.ToString();
 	}
 	
 }

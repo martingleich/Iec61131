@@ -31,21 +31,30 @@ namespace Compiler
 
 	public sealed class BoundModuleInterface
 	{
+		public readonly CaseInsensitiveString Name;
+		public readonly SystemScope SystemScope;
 		public readonly SymbolSet<ITypeSymbol> Types;
 		public readonly SymbolSet<FunctionVariableSymbol> FunctionSymbols;
 		public readonly SymbolSet<GlobalVariableListSymbol> GlobalVariableListSymbols;
+		public readonly SymbolSet<LibrarySymbol> Libraries;
 
 		public readonly SymbolSet<IScopeSymbol> Scopes;
 
 		public BoundModuleInterface(
+			CaseInsensitiveString name,
+			SystemScope systemScope,
 			SymbolSet<ITypeSymbol> types,
 			SymbolSet<FunctionVariableSymbol> functionSymbols,
 			SymbolSet<GlobalVariableListSymbol> globalVariableListSymbols,
+			SymbolSet<LibrarySymbol> libraries,
 			SymbolSet<IScopeSymbol> scopes)
 		{
+			Name = name;
+			SystemScope = systemScope;
 			Types = types;
 			FunctionSymbols = functionSymbols;
 			GlobalVariableListSymbols = globalVariableListSymbols;
+			Libraries = libraries;
 			Scopes = scopes;
 		}
 	}
@@ -112,20 +121,53 @@ namespace Compiler
 		}
 	}
 
+	public sealed class LibrarySymbol : IScopeSymbol
+	{
+		public CaseInsensitiveString Name { get; }
+		public SourcePosition DeclaringPosition { get; }
+		public readonly BoundModuleInterface Interface;
+
+		public LibrarySymbol(CaseInsensitiveString name, SourcePosition declaringPosition, BoundModuleInterface @interface)
+		{
+			Name = name;
+			DeclaringPosition = declaringPosition;
+			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
+		}
+
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> Interface.Scopes.TryGetValue(identifier, out var value) && value is not LibrarySymbol // Libraries are not accessable from the outside.
+			? ErrorsAnd.Create(value)
+			: EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
+
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> Interface.Types.TryGetValue(identifier, out var value)
+			? ErrorsAnd.Create(value)
+			: EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> Interface.FunctionSymbols.TryGetValue(identifier, out var value)
+			? ErrorsAnd.Create<IVariableSymbol>(value)
+			: EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
+
+		public override string ToString() => Name.ToString();
+	}
+
 	public static class ProjectBinder
 	{
 		private sealed class Scope : AInnerScope<RootScope>
 		{
+			public readonly SymbolSet<LibrarySymbol> Libraries;
 			public readonly SymbolSet<ITypeSymbol> TypeSymbols;
 			public readonly SymbolSet<GlobalVariableListSymbol> GvlSymbols;
 			public readonly SymbolSet<FunctionVariableSymbol> WorkingFunctionSymbols;
 
 			public Scope(
+				SymbolSet<LibrarySymbol> librarySymbols,
 				SymbolSet<ITypeSymbol> workingTypeSymbols,
 				SymbolSet<GlobalVariableListSymbol> workingGvlSymbols,
 				SymbolSet<FunctionVariableSymbol> workingFunctionSymbols,
 				RootScope outerScope) : base(outerScope)
 			{
+				Libraries = librarySymbols;
 				TypeSymbols = workingTypeSymbols;
 				GvlSymbols = workingGvlSymbols;
 				WorkingFunctionSymbols = workingFunctionSymbols;
@@ -140,22 +182,37 @@ namespace Compiler
 					? ErrorsAnd.Create<IVariableSymbol>(symbolInWork)
 					: base.LookupVariable(identifier, sourcePosition);
 			public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+				Libraries.TryGetValue(identifier, out var library)
+				? ErrorsAnd.Create<IScopeSymbol>(library)
+				: (
 				GvlSymbols.TryGetValue(identifier, out var symbol)
 					? ErrorsAnd.Create<IScopeSymbol>(symbol)
-					: base.LookupScope(identifier, sourcePosition);
+					: base.LookupScope(identifier, sourcePosition));
 		}
 
-		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, TypeDeclarationSyntax>
+		private sealed class DutSymbolCreator : ITypeDeclarationBodySyntax.IVisitor<ITypeSymbolInWork, DutSymbolCreator.Context>
 		{
+			public readonly struct Context
+			{
+				public readonly TypeDeclarationSyntax Syntax;
+				public readonly CaseInsensitiveString ModuleName;
+
+				public Context(TypeDeclarationSyntax syntax, CaseInsensitiveString moduleName)
+				{
+					Syntax = syntax;
+					ModuleName = moduleName;
+				}
+			}
+
 			public static readonly DutSymbolCreator Instance = new();
-			public ITypeSymbolInWork Visit(AliasTypeDeclarationBodySyntax aliasTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new AliasTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, aliasTypeDeclarationBodySyntax.BaseType);
-			public ITypeSymbolInWork Visit(StructTypeDeclarationBodySyntax structTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, false, structTypeDeclarationBodySyntax.Fields);
-			public ITypeSymbolInWork Visit(UnionTypeDeclarationBodySyntax unionTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new StructuredTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, true, unionTypeDeclarationBodySyntax.Fields);
-			public ITypeSymbolInWork Visit(EnumTypeDeclarationBodySyntax enumTypeDeclarationBodySyntax, TypeDeclarationSyntax context)
-				=> new EnumTypeInWork(context.TokenIdentifier.SourcePosition, context.Identifier, enumTypeDeclarationBodySyntax);
+			public ITypeSymbolInWork Visit(AliasTypeDeclarationBodySyntax aliasTypeDeclarationBodySyntax, Context context)
+				=> new AliasTypeInWork(context.Syntax.TokenIdentifier.SourcePosition, context.ModuleName, context.Syntax.Identifier, aliasTypeDeclarationBodySyntax.BaseType);
+			public ITypeSymbolInWork Visit(StructTypeDeclarationBodySyntax structTypeDeclarationBodySyntax, Context context)
+				=> new StructuredTypeInWork(context.Syntax.TokenIdentifier.SourcePosition, context.ModuleName, context.Syntax.Identifier, false, structTypeDeclarationBodySyntax.Fields);
+			public ITypeSymbolInWork Visit(UnionTypeDeclarationBodySyntax unionTypeDeclarationBodySyntax, Context context)
+				=> new StructuredTypeInWork(context.Syntax.TokenIdentifier.SourcePosition, context.ModuleName, context.Syntax.Identifier, true, unionTypeDeclarationBodySyntax.Fields);
+			public ITypeSymbolInWork Visit(EnumTypeDeclarationBodySyntax enumTypeDeclarationBodySyntax, Context context)
+				=> new EnumTypeInWork(context.Syntax.TokenIdentifier.SourcePosition, context.ModuleName, context.Syntax.Identifier, enumTypeDeclarationBodySyntax);
 		}
 
 		private sealed class PouFunctionSymbolCreatorT : IPouKindToken.IVisitor<FunctionTypeSymbol?, PouInterfaceSyntax>
@@ -181,6 +238,7 @@ namespace Compiler
 			{
 				OrderedSymbolSet<ParameterVariableSymbol> uniqueParameters = BindParameters(Scope, Messages, context);
 				return new FunctionTypeSymbol(
+					Scope.SystemScope.ModuleName,
 					context.Name,
 					context.TokenName.SourcePosition,
 					uniqueParameters);
@@ -188,13 +246,25 @@ namespace Compiler
 
 		}
 
-		private sealed class PouTypeSymbolCreatorT : IPouKindToken.IVisitor<ITypeSymbolInWork?, ParsedTopLevelInterfaceAndBodyPouLanguageSource>
+		private sealed class PouTypeSymbolCreator : IPouKindToken.IVisitor<ITypeSymbolInWork?, PouTypeSymbolCreator.Context>
 		{
-			public static readonly PouTypeSymbolCreatorT Instance = new();
-			public ITypeSymbolInWork? Visit(ProgramToken programToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) => null;
-			public ITypeSymbolInWork? Visit(FunctionToken functionToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) => null;
-			public ITypeSymbolInWork? Visit(FunctionBlockToken functionBlockToken, ParsedTopLevelInterfaceAndBodyPouLanguageSource context) =>
-				new FunctionBlockTypeInWork(context.Interface, context.Body);
+			public readonly struct Context
+			{
+				public readonly ParsedTopLevelInterfaceAndBodyPouLanguageSource Syntax;
+				public readonly CaseInsensitiveString ModuleName;
+
+				public Context(ParsedTopLevelInterfaceAndBodyPouLanguageSource syntax, CaseInsensitiveString moduleName)
+				{
+					Syntax = syntax;
+					ModuleName = moduleName;
+				}
+			}
+
+			public static readonly PouTypeSymbolCreator Instance = new();
+			public ITypeSymbolInWork? Visit(ProgramToken programToken, Context context) => null;
+			public ITypeSymbolInWork? Visit(FunctionToken functionToken, Context context) => null;
+			public ITypeSymbolInWork? Visit(FunctionBlockToken functionBlockToken, Context context) =>
+				new FunctionBlockTypeInWork(context.ModuleName, context.Syntax.Interface, context.Syntax.Body);
 		}
 
 		private interface ITypeSymbolInWork : ISymbol
@@ -208,9 +278,14 @@ namespace Compiler
 			private readonly StructuredTypeSymbol Symbol;
 			private readonly SyntaxArray<VarDeclSyntax> FieldsSyntax;
 
-			public StructuredTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString name, bool isUnion, SyntaxArray<VarDeclSyntax> fields)
+			public StructuredTypeInWork(
+				SourcePosition declaringPosition,
+				CaseInsensitiveString moduleName,
+				CaseInsensitiveString name,
+				bool isUnion,
+				SyntaxArray<VarDeclSyntax> fields)
 			{
-				Symbol = new StructuredTypeSymbol(declaringPosition, isUnion, name);
+				Symbol = new StructuredTypeSymbol(declaringPosition, isUnion, moduleName, name);
 				FieldsSyntax = fields;
 			}
 
@@ -237,9 +312,9 @@ namespace Compiler
 			private readonly EnumTypeSymbol Symbol;
 			private readonly EnumTypeDeclarationBodySyntax BodySyntax;
 
-			public EnumTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString name, EnumTypeDeclarationBodySyntax bodySyntax)
+			public EnumTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString name, EnumTypeDeclarationBodySyntax bodySyntax)
 			{
-				Symbol = new EnumTypeSymbol(declaringPosition, name);
+				Symbol = new EnumTypeSymbol(declaringPosition, moduleName, name);
 				BodySyntax = bodySyntax ?? throw new ArgumentNullException(nameof(bodySyntax));
 			}
 
@@ -292,9 +367,9 @@ namespace Compiler
 			private readonly AliasTypeSymbol Symbol;
 			private readonly ITypeSyntax AliasedTypeSyntax;
 
-			public AliasTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString name, ITypeSyntax aliasedTypeSyntax)
+			public AliasTypeInWork(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString name, ITypeSyntax aliasedTypeSyntax)
 			{
-				Symbol = new AliasTypeSymbol(declaringPosition, name);
+				Symbol = new AliasTypeSymbol(declaringPosition, moduleName, name);
 				AliasedTypeSyntax = aliasedTypeSyntax;
 			}
 
@@ -314,11 +389,11 @@ namespace Compiler
 			private readonly PouInterfaceSyntax Syntax;
 			private readonly StatementListSyntax BodySyntax;
 
-			public FunctionBlockTypeInWork(PouInterfaceSyntax syntax, StatementListSyntax body)
+			public FunctionBlockTypeInWork(CaseInsensitiveString moduleName, PouInterfaceSyntax syntax, StatementListSyntax body)
 			{
 				Syntax = syntax ?? throw new ArgumentNullException(nameof(syntax));
 				BodySyntax = body ?? throw new ArgumentNullException(nameof(body));
-				Symbol = new FunctionBlockSymbol(syntax.SourcePosition, syntax.Name);
+				Symbol = new FunctionBlockSymbol(syntax.SourcePosition, moduleName, syntax.Name);
 			}
 
 			public FunctionBlockSymbol Symbol { get; }
@@ -360,23 +435,25 @@ namespace Compiler
 		{
 			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, IScope scope, MessageBag messageBag)
 			{
-				var variables = BindVariables(x.Syntax.VariableDeclarations, scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var variables = BindVariables(x.Name, x.Syntax.VariableDeclarations, scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
 				return new GlobalVariableListSymbol(x.Syntax.SourcePosition, x.Name, variables);
 			}
 
-			private static IEnumerable<GlobalVariableSymbol> BindVariables(IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
-				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, vardeclBlock.Declarations, scope, messages));
-			private static IEnumerable<GlobalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
+			private static IEnumerable<GlobalVariableSymbol> BindVariables(CaseInsensitiveString gvlName, IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
+				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, gvlName, vardeclBlock.Declarations, scope, messages));
+			private static IEnumerable<GlobalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, CaseInsensitiveString gvlName, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
 			{
 				if (kind is not VarGlobalToken)
 					messages.Add(new OnlyVarGlobalInGvlMessage(kind.SourcePosition));
-				return vardecls.Select(v => BindVarDecl(v, scope, messages));
+				return vardecls.Select(v => BindVarDecl(gvlName, v, scope, messages));
 			}
-			private static GlobalVariableSymbol BindVarDecl(VarDeclSyntax syntax, IScope scope, MessageBag messages)
+			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName,  VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
 				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 				return new(
 					syntax.TokenIdentifier.SourcePosition,
+					scope.SystemScope.ModuleName,
+					gvlName,
 					syntax.Identifier,
 					type);
 			}
@@ -404,17 +481,22 @@ namespace Compiler
 		}
 
 		public static BoundModule Bind(
+			CaseInsensitiveString moduleName,
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
 			ImmutableArray<ParsedGVLLanguageSource> gvls,
-			ImmutableArray<ParsedDutLanguageSource> duts)
+			ImmutableArray<ParsedDutLanguageSource> duts,
+			ImmutableArray<LibraryLanguageSource> libraries)
 		{
-			var rootScope = new RootScope(new SystemScope());
+			var systemScope = new SystemScope(moduleName);
+			var rootScope = new RootScope(systemScope);
 			var messageBag = new MessageBag();
 
-			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, dut.Syntax));
-			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreatorT.Instance, pou)).WhereNotNull().ToImmutableArray();
+			var librarySymbols = libraries.ToSymbolSetWithDuplicates(messageBag, lib => new LibrarySymbol(lib.Namespace, default, lib.Interface));
+			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, new(dut.Syntax, moduleName)));
+			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreator.Instance, new(pou, moduleName))).WhereNotNull().ToImmutableArray();
 			var workingTypeSymbols = dutSymbols.Concat(fbTypeSymbols).ToSymbolSetWithDuplicates(messageBag);
 			var typeScope = new Scope(
+				librarySymbols,
 				workingTypeSymbols.ToSymbolSet(t => t.Symbol),
 				SymbolSet<GlobalVariableListSymbol>.Empty,
 				SymbolSet<FunctionVariableSymbol>.Empty,
@@ -422,6 +504,7 @@ namespace Compiler
 			var workingGvlSymbols = gvls.ToSymbolSetWithDuplicates(messageBag,
 				x => GvlSymbolInWork.Create(x, typeScope, messageBag));
 			var typeFuncScope = new Scope(
+				typeScope.Libraries,
 				typeScope.TypeSymbols,
 				workingGvlSymbols,
 				SymbolSet<FunctionVariableSymbol>.Empty,
@@ -433,6 +516,7 @@ namespace Compiler
 										  where symbol != null
 										  select new FunctionSymbolInWork(symbol, pou.Interface, pou.Body)).ToSymbolSetWithDuplicates(messageBag);
 			var fullScope = new Scope(
+				typeScope.Libraries,
 				typeFuncScope.TypeSymbols,
 				typeFuncScope.GvlSymbols,
 				workingFunctionSymbols.ToSymbolSet(f => f.VariableSymbol),
@@ -453,16 +537,20 @@ namespace Compiler
 			var typeSymbols = workingTypeSymbols.ToSymbolSet(type => type.Symbol);
 			var scopes = EnumerableExtensions.Concat(
 				workingGvlSymbols.Cast<IScopeSymbol>(),
-				typeSymbols.OfType<IScopeSymbol>()).ToSymbolSetWithDuplicates(messageBag);
+				typeSymbols.OfType<IScopeSymbol>(),
+				librarySymbols).ToSymbolSetWithDuplicates(messageBag);
 			var functionSymbolSet = workingFunctionSymbols.ToSymbolSet(w => w.VariableSymbol);
 
 			var itf = new BoundModuleInterface(
+				moduleName,
+				systemScope,
 				typeSymbols,
 				functionSymbolSet,
 				workingGvlSymbols,
+				librarySymbols,
 				scopes);
 
-			var moduleScope = new GlobalModuleScope(itf, rootScope);
+			var moduleScope = new GlobalInternalModuleScope(itf, rootScope);
 			var functionSymbols = workingFunctionSymbols
 				.ToImmutableDictionary(
 					w => w.VariableSymbol,

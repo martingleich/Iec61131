@@ -10,8 +10,6 @@ namespace Tests
 
 	public sealed class InterfaceBindingTests
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
-
 		[Fact]
 		public void EmptyModule()
 		{
@@ -42,8 +40,8 @@ namespace Tests
 			Assert.Equal(8, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(SystemScope.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(SystemScope.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(boundInterface.SystemScope.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(boundInterface.SystemScope.Real, b.Type); });
 		}
 
 		[Fact]
@@ -57,8 +55,8 @@ namespace Tests
 			Assert.Equal(4, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
 			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
-				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(SystemScope.Int, a.Type); },
-				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(SystemScope.Real, b.Type); });
+				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(boundInterface.SystemScope.Int, a.Type); },
+				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(boundInterface.SystemScope.Real, b.Type); });
 		}
 		[Fact]
 		public void FieldOfUserdefinedType()

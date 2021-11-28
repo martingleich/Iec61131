@@ -18,9 +18,11 @@ namespace Compiler.Messages
 			Errors = errors;
 		}
 
-		public T Extract(MessageBag messages)
+		public T Extract(MessageBag messages) => Extract(messages, out _);
+		public T Extract(MessageBag messages, out bool hasError)
 		{
 			messages.AddRange(Errors);
+			hasError = Errors.Length != 0;
 			return Value;
 		}
 

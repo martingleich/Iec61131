@@ -55,12 +55,11 @@ namespace Compiler
 	}
 	public sealed class GlobalVariableSymbol : AVariableSymbol
 	{
-		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString gvlName, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
 		{
+			UniqueName = $"{moduleName}::{gvlName}::{name}";
 		}
-		public static GlobalVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) => new (
-			declaringPosition, name,
-			ITypeSymbol.CreateErrorForVar(declaringPosition, name));
+		public readonly string UniqueName;
 	}
 	public sealed class EnumVariableSymbol : IVariableSymbol
 	{
@@ -135,14 +134,15 @@ namespace Compiler
 	}
 	public sealed class FunctionVariableSymbol : IVariableSymbol
 	{
-		public FunctionVariableSymbol(Types.FunctionTypeSymbol type)
+		public FunctionVariableSymbol(FunctionTypeSymbol type)
 		{
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		IType IVariableSymbol.Type => Type;
-		public Types.FunctionTypeSymbol Type { get; }
+		public FunctionTypeSymbol Type { get; }
 		public CaseInsensitiveString Name => Type.Name;
+		public UniqueSymbolId UniqueId => Type.UniqueId;
 		public SourcePosition DeclaringPosition => Type.DeclaringPosition;
 		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition)
 			=> new(FunctionTypeSymbol.CreateError(sourcePosition));
@@ -168,17 +168,33 @@ namespace Compiler
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
 
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
 		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => Variables.TryGetValue(identifier, out var symbol)
 			? ErrorsAnd.Create<IVariableSymbol>(symbol)
-			: ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
+			: EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
 	}
 
 	public interface IScopeSymbol : ISymbol
 	{
 		ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition);
+		ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition);
+		ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition);
 
 		public static IScopeSymbol CreateError(CaseInsensitiveString identifier, SourcePosition errorPosition)
 			=> new ErrorScopeSymbol(identifier, errorPosition);
+	}
+
+	public static class EmptyScopeHelper
+	{
+		public static ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
+		public static ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString scopeName,CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> ErrorsAnd.Create(ITypeSymbol.CreateError(errorPosition, identifier), new TypeNotFoundMessage(identifier, errorPosition));
+		public static ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourcePosition errorPosition)
+			=> ErrorsAnd.Create(IScopeSymbol.CreateError(identifier, errorPosition), new ScopeNotFoundMessage(identifier, errorPosition));
 	}
 
 	public sealed class ErrorScopeSymbol : IScopeSymbol
@@ -191,7 +207,8 @@ namespace Compiler
 
 		public CaseInsensitiveString Name { get; }
 		public SourcePosition DeclaringPosition { get; }
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition)
-			=> ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
 	}
 }

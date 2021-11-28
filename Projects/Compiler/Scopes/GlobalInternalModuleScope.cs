@@ -4,11 +4,11 @@ using Compiler.Types;
 
 namespace Compiler.Scopes
 {
-	public sealed class GlobalModuleScope : AInnerScope<IScope>
+	public sealed class GlobalInternalModuleScope : AInnerScope<IScope>
 	{
 		private readonly BoundModuleInterface Interface;
 
-		public GlobalModuleScope(BoundModuleInterface @interface, IScope inner) : base(inner)
+		public GlobalInternalModuleScope(BoundModuleInterface @interface, IScope outer) : base(outer)
 		{
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
 		}

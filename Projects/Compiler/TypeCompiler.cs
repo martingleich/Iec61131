@@ -51,5 +51,12 @@ namespace Compiler
 		}
 
 		public IType Visit(StringTypeSyntax stringTypeSyntax) => new StringType(Scope, stringTypeSyntax);
+		public IType Visit(ScopedIdentifierTypeSyntax scopedIdentifierTypeSyntax)
+		{
+			var scope = Scope.ResolveScope(scopedIdentifierTypeSyntax.Scope).Extract(MessageBag, out bool isMissingScope);
+			if (isMissingScope)
+				return ITypeSymbol.CreateError(scopedIdentifierTypeSyntax.TokenIdentifier.SourcePosition, scopedIdentifierTypeSyntax.Identifier);
+			return scope.LookupType(scopedIdentifierTypeSyntax.Identifier, scopedIdentifierTypeSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
+		}
 	}
 }

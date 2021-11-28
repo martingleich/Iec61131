@@ -691,6 +691,18 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>ScopedIdentifierTypeSyntax</Name>
+      <Interface>ITypeSyntax</Interface>
+      <Element>
+        <Name>Scope</Name>
+        <Type>ScopeQualifierSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenIdentifier</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>BuiltInTypeSyntax</Name>
       <Interface>ITypeSyntax</Interface>
       <Element>
