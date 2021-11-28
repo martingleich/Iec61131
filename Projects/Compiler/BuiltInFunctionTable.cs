@@ -15,7 +15,7 @@ namespace Compiler
 			=> BinaryOperator(baseName, type, type);
 		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
 		{
-			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
+			var name = OperatorName(baseName, type);
 			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), type),
 				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), type),
@@ -24,12 +24,27 @@ namespace Compiler
 		}
 		private static FunctionVariableSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
-			var name = (baseName + "_" + type.Name).ToCaseInsensitive();
+			var name = OperatorName(baseName, type);
 			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
 				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
 				new(ParameterKind.Output, default, name, type)));
 			return new FunctionVariableSymbol(funcType);
 		}
+
+		private static CaseInsensitiveString OperatorName(string baseName, BuiltInType type)
+			=> (baseName + "_" + type.Name).ToCaseInsensitive();
+
+		private static FunctionVariableSymbol CastOperator(BuiltInType from, BuiltInType to)
+		{
+			var name = CastFunctionName(from, to);
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), from),
+				new(ParameterKind.Output, default, name, to)));
+			return new FunctionVariableSymbol(funcType);
+		}
+
+		private static CaseInsensitiveString CastFunctionName(BuiltInType from, BuiltInType to)
+			=> $"{from.Name}_TO_{to.Name}".ToCaseInsensitive();
 
 		public BuiltInFunctionTable(SystemScope systemScope)
 		{
@@ -131,8 +146,43 @@ namespace Compiler
 			builder.Add(BinaryOperator("XOR", systemScope.Bool), XorBool);
 			builder.Add(UnaryOperator("NOT", systemScope.Bool), NotBool);
 
+			foreach (var fromType in systemScope.AllBuiltInTypes)
+			{
+				foreach (var toType in systemScope.AllBuiltInTypes)
+				{
+					if (!fromType.Equals(toType) && IsAllowedArithmeticImplicitCast(fromType, toType))
+					{
+						Func<IType, ILiteralValue[], ILiteralValue>? func;
+						if (fromType.IsInt)
+							func = (result, args) => ArithmeticCast_FromInt((IAnyIntLiteralValue)args[0], result, systemScope);
+						else if (TypeRelations.IsIdentical(fromType, systemScope.Real) && TypeRelations.IsIdentical(toType, systemScope.LReal))
+							func = Real_To_LReal;
+						else
+							func = null;
+						builder.Add(CastOperator(fromType, toType), func);
+					}
+				}
+			}
+
 			Table = builder.ToImmutable();
 			AllFunctions = Table.Keys.ToSymbolSet();
+		}
+		private static bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
+		{
+			// Okay casts:
+			// int+real TO LREAL
+			// int TO REAL
+			// unsigned int TO larger (unsigned|signed) int
+			// signed int TO larger signed int
+			if (builtInSource is null)
+				throw new ArgumentNullException(nameof(builtInSource));
+			if (builtInTarget is null)
+				throw new ArgumentNullException(nameof(builtInTarget));
+			if (!builtInSource.IsArithmetic || !builtInTarget.IsArithmetic)
+				return false;
+			return ((builtInSource.IsInt || (builtInSource.IsReal && builtInSource.Size <= builtInTarget.Size)) && builtInTarget.IsReal)
+				|| (builtInSource.IsUnsignedInt && builtInTarget.IsInt && builtInSource.Size <= builtInTarget.Size)
+				|| (builtInSource.IsSignedInt && builtInTarget.IsSignedInt && builtInSource.Size <= builtInTarget.Size);
 		}
 
 		private static void AddComparisons(
@@ -245,12 +295,24 @@ namespace Compiler
 		private static ILiteralValue NegTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedNeg(), result);
 		private static ILiteralValue ModTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedMod(((TimeLiteralValue)args[1]).Value), result);
 
+		private static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, SystemScope systemScope)
+		{
+			var resultValue = systemScope.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
+			if (resultValue == null)
+				throw new OverflowException();
+			else
+				return resultValue;
+		}
+		private static ILiteralValue Real_To_LReal(IType result, ILiteralValue[] args)
+			=> new LRealLiteralValue(((RealLiteralValue)args[0]).Value, result);
+
 		public bool TryGetConstantEvaluator(FunctionVariableSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;
 		public SymbolSet<FunctionVariableSymbol> AllFunctions { get; }
 		public OperatorFunction? TryGetOperatorFunction((string Name, bool IsGenericReturn) op, BuiltInType type)
 		{
-			if (AllFunctions.TryGetValue($"{op.Name}_{type.Name}".ToCaseInsensitive()) is FunctionVariableSymbol func)
+			var opName = OperatorName(op.Name, type);
+			if (AllFunctions.TryGetValue(opName, out var func))
 				return new(func, op.IsGenericReturn);
 			else
 				return default;
@@ -269,6 +331,12 @@ namespace Compiler
 			=> token.Accept(BinaryOperatorMap.Instance).Name;
 		public string GetUnaryOperatorFunctionName(IUnaryOperatorToken token)
 			=> token.Accept(UnaryOperatorMap.Instance).Name;
+
+		public FunctionVariableSymbol? TryGetCastFunction(BuiltInType from, BuiltInType to)
+		{
+			var op = CastFunctionName(from, to);
+			return AllFunctions.TryGetValue(op);
+		}
 
 		private sealed class BinaryOperatorMap : IBinaryOperatorToken.IVisitor<(string Name, bool IsGenericReturn)>
 		{

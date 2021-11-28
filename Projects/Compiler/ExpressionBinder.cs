@@ -53,9 +53,12 @@ namespace Compiler
 			{
 				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
-			else if (TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) && SystemScope.IsAllowedArithmeticImplicitCast(builtInSource, builtInTarget))
+			else if (
+				TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && 
+				TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) &&
+				SystemScope.BuiltInFunctionTable.TryGetCastFunction(builtInSource, builtInTarget) is FunctionVariableSymbol castFunction)
 			{
-				return new ImplicitArithmeticCastBoundExpression(boundValue, targetType);
+				return new ImplicitCastBoundExpression(boundValue, castFunction);
 			}
 
 			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourcePosition));

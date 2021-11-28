@@ -156,7 +156,7 @@
 				{
 					var boundSt = AssertEx.AssertNthStatement<AssignBoundStatement>(st, 0);
 					var left = Assert.IsType<VariableBoundExpression>(boundSt.LeftSide);
-					var right = Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundSt.RightSide);
+					var right = Assert.IsType<ImplicitCastBoundExpression>(boundSt.RightSide);
 				});
 		}
 
@@ -165,7 +165,7 @@
 		{
 			BindHelper.NewProject
 				.AddPou("FUNCTION foo VAR x : BOOL; END_VAR", "x := 5;")
-				.BindBodies(ErrorOfType<IntegerIsToLargeForTypeMessage>());
+				.BindBodies(ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 		}
 
 		[Fact]
@@ -388,7 +388,7 @@
 				.Inspect("foo", st =>
 				{
 					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
-					Assert.IsType<ImplicitArithmeticCastBoundExpression>(forSt.Step);
+					Assert.IsType<ImplicitCastBoundExpression>(forSt.Step);
 				});
 		}
 		
@@ -456,7 +456,7 @@
 				.Inspect("foo", st =>
 				{
 					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
-					Assert.IsType<ImplicitArithmeticCastBoundExpression>(forSt.Initial);
+					Assert.IsType<ImplicitCastBoundExpression>(forSt.Initial);
 				});
 		}
 

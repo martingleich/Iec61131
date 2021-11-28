@@ -105,7 +105,7 @@ namespace Compiler
 
 			InGetConstantValue = true;
 			var boundExpression = ExpressionBinder.Bind(MaybeValueSyntax!, MaybeScope!, messageBag, Type.BaseType);
-			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(MaybeScope!.SystemScope, boundExpression, messageBag) ?? MaybeScope!.SystemScope.GetDefaultValue(Type.BaseType);
+			var literalValue = ConstantExpressionEvaluator.EvaluateConstant(MaybeScope!.SystemScope, boundExpression, messageBag) ?? new UnknownLiteralValue(Type.BaseType);
 			InGetConstantValue = false;
 			return _value = new EnumLiteralValue(Type, literalValue);
 		}
@@ -152,6 +152,8 @@ namespace Compiler
 			=> new(FunctionTypeSymbol.CreateError(sourcePosition, returnType));
 		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
 			=> new(FunctionTypeSymbol.CreateError(sourcePosition, name, returnType));
+
+		public override string ToString() => UniqueId.ToString();
 	}
 
 	public sealed class GlobalVariableListSymbol : IScopeSymbol

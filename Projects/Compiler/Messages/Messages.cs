@@ -86,55 +86,27 @@ namespace Compiler.Messages
 
 		public override string Text => "Expected a expression.";
 	}
-	public sealed class IntegerIsToLargeForTypeMessage : ACriticalMessage
-	{
-		public readonly OverflowingInteger Value;
-		public readonly IType TargetType;
-
-		public IntegerIsToLargeForTypeMessage(OverflowingInteger value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Value = value;
-			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
-		}
-
-		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
-	}
-	public sealed class RealIsToLargeForTypeMessage : ACriticalMessage
-	{
-		public readonly OverflowingReal Value;
-		public readonly IType TargetType;
-
-		public RealIsToLargeForTypeMessage(OverflowingReal value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Value = value;
-			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
-		}
-
-		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
-	}
-	public sealed class DurationIsToLargeForTypeMessage : ACriticalMessage
-	{
-		public readonly OverflowingDuration Value;
-		public readonly IType TargetType;
-
-		public DurationIsToLargeForTypeMessage(OverflowingDuration value, IType targetType, SourcePosition sourcePosition) : base(sourcePosition)
-		{
-			Value = value;
-			TargetType = targetType ?? throw new ArgumentNullException(nameof(targetType));
-		}
-
-		public override string Text => $"The constant '{Value}' does not fit into the type {TargetType.Code}.";
-	}
-	public sealed class ConstantDoesNotFitIntoAnyType : ACriticalMessage
+	public sealed class ConstantDoesNotFitIntoTypeMessage : ACriticalMessage
 	{
 		public readonly string Generating;
+		public readonly IType? TargetType;
 
-		public ConstantDoesNotFitIntoAnyType(string generating, SourcePosition sourcePosition) : base(sourcePosition)
+		public ConstantDoesNotFitIntoTypeMessage(string generating, IType? targetType, SourcePosition sourcePosition) : base(sourcePosition)
 		{
-			Generating = generating;
+			Generating = generating ?? throw new ArgumentNullException(nameof(generating));
+			TargetType = targetType;
 		}
 
-		public override string Text => $"There is not type that can contain the value '{Generating}'";
+		public override string Text
+		{
+			get
+			{
+				if(TargetType == null)
+					return $"There is not type that can contain the value '{Generating}'.";
+				else
+					return $"The value '{Generating}' is to large for the type '{TargetType.Code}'.";
+			}
+		}
 	}
 	public sealed class InvalidArrayRangesMessage : ACriticalMessage
 	{
@@ -270,19 +242,6 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot assign to a new value to the variable {Variable.Name}.";
 	}
-	public sealed class ConstantValueIsToLargeForTargetMessage : ACriticalMessage
-	{
-		public readonly OverflowingInteger Value;
-		public readonly IType Type;
-
-		public ConstantValueIsToLargeForTargetMessage(OverflowingInteger value, IType type, SourcePosition position) : base(position)
-		{
-			Value = value;
-			Type = type ?? throw new ArgumentNullException(nameof(type));
-		}
-		public override string Text => $"The value '{Value}' is to large for the type '{Type.Code}'.";
-	}
-
 	public sealed class SyntaxOnlyAllowedInLoopMessage : ACriticalMessage
 	{
 		public SyntaxOnlyAllowedInLoopMessage(SourcePosition position) : base(position)

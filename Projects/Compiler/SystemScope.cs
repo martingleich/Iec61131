@@ -57,20 +57,6 @@ namespace Compiler
 
 		public BuiltInType MapTokenToType(IBuiltInTypeToken token) => token.Accept(BuiltInTypeMapper);
 
-		public ILiteralValue GetDefaultValue(IType targetType)
-		{
-			if (TypeRelations.IsIdentical(targetType, SInt)) return new SIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, USInt)) return new USIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, Int)) return new IntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, UInt)) return new UIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, DInt)) return new DIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, UDInt)) return new UDIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, LInt)) return new LIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, ULInt)) return new ULIntLiteralValue(0, targetType);
-			else if (TypeRelations.IsIdentical(targetType, Time)) return new TimeLiteralValue(DurationMs32.Zero, targetType);
-			else if (TypeRelations.IsIdentical(targetType, LTime)) return new LTimeLiteralValue(DurationNs64.Zero, targetType);
-			else return new UnknownLiteralValue(targetType);
-		}
 		public ILiteralValue? TryCreateLiteralFromDurationValue(OverflowingDuration value, IType targetType)
 		{
 			if (TypeRelations.IsIdentical(targetType, LTime))
@@ -195,23 +181,7 @@ namespace Compiler
 		}
 		public IType PointerDiffrenceType => GetSignedIntegerTypeGreaterEqualThan(PointerSize)!;
 		public int PointerSize { get; }
-		public bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
-		{
-			// Okay casts:
-			// int+real TO LREAL
-			// int TO REAL
-			// unsigned int TO larger (unsigned|signed) int
-			// signed int TO larger signed int
-			if (builtInSource is null)
-				throw new ArgumentNullException(nameof(builtInSource));
-			if (builtInTarget is null)
-				throw new ArgumentNullException(nameof(builtInTarget));
-			if (!builtInSource.IsArithmetic || !builtInTarget.IsArithmetic)
-				return false;
-			return ((builtInSource.IsInt || (builtInSource.IsReal && builtInSource.Size <= builtInTarget.Size)) && builtInTarget.IsReal)
-				|| (builtInSource.IsUnsignedInt && builtInTarget.IsInt && builtInSource.Size <= builtInTarget.Size)
-				|| (builtInSource.IsSignedInt && builtInTarget.IsSignedInt && builtInSource.Size <= builtInTarget.Size);
-		}
+
 		public IType? GetSmallestCommonImplicitCastType(IType a, IType b)
 		{
 			if (b is null)
@@ -285,6 +255,5 @@ namespace Compiler
 			public BuiltInType Visit(LTODToken lTODToken) => SystemScope.LTOD;
 			public BuiltInType Visit(TODToken tODToken) => SystemScope.TOD;
 		}
-	
 	}
 }

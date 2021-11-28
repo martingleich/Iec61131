@@ -26,7 +26,7 @@ namespace Compiler
 		public ErrorsAnd<bool> Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => NotAssignable(sizeOfTypeBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression) => NotAssignable(implicitEnumCastBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => NotAssignable(implicitPointerTypeCaseBoundExpression);
-		public ErrorsAnd<bool> Visit(ImplicitArithmeticCastBoundExpression implicitArithmeticCaseBoundExpression) => NotAssignable(implicitArithmeticCaseBoundExpression);
+		public ErrorsAnd<bool> Visit(ImplicitCastBoundExpression implicitArithmeticCaseBoundExpression) => NotAssignable(implicitArithmeticCaseBoundExpression);
 		public ErrorsAnd<bool> Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression) => NotAssignable(unaryOperatorBoundExpression);
 		public ErrorsAnd<bool> Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression) => NotAssignable(pointerDiffrenceBoundExpression);
 		public ErrorsAnd<bool> Visit(PointerOffsetBoundExpression pointerOffsetBoundExpression) => NotAssignable(pointerOffsetBoundExpression);

@@ -34,29 +34,19 @@ namespace Compiler
 
 			public static IBoundExpression BindIntLiteral(SystemScope systemScope, IType? context, OverflowingInteger value, MessageBag messageBag, INode originalNode)
 			{
-				ILiteralValue finalLiteralValue;
+				ILiteralValue? literalValue;
 				if (context != null)
-				{
-					var literalValue = systemScope.TryCreateLiteralFromIntValue(value, context);
-					if(literalValue == null)
-					{
-						messageBag.Add(new IntegerIsToLargeForTypeMessage(value, context, originalNode.SourcePosition));
-						literalValue = new UnknownLiteralValue(context);
-					}
-					finalLiteralValue = literalValue;
-				}
+					literalValue = systemScope.TryCreateLiteralFromIntValue(value, context);
 				else
+					literalValue = systemScope.TryCreateIntLiteral(value);
+
+				if (literalValue == null)
 				{
-					var literalValue = systemScope.TryCreateIntLiteral(value);
-					if (literalValue == null)
-					{
-						messageBag.Add(new ConstantDoesNotFitIntoAnyType(SyntaxToStringConverter.ExactToString(originalNode), originalNode.SourcePosition));
-						literalValue = new UnknownLiteralValue(systemScope.Int);
-					}
-					finalLiteralValue = literalValue;
+					messageBag.Add(new ConstantDoesNotFitIntoTypeMessage(SyntaxToStringConverter.ExactToString(originalNode), context, originalNode.SourcePosition));
+					literalValue = new UnknownLiteralValue(context ?? systemScope.Int);
 				}
 
-				return new LiteralBoundExpression(originalNode, finalLiteralValue);
+				return new LiteralBoundExpression(originalNode, literalValue);
 			}
 
 			public IBoundExpression Visit(RealLiteralToken realLiteralToken, IType? context)
@@ -67,7 +57,7 @@ namespace Compiler
 				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromRealValue(realLiteralToken.Value, context);
 				if (value == null)
 				{
-					MessageBag.Add(new RealIsToLargeForTypeMessage(realLiteralToken.Value, context, realLiteralToken.SourcePosition));
+					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(realLiteralToken.Generating, context, realLiteralToken.SourcePosition));
 					value = new UnknownLiteralValue(context);
 				}
 				return new LiteralBoundExpression(realLiteralToken, value);
@@ -91,7 +81,7 @@ namespace Compiler
 				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromDurationValue(durationLiteralToken.Value, context);
 				if (value == null)
 				{
-					MessageBag.Add(new DurationIsToLargeForTypeMessage(durationLiteralToken.Value, context, durationLiteralToken.SourcePosition));
+					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(durationLiteralToken.Generating, context, durationLiteralToken.SourcePosition));
 					value = new UnknownLiteralValue(context);
 				}
 				return new LiteralBoundExpression(durationLiteralToken, value);

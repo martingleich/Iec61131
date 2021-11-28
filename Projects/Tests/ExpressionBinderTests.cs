@@ -72,26 +72,26 @@ namespace Tests
 			public static void TargetType_DoesNotFit(string value)
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression(value, null, ErrorOfType<IntegerIsToLargeForTypeMessage>());
+					.BindGlobalExpression(value, null, ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 			}
 
 			[Fact]
 			public static void Int_NoTargetType_ToBig()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression("99999999999999999999999999999999999999", null, ErrorOfType<ConstantDoesNotFitIntoAnyType>());
+					.BindGlobalExpression("99999999999999999999999999999999999999", null, ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 			}
 			[Fact]
 			public static void LReal_NoTargetType_ToBig()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression(new string('9', 500) + ".0", null, ErrorOfType<RealIsToLargeForTypeMessage>());
+					.BindGlobalExpression(new string('9', 500) + ".0", null, ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 			}
 			[Fact]
 			public static void LTime_NoTargetType_ToBig()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression($"LTIME#{long.MaxValue}d", null, ErrorOfType<DurationIsToLargeForTypeMessage>());
+					.BindGlobalExpression($"LTIME#{long.MaxValue}d", null, ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 			}
 
 			[Fact]
@@ -105,7 +105,7 @@ namespace Tests
 			public static void Error_Pointer_OneAsPointer()
 			{
 				BindHelper.NewProject
-					.BindGlobalExpression("1", "POINTER TO INT", ErrorOfType<IntegerIsToLargeForTypeMessage>());
+					.BindGlobalExpression("1", "POINTER TO INT", ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 			}
 		}
 
@@ -670,7 +670,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.WithGlobalVar("arr", "ARRAY[0..10] OF SINT")
 				.BindGlobalExpression("arr[1]", "INT");
-			Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundExpression);
+			Assert.IsType<ImplicitCastBoundExpression>(boundExpression);
 			AssertEx.EqualType("INT", boundExpression.Type);
 		}
 		[Fact]
@@ -824,7 +824,7 @@ namespace Tests
 				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
 				.WithGlobalVar("value", "myDut")
 				.BindGlobalExpression("value.myField", "DINT");
-			Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundExpression);
+			Assert.IsType<ImplicitCastBoundExpression>(boundExpression);
 		}
 
 		[Fact]
@@ -878,7 +878,7 @@ namespace Tests
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL gVar : INT; END_VAR")
 				.BindGlobalExpression("MyGVL::gVar", "DINT");
-			Assert.IsType<ImplicitArithmeticCastBoundExpression>(boundExpression);
+			Assert.IsType<ImplicitCastBoundExpression>(boundExpression);
 		}
 		[Fact]
 		public static void Error_GvlVariable_Missing()
@@ -942,7 +942,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddPou("FUNCTION MyFunc : INT", "")
-				.BindGlobalExpression<ImplicitArithmeticCastBoundExpression>("MyFunc()", "DINT");
+				.BindGlobalExpression<ImplicitCastBoundExpression>("MyFunc()", "DINT");
 		}
 		[Fact]
 		public static void Error_WrongNumberOfArgs_NoReturn()
@@ -977,7 +977,7 @@ namespace Tests
 				arg =>
 				{
 					Assert.Equal("arg".ToCaseInsensitive(), arg.ParameterSymbol.Name);
-					Assert.IsType<ImplicitArithmeticCastBoundExpression>(arg.Value);
+					Assert.IsType<ImplicitCastBoundExpression>(arg.Value);
 				});
 		}
 		[Fact]
@@ -1052,7 +1052,7 @@ namespace Tests
 			Assert.Collection(boundExpression.Arguments,
 				arg =>
 				{
-					Assert.IsType<ImplicitArithmeticCastBoundExpression>(arg.Parameter);
+					Assert.IsType<ImplicitCastBoundExpression>(arg.Parameter);
 					Assert.IsType<VariableBoundExpression>(arg.Value);
 				});
 		}

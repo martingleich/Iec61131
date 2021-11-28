@@ -65,35 +65,10 @@ namespace Compiler
 			return EvaluateConstantFunction(binaryOperatorBoundExpression, binaryOperatorBoundExpression.Function, leftValue, rightValue);
 		}
 
-		public ILiteralValue? Visit(ImplicitArithmeticCastBoundExpression implicitArithmeticCastBoundExpression)
+		public ILiteralValue? Visit(ImplicitCastBoundExpression implicitArithmeticCastBoundExpression)
 		{
 			var value = implicitArithmeticCastBoundExpression.Value.Accept(this);
-			if (value == null)
-				return null;
-
-			IType targetType = implicitArithmeticCastBoundExpression.Type;
-			if (value is IAnyIntLiteralValue intLiteralValue)
-			{
-				// Integer to Integer|Real|LReal
-				var resultValue = SystemScope.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
-				if (resultValue == null)
-				{
-					MessageBag.Add(new ConstantValueIsToLargeForTargetMessage(intLiteralValue.Value, targetType, default));
-					return new UnknownLiteralValue(targetType);
-				}
-				else
-				{
-					return resultValue;
-				}
-			}
-			else if (TypeRelations.IsIdentical(targetType, SystemScope.LReal) && value is RealLiteralValue realLiteralValue)
-			{
-				return new LRealLiteralValue(realLiteralValue.Value, targetType);
-			}
-			else
-			{
-				return NotAConstant(implicitArithmeticCastBoundExpression.OriginalNode);
-			}
+			return EvaluateConstantFunction(implicitArithmeticCastBoundExpression, implicitArithmeticCastBoundExpression.CastFunction, value);
 		}
 
 		public ILiteralValue? Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
