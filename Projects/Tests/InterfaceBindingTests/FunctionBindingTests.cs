@@ -152,18 +152,30 @@ namespace Tests
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyFunction", err.Name.Original)));
 		}
 
+	}
+	public sealed class PouBindingTests
+	{
 		[Theory]
 		[InlineData("FUNCTION", "VAR_INPUT")]
 		[InlineData("FUNCTION", "VAR_OUTPUT")]
 		[InlineData("FUNCTION", "VAR_IN_OUT")]
+		[InlineData("FUNCTION", "VAR")]
+		[InlineData("FUNCTION", "VAR_TEMP")]
+		[InlineData("PROGRAM", "VAR_INPUT")]
+		[InlineData("PROGRAM", "VAR_OUTPUT")]
+		[InlineData("PROGRAM", "VAR_IN_OUT")]
+		[InlineData("PROGRAM", "VAR")]
+		[InlineData("PROGRAM", "VAR_TEMP")]
 		[InlineData("FUNCTION_BLOCK", "VAR_INPUT")]
 		[InlineData("FUNCTION_BLOCK", "VAR_OUTPUT")]
 		[InlineData("FUNCTION_BLOCK", "VAR_IN_OUT")]
-		public void Error_CannotHaveInitalValue(string pouKind, string varKind)
+		[InlineData("FUNCTION_BLOCK", "VAR")]
+		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
+		public void Error_VariableCannotHaveInitalValue(string pouKind, string varKind)
 		{
 			BindHelper.NewProject
 				.AddPou($"{pouKind} foo {varKind} value : INT := 0; END_VAR", "")
-				.BindInterfaces(ErrorOfType<ParameterCannotHaveInitialValueMessage>());
+				.BindBodies(ErrorOfType<VariableCannotHaveInitialValueMessage>());
 		}
 	}
 }

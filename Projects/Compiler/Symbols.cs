@@ -55,11 +55,13 @@ namespace Compiler
 	}
 	public sealed class GlobalVariableSymbol : AVariableSymbol
 	{
-		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString gvlName, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString gvlName, CaseInsensitiveString name, IType type, ILiteralValue? initialValue) : base(declaringPosition, name, type)
 		{
 			UniqueName = $"{moduleName}::{gvlName}::{name}";
+			InitialValue = initialValue;
 		}
 		public readonly string UniqueName;
+		public readonly ILiteralValue? InitialValue;
 	}
 	public sealed class EnumVariableSymbol : IVariableSymbol
 	{

@@ -147,5 +147,15 @@ namespace Tests
 			Assert.Equal(dutType.LayoutInfo.Size, arrayUpperBound);
 			Assert.Equal(4, dutType.LayoutInfo.Size);
 		}
+
+		[Theory]
+		[InlineData("STRUCT")]
+		[InlineData("UNION")]
+		public void Error_DutFieldCannotHaveInitalValue(string dutKind)
+		{
+			BindHelper.NewProject
+				.AddDutFast("DUT", $"{dutKind} field : INT := 0; END_{dutKind}")
+				.BindInterfaces(ErrorOfType<VariableCannotHaveInitialValueMessage>());
+		}
 	}
 }

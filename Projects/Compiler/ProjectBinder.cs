@@ -74,6 +74,8 @@ namespace Compiler
 				kind => isLocal(kind) ? Marker : null,
 				(_, scope, bag, syntax) =>
 				{
+					if (syntax.Initial != null)
+						messages.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
 					IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
 					return new LocalVariableSymbol(
 						syntax.TokenIdentifier.SourcePosition,
@@ -302,6 +304,8 @@ namespace Compiler
 
 			private static FieldVariableSymbol CreateFieldSymbol(IScope scope, MessageBag messageBag, VarDeclSyntax fieldSyntax)
 			{
+				if (fieldSyntax.Initial != null)
+					messageBag.Add(new VariableCannotHaveInitialValueMessage(fieldSyntax.Initial.SourcePosition));
 				var typeSymbol = TypeCompiler.MapSymbolic(scope, fieldSyntax.Type, messageBag);
 				return new FieldVariableSymbol(fieldSyntax.SourcePosition, fieldSyntax.Identifier, typeSymbol);
 			}
@@ -422,6 +426,8 @@ namespace Compiler
 					kindToken => kindToken as VarToken,
 					(_, scope, bag, syntax) =>
 					{
+						if (syntax.Initial != null)
+							messageBag.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
 						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, bag);
 						return new FieldVariableSymbol(
 							syntax.TokenIdentifier.SourcePosition,
@@ -455,7 +461,8 @@ namespace Compiler
 					scope.SystemScope.ModuleName,
 					gvlName,
 					syntax.Identifier,
-					type);
+					type,
+					null);
 			}
 		}
 
@@ -648,7 +655,7 @@ namespace Compiler
 					(kind, scope, bag, syntax) =>
 					{
 						if (syntax.Initial != null)
-							messages.Add(new ParameterCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
+							messages.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
 						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 						return new ParameterVariableSymbol(
 							kind,
