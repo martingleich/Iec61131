@@ -642,23 +642,25 @@ namespace Compiler
 			var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
 			return uniqueParameters;
 
-			static IEnumerable<ParameterVariableSymbol> BindParameters(IScope Scope, MessageBag Messages, SyntaxArray<VarDeclBlockSyntax> vardecls)
-				=> BindVariableBlocks(vardecls, Scope, Messages,
+			static IEnumerable<ParameterVariableSymbol> BindParameters(IScope scope, MessageBag messages, SyntaxArray<VarDeclBlockSyntax> vardecls)
+				=> BindVariableBlocks(vardecls, scope, messages,
 					kind => ParameterKind.TryMapDecl(kind),
 					(kind, scope, bag, syntax) =>
 					{
-						IType type = TypeCompiler.MapSymbolic(Scope, syntax.Type, Messages);
+						if (syntax.Initial != null)
+							messages.Add(new ParameterCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
+						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 						return new ParameterVariableSymbol(
 							kind,
 							syntax.TokenIdentifier.SourcePosition,
 							syntax.Identifier,
 							type);
 					});
-			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope Scope, MessageBag Messages, CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
+			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope scope, MessageBag messages, CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
 			{
 				if (syntax != null)
 				{
-					IType type = TypeCompiler.MapSymbolic(Scope, syntax.Type, Messages);
+					IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 					yield return new ParameterVariableSymbol(ParameterKind.Output, syntax.Type.SourcePosition, functionName, type);
 				}
 			}

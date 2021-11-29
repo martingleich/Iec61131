@@ -151,5 +151,19 @@ namespace Tests
 				.AddPou("FUNCTION MyFunction : REAL VAR_OUTPUT MyFunction : REAL; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyFunction", err.Name.Original)));
 		}
+
+		[Theory]
+		[InlineData("FUNCTION", "VAR_INPUT")]
+		[InlineData("FUNCTION", "VAR_OUTPUT")]
+		[InlineData("FUNCTION", "VAR_IN_OUT")]
+		[InlineData("FUNCTION_BLOCK", "VAR_INPUT")]
+		[InlineData("FUNCTION_BLOCK", "VAR_OUTPUT")]
+		[InlineData("FUNCTION_BLOCK", "VAR_IN_OUT")]
+		public void Error_CannotHaveInitalValue(string pouKind, string varKind)
+		{
+			BindHelper.NewProject
+				.AddPou($"{pouKind} foo {varKind} value : INT := 0; END_VAR", "")
+				.BindInterfaces(ErrorOfType<ParameterCannotHaveInitialValueMessage>());
+		}
 	}
 }

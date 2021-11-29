@@ -462,4 +462,12 @@ namespace Compiler.Messages
 			}
 		}
 	}
+	public sealed class ParameterCannotHaveInitialValueMessage : ACriticalMessage
+	{
+		public ParameterCannotHaveInitialValueMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "A parameter cannot have an initial value.";
+	}
 }
