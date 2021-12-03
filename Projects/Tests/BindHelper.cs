@@ -45,11 +45,11 @@ namespace Tests
 			public TestBoundBodies BindBodies(params Action<IMessage>[] checks)
 			{
 				ExactlyMessages()(MyProject.LazyParseMessages.Value);
-				ExactlyMessages()(MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundFunctionPous = MyProject.LazyBoundModule.Value.FunctionPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
 				var boundFBPous = MyProject.LazyBoundModule.Value.FunctionBlockPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
 				var boundPous = boundFunctionPous.Concat(boundFBPous).ToImmutableDictionary(x => x.Key, x => x.Value);
-				ExactlyMessages(checks)(boundPous.Values.SelectMany(x => x.Item2));
+				var bindMessages = boundPous.Values.SelectMany(x => x.Item2).Concat(MyProject.LazyBoundModule.Value.InterfaceMessages);
+				ExactlyMessages(checks)(bindMessages);
 				return new(boundPous);
 			}
 

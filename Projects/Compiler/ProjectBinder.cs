@@ -437,14 +437,13 @@ namespace Compiler
 
 		}
 
-		private static class GvlSymbolInWork
+		private static class GvlFactory
 		{
 			public static GlobalVariableListSymbol Create(ParsedGVLLanguageSource x, IScope scope, MessageBag messageBag)
 			{
 				var variables = BindVariables(x.Name, x.Syntax.VariableDeclarations, scope, messageBag).ToSymbolSetWithDuplicates(messageBag);
 				return new GlobalVariableListSymbol(x.Syntax.SourcePosition, x.Name, variables);
 			}
-
 			private static IEnumerable<GlobalVariableSymbol> BindVariables(CaseInsensitiveString gvlName, IEnumerable<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
 				=> vardecls.SelectMany(vardeclBlock => BindVarDeclBlock(vardeclBlock.TokenKind, gvlName, vardeclBlock.Declarations, scope, messages));
 			private static IEnumerable<GlobalVariableSymbol> BindVarDeclBlock(IVarDeclKindToken kind, CaseInsensitiveString gvlName, SyntaxArray<VarDeclSyntax> vardecls, IScope scope, MessageBag messages)
@@ -456,13 +455,14 @@ namespace Compiler
 			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName,  VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
 				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
+				var initial = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
 				return new(
 					syntax.TokenIdentifier.SourcePosition,
 					scope.SystemScope.ModuleName,
 					gvlName,
 					syntax.Identifier,
 					type,
-					null);
+					initial);
 			}
 		}
 
@@ -509,7 +509,7 @@ namespace Compiler
 				SymbolSet<FunctionVariableSymbol>.Empty,
 				rootScope);
 			var workingGvlSymbols = gvls.ToSymbolSetWithDuplicates(messageBag,
-				x => GvlSymbolInWork.Create(x, typeScope, messageBag));
+				x => GvlFactory.Create(x, typeScope, messageBag));
 			var typeFuncScope = new Scope(
 				typeScope.Libraries,
 				typeScope.TypeSymbols,
@@ -583,7 +583,6 @@ namespace Compiler
 			SymbolSet<ITypeSymbolInWork> typesToComplete,
 			SymbolSet<GlobalVariableListSymbol> gvlsToComplete,
 			SymbolSet<FunctionSymbolInWork> functionsToComplete)
-
 		{
 			// Complete the symbolic layout for all types.
 			List<ITypeSymbol> typeSymbols = new List<ITypeSymbol>();
@@ -616,6 +615,13 @@ namespace Compiler
 			{
 				foreach (var param in functionSymbol.Symbol.Parameters)
 					DelayedLayoutType.RecursiveLayout(param.Type, messageBag, param.DeclaringPosition);
+			}
+
+			// Initial values
+			foreach (var gvlSymbol in gvlsToComplete)
+			{
+				foreach (var globalVar in gvlSymbol.Variables)
+					globalVar._CompleteInitialValue(scope.SystemScope, messageBag);
 			}
 		}
 

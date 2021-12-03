@@ -95,5 +95,44 @@ namespace Tests
 				.AddDutFast("MyGvl", "(First, Second)")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyGvl".ToCaseInsensitive(), err.Name)));
 		}
+
+		[Fact]
+		public void BindInitialValue()
+		{
+			var boundInterfaces = BindHelper.NewProject
+				.AddGVL("MyGvl", "VAR_GLOBAL value : INT := 7; END_VAR")
+				.BindInterfaces();
+			var gvl = boundInterfaces.GlobalVariableListSymbols["MyGvl"];
+			var variable = gvl.Variables["value"];
+			var initial = Assert.IsType<IntLiteralValue>(variable.InitialValue);
+			Assert.Equal((short)7, initial.Value);
+		}
+		[Fact]
+		public void BindInitialValue_SIZEOF()
+		{
+			var boundInterfaces = BindHelper.NewProject
+				.AddDutFast("MyDut", "STRUCT field : INT; END_STRUCT")
+				.AddGVL("MyGvl", "VAR_GLOBAL value : INT := SIZEOF(MyDut); END_VAR")
+				.BindInterfaces();
+			var gvl = boundInterfaces.GlobalVariableListSymbols["MyGvl"];
+			var variable = gvl.Variables["value"];
+			var initial = Assert.IsType<IntLiteralValue>(variable.InitialValue);
+			Assert.Equal((short)2, initial.Value);
+		}
+		[Fact]
+		public void BindInitialValue_NotAConstant()
+		{
+			BindHelper.NewProject
+				.AddGVL("MyGvl", "VAR_GLOBAL value : LREAL := LREAL#1 + LREAL#2; END_VAR")
+				.BindInterfaces(ErrorOfType<NotAConstantMessage>());
+		}
+
+		[Fact]
+		public void BindInitialValue_WrongType()
+		{
+			BindHelper.NewProject
+				.AddGVL("MyGvl", "VAR_GLOBAL value : INT := BOOL#TRUE; END_VAR")
+				.BindInterfaces(ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
 	}
 }

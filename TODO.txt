@@ -1,8 +1,14 @@
 Use popsicle tree and add file to source position
 Add find expression at source position
 Add find bound expression at source position
+Initial values:
+	Constant values for FunctionBlock-VAR, VAR_STRUCT, PROGRAM-VAR.
+		This must happen in a seperate pass after types are resolved
+	Bound expression for VAR_TEMP-Var.
+
 Add initializers
 Simple incremental compile
+Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.
 LateLanguageUpdates
 Parser tests
 Strings

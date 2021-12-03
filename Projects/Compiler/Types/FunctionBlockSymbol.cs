@@ -54,5 +54,4 @@ namespace Compiler.Types
 			Fields);
 		public override string ToString() => UniqueId.ToString();
 	}
-	
 }

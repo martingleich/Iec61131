@@ -55,14 +55,42 @@ namespace Compiler
 	}
 	public sealed class GlobalVariableSymbol : AVariableSymbol
 	{
-		public GlobalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString moduleName, CaseInsensitiveString gvlName, CaseInsensitiveString name, IType type, ILiteralValue? initialValue) : base(declaringPosition, name, type)
+		public GlobalVariableSymbol(
+			SourcePosition declaringPosition,
+			CaseInsensitiveString moduleName,
+			CaseInsensitiveString gvlName,
+			CaseInsensitiveString name,
+			IType type,
+			IBoundExpression? initialValueSyntax) : base(declaringPosition, name, type)
 		{
 			UniqueName = $"{moduleName}::{gvlName}::{name}";
-			InitialValue = initialValue;
+			InitialValueSyntax = initialValueSyntax;
 		}
 		public readonly string UniqueName;
-		public readonly ILiteralValue? InitialValue;
+		private ILiteralValue? _initialValue;
+		public ILiteralValue? InitialValue {
+			get
+			{
+				if(_initialValue == null && InitialValueSyntax != null)
+					throw new InvalidOperationException("Initial value was not completed.");
+				return _initialValue;
+			}
+			private set
+			{
+				if (_initialValue != null)
+					throw new InvalidOperationException("Initial value was already completed.");
+				_initialValue = value;
+			}
+		}
+		private readonly IBoundExpression? InitialValueSyntax;
+
+		internal void _CompleteInitialValue(SystemScope systemScope, MessageBag messages)
+		{
+			if (InitialValueSyntax != null)
+				InitialValue = ConstantExpressionEvaluator.EvaluateConstant(systemScope, InitialValueSyntax, messages);
+		}
 	}
+
 	public sealed class EnumVariableSymbol : IVariableSymbol
 	{
 		public SourcePosition DeclaringPosition { get; }
