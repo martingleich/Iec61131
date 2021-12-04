@@ -230,13 +230,7 @@ namespace Compiler
 
 			public FunctionTypeSymbol? ConvertToSymbol(PouInterfaceSyntax syntax) => syntax.TokenPouKind.Accept(this, syntax);
 
-			public FunctionTypeSymbol? Visit(ProgramToken programToken, PouInterfaceSyntax context)
-				=> TypifyFunctionOrProgram(context);
 			public FunctionTypeSymbol? Visit(FunctionToken functionToken, PouInterfaceSyntax context)
-				=> TypifyFunctionOrProgram(context);
-			public FunctionTypeSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
-
-			private FunctionTypeSymbol TypifyFunctionOrProgram(PouInterfaceSyntax context)
 			{
 				OrderedSymbolSet<ParameterVariableSymbol> uniqueParameters = BindParameters(Scope, Messages, context);
 				return new FunctionTypeSymbol(
@@ -246,6 +240,7 @@ namespace Compiler
 					uniqueParameters);
 			}
 
+			public FunctionTypeSymbol? Visit(FunctionBlockToken functionBlockToken, PouInterfaceSyntax context) => null;
 		}
 
 		private sealed class PouTypeSymbolCreator : IPouKindToken.IVisitor<ITypeSymbolInWork?, PouTypeSymbolCreator.Context>
@@ -263,7 +258,6 @@ namespace Compiler
 			}
 
 			public static readonly PouTypeSymbolCreator Instance = new();
-			public ITypeSymbolInWork? Visit(ProgramToken programToken, Context context) => null;
 			public ITypeSymbolInWork? Visit(FunctionToken functionToken, Context context) => null;
 			public ITypeSymbolInWork? Visit(FunctionBlockToken functionBlockToken, Context context) =>
 				new FunctionBlockTypeInWork(context.ModuleName, context.Syntax.Interface, context.Syntax.Body);

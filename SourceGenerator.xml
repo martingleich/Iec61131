@@ -191,11 +191,6 @@
       <Interface>IVarDeclKindToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
-      <Name>ProgramToken</Name>
-      <Generating>PROGRAM</Generating>
-      <Interface>IPouKindToken</Interface>
-    </TokenKeywordClass>
-    <TokenKeywordClass>
       <Name>FunctionToken</Name>
       <Generating>FUNCTION</Generating>
       <Interface>IPouKindToken</Interface>
