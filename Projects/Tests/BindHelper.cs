@@ -108,7 +108,11 @@ namespace Tests
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
 				var moduleScope = new GlobalInternalModuleScope(boundModuleInterface, new RootScope(boundModuleInterface.SystemScope));
-				var variables = Variables.ToSymbolSet(x => new LocalVariableSymbol(default, x.Key, MapType(moduleScope, x.Value)));
+				var variables = Variables.ToSymbolSet(x =>
+				{
+					var type = MapType(moduleScope, x.Value);
+					return new LocalVariableSymbol(default, x.Key, type, null);
+				});
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();
 				var targetType = targetTypeText != null ? MapType(moduleScope, targetTypeText) : null;
@@ -142,6 +146,8 @@ namespace Tests
 
 	public static class AssertEx
 	{
+		public static void EqualCaseInsensitive(string expected, CaseInsensitiveString input)
+			=> Assert.Equal(expected.ToCaseInsensitive(), input);
 		public static void CheckVariable(IVariableSymbol var, string name, IType type)
 		{
 			Assert.Equal(name.ToCaseInsensitive(), var.Name);

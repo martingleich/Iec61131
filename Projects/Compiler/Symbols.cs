@@ -42,9 +42,11 @@ namespace Compiler
 	}
 	public sealed class LocalVariableSymbol : AVariableSymbol
 	{
-		public LocalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		public LocalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type, IBoundExpression? initialValue) : base(declaringPosition, name, type)
 		{
+			InitialValue = initialValue;
 		}
+		public readonly IBoundExpression? InitialValue; 
 	}
 	public sealed class ErrorVariableSymbol : AVariableSymbol
 	{

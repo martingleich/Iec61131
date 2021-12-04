@@ -74,26 +74,27 @@ namespace Compiler
 				kind => isLocal(kind) ? Marker : null,
 				(_, scope, bag, syntax) =>
 				{
-					if (syntax.Initial != null)
-						messages.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourcePosition));
-					IType type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+					var type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+					var initialValue = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
 					return new LocalVariableSymbol(
 						syntax.TokenIdentifier.SourcePosition,
 						syntax.Identifier,
-						type);
+						type,
+						initialValue);
 				});
 		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
 		{
 			(IBoundStatement, ImmutableArray<IMessage>) Bind()
 			{
 				var messageBag = new MessageBag();
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, scope, token => token is VarToken || token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var callableScope = new InsideCallableScope(scope, symbol);
+				var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
 				foreach (var local in localVariables)
 				{
 					if (symbol.Parameters.TryGetValue(local.Name, out var existing))
 						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringPosition, local.DeclaringPosition));
 				}
-				var innerScope = new TemporaryVariablesScope(new InsideCallableScope(scope, symbol), localVariables);
+				var innerScope = new TemporaryVariablesScope(callableScope, localVariables);
 				var bound = StatementBinder.Bind(body, innerScope, messageBag);
 				return (bound, messageBag.ToImmutable());
 			}
@@ -106,7 +107,8 @@ namespace Compiler
 			(IBoundStatement, ImmutableArray<IMessage>) Bind()
 			{
 				var messageBag = new MessageBag();
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, scope, token => token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
+				var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
 				foreach (var local in localVariables)
 				{
 					if (symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
@@ -114,7 +116,7 @@ namespace Compiler
 					if (symbol.Fields.TryGetValue(local.Name, out var existingField))
 						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringPosition, local.DeclaringPosition));
 				}
-				var innerScope = new TemporaryVariablesScope(new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields), localVariables);
+				var innerScope = new TemporaryVariablesScope(insideFbScope, localVariables);
 				var bound = StatementBinder.Bind(body, innerScope, messageBag);
 				return (bound, messageBag.ToImmutable());
 			}
