@@ -440,6 +440,5 @@ namespace Compiler
 			}
 			return ImplicitCast(boundExpression, context);
 		}
-
 	}
 }

@@ -4,10 +4,13 @@ using System.Collections.Immutable;
 
 namespace Compiler
 {
-	public interface IBoundExpression
+	public interface IBoundNode
+	{
+		INode OriginalNode { get; }
+	}
+	public interface IBoundExpression : IBoundNode
 	{
 		IType Type { get; }
-		INode OriginalNode { get; }
 
 		T Accept<T>(IVisitor<T> visitor);
 
@@ -35,7 +38,7 @@ namespace Compiler
 		}
 	}
 
-	public interface IBoundStatement
+	public interface IBoundStatement : IBoundNode
 	{
 		T Accept<T>(IVisitor<T> visitor);
 		interface IVisitor<T>
@@ -370,10 +373,12 @@ namespace Compiler
 
 	public sealed class SequenceBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
 		public readonly ImmutableArray<IBoundStatement> Statements;
 
-		public SequenceBoundStatement(ImmutableArray<IBoundStatement> statements)
+		public SequenceBoundStatement(INode originalNode, ImmutableArray<IBoundStatement> statements)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Statements = statements;
 		}
 
@@ -382,10 +387,12 @@ namespace Compiler
 	
 	public sealed class ExpressionBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
 		public readonly IBoundExpression Expression;
 
-		public ExpressionBoundStatement(IBoundExpression expression)
+		public ExpressionBoundStatement(INode originalNode, IBoundExpression expression)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Expression = expression ?? throw new ArgumentNullException(nameof(expression));
 		}
 
@@ -394,11 +401,13 @@ namespace Compiler
 
 	public sealed class AssignBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
 		public readonly IBoundExpression LeftSide;
 		public readonly IBoundExpression RightSide;
 
-		public AssignBoundStatement(IBoundExpression leftSide, IBoundExpression rightSide)
+		public AssignBoundStatement(INode originalNode, IBoundExpression leftSide, IBoundExpression rightSide)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			LeftSide = leftSide ?? throw new ArgumentNullException(nameof(leftSide));
 			RightSide = rightSide ?? throw new ArgumentNullException(nameof(rightSide));
 		}
@@ -408,6 +417,7 @@ namespace Compiler
 
 	public sealed class IfBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
 		public sealed class Branch
 		{
 			public readonly IBoundExpression? Condition;
@@ -421,8 +431,9 @@ namespace Compiler
 		}
 		public readonly ImmutableArray<Branch> Branches;
 
-		public IfBoundStatement(ImmutableArray<Branch> branches)
+		public IfBoundStatement(INode originalNode, ImmutableArray<Branch> branches)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Branches = branches;
 		}
 
@@ -431,13 +442,15 @@ namespace Compiler
 
 	public sealed class WhileBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
 		public readonly IBoundExpression Condition;
 		public readonly IBoundStatement Body;
 
-		public WhileBoundStatement(IBoundExpression condition, IBoundStatement body)
+		public WhileBoundStatement(INode originalNode, IBoundExpression condition, IBoundStatement body)
 		{
 			Condition = condition ?? throw new ArgumentNullException(nameof(condition));
 			Body = body ?? throw new ArgumentNullException(nameof(body));
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 		}
 
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
@@ -445,18 +458,40 @@ namespace Compiler
 
 	public sealed class ExitBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
+
+		public ExitBoundStatement(INode originalNode)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+		}
+
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ContinueBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
+
+		public ContinueBoundStatement(INode originalNode)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+		}
+
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ReturnBoundStatement : IBoundStatement
 	{
+		public ReturnBoundStatement(INode originalNode)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+		}
+
+		public INode OriginalNode { get; }
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ForLoopBoundStatement : IBoundStatement
 	{
+		public INode OriginalNode { get; }
+
 		public readonly IBoundExpression Index;
 		public readonly IBoundExpression Initial;
 		public readonly IBoundExpression UpperBound;
@@ -464,8 +499,9 @@ namespace Compiler
 		public readonly FunctionVariableSymbol IncrementFunctionSymbol;
 		public readonly IBoundStatement Body;
 
-		public ForLoopBoundStatement(IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionVariableSymbol incrementFunctionSymbol, IBoundStatement body)
+		public ForLoopBoundStatement(INode originalNode, IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionVariableSymbol incrementFunctionSymbol, IBoundStatement body)
 		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Index = index ?? throw new ArgumentNullException(nameof(index));
 			Initial = initial ?? throw new ArgumentNullException(nameof(initial));
 			UpperBound = upperBound ?? throw new ArgumentNullException(nameof(upperBound));

@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 
 namespace Compiler
 {
-
 	public sealed class StatementBinder : IStatementSyntax.IVisitor<IBoundStatement>
 	{
 		private readonly IStatementScope Scope;
@@ -42,7 +41,7 @@ namespace Compiler
 				var boundStatement = statement.Accept(this);
 				boundStatements.Add(boundStatement);
 			}
-			return new SequenceBoundStatement(boundStatements.ToImmutable());
+			return new SequenceBoundStatement(statementListSyntax, boundStatements.ToImmutable());
 		}
 
 		public IBoundStatement Visit(AssignStatementSyntax assignStatementSyntax)
@@ -50,13 +49,13 @@ namespace Compiler
 			var leftSide = BindExpression(assignStatementSyntax.Left);
 			var rightSide = BindExpressionWithTargetType(assignStatementSyntax.Right, leftSide.Type);
 			IsLValueChecker.IsLValue(leftSide).Extract(MessageBag);
-			return new AssignBoundStatement(leftSide, rightSide);
+			return new AssignBoundStatement(assignStatementSyntax, leftSide, rightSide);
 		}
 
 		public IBoundStatement Visit(ExpressionStatementSyntax expressionStatementSyntax)
 		{
 			var boundExpression = BindExpression(expressionStatementSyntax.Expression);
-			return new ExpressionBoundStatement(boundExpression);
+			return new ExpressionBoundStatement(expressionStatementSyntax, boundExpression);
 		}
 
 		public IBoundStatement Visit(IfStatementSyntax ifStatementSyntax)
@@ -85,22 +84,22 @@ namespace Compiler
 				branches.Add(BindElseIfBranch(elsIfBranch));
 			if (ifStatementSyntax.ElseBranch != null)
 				branches.Add(BindElseBranch(ifStatementSyntax.ElseBranch));
-			return new IfBoundStatement(branches.ToImmutable());
+			return new IfBoundStatement(ifStatementSyntax, branches.ToImmutable());
 		}
 
 		public IBoundStatement Visit(ReturnStatementSyntax returnStatementSyntax)
-			=> new ReturnBoundStatement();
+			=> new ReturnBoundStatement(returnStatementSyntax);
 
 		public IBoundStatement Visit(ExitStatementSyntax exitStatementSyntax)
 		{
 			if (Scope.InsideLoop)
 			{
-				return new ExitBoundStatement();
+				return new ExitBoundStatement(exitStatementSyntax);
 			}
 			else
 			{
 				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(exitStatementSyntax.SourcePosition));
-				return new SequenceBoundStatement(ImmutableArray<IBoundStatement>.Empty);
+				return new SequenceBoundStatement(exitStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
 			}
 		}
 
@@ -108,12 +107,12 @@ namespace Compiler
 		{
 			if (Scope.InsideLoop)
 			{
-				return new ContinueBoundStatement();
+				return new ContinueBoundStatement(continueStatementSyntax);
 			}
 			else
 			{
 				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(continueStatementSyntax.SourcePosition));
-				return new SequenceBoundStatement(ImmutableArray<IBoundStatement>.Empty);
+				return new SequenceBoundStatement(continueStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
 			}
 		}
 
@@ -122,7 +121,7 @@ namespace Compiler
 			var boundCondition = BindExpressionWithTargetType(whileStatementSyntax.Condition, Scope.SystemScope.Bool);
 			var bodyScope = new LoopScope(Scope);
 			var boundBody = BindInner(whileStatementSyntax.Statements, bodyScope, MessageBag);
-			return new WhileBoundStatement(boundCondition, boundBody);
+			return new WhileBoundStatement(whileStatementSyntax, condition: boundCondition, body: boundBody);
 		}
 
 		public IBoundStatement Visit(ForStatementSyntax forStatementSyntax)
@@ -154,6 +153,7 @@ namespace Compiler
 			var boundBody = BindInner(forStatementSyntax.Statements, bodyScope, MessageBag);
 
 			return new ForLoopBoundStatement(
+				forStatementSyntax,
 				boundIndex,
 				boundInitial,
 				boundUpperBound,
@@ -163,6 +163,6 @@ namespace Compiler
 		}
 
 		public IBoundStatement Visit(EmptyStatementSyntax emptyStatementSyntax)
-			=> new SequenceBoundStatement(ImmutableArray<IBoundStatement>.Empty);
+			=> new SequenceBoundStatement(emptyStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
 	}
 }
