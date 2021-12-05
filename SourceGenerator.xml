@@ -156,6 +156,14 @@
       <Name>BracketCloseToken</Name>
       <Generating>]</Generating>
     </TokenWithoutValueClass>
+    <TokenWithoutValueClass>
+      <Name>BraceOpenToken</Name>
+      <Generating>{</Generating>
+    </TokenWithoutValueClass>
+    <TokenWithoutValueClass>
+      <Name>BraceCloseToken</Name>
+      <Generating>}</Generating>
+    </TokenWithoutValueClass>
     <TokenKeywordClass>
       <Name>VarToken</Name>
       <Generating>VAR</Generating>

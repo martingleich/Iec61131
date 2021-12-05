@@ -20,7 +20,7 @@ namespace Compiler
 		{
 			Scanner = new Scanner(text, messages);
 			CurToken = Scanner.Next(null);
-			Messages = messages ?? throw new System.ArgumentNullException(nameof(messages));
+			Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			CommaSeperatedRangeParser = MakeCommaSeperatedParser(ParseRange, IsExpressionStartToken, BracketCloseToken.Synthesize);
 			CommaSeperatedIndexParser = MakeCommaSeperatedParser(ParseExpression, IsExpressionStartToken, BracketCloseToken.Synthesize);
 			CommaSeperatedCallArgumentParser = MakeCommaSeperatedParser(ParseCallArgument, IsExpressionStartToken, ParenthesisCloseToken.Synthesize);

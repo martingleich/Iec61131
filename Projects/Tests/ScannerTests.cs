@@ -95,6 +95,7 @@ namespace Tests
 		{
 			AssertAllTokens("BOOL#17", TypedLiteralToken(BoolToken, IntegerLiteralToken(17)));
 		}
+		/*
 		[Fact]
 		public void Attribute()
 		{
@@ -119,6 +120,7 @@ namespace Tests
 				ExactlyMessages(ErrorOfType<Compiler.Messages.MissingEndOfAttributeMessage>()),
 				AttributeToken(""));
 		}
+		*/
 		[Fact]
 		public void Integer_Simple()
 		{
@@ -197,6 +199,8 @@ namespace Tests
 		[InlineData(">=", typeof(Compiler.GreaterEqualToken))]
 		[InlineData(">", typeof(Compiler.GreaterToken))]
 		[InlineData("::", typeof(Compiler.DoubleColonToken))]
+		[InlineData("{", typeof(Compiler.BraceOpenToken))]
+		[InlineData("}", typeof(Compiler.BraceCloseToken))]
 		public void Symbols(string generating, Type tokenType)
 		{
 			AssertAllTokens(generating, tok => Assert.IsType(tokenType, tok));
@@ -280,6 +284,8 @@ namespace Tests
 		[InlineData(":")]
 		[InlineData("<")]
 		[InlineData("::")]
+		[InlineData("{")]
+		[InlineData("}")]
 		public void UnknownToken_AnyEnd(string end)
 		{
 			AssertAllTokens("$|" + end,

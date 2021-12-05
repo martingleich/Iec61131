@@ -114,7 +114,7 @@ namespace Compiler
 		private static bool IsUnitChar(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsStartIdentifier(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsMidIdentifier(char c) => IsStartIdentifier(c) || IsDigit(c) || c == '_';
-		private static bool IsSymbol(char c) => c == '_' || c == '^' || c == '*' || c == ';' || c == '.' || c == ':' || c == '>' || c == '<' || c == '=' || c == '(' || c == ')' || c == '{' || c == '}' || c == '+' || c == '-' || c == '*' || c == '/' || c == ',';
+		private static bool IsSymbol(char c) => c == '_' || c == '^' || c == '*' || c == ';' || c == '.' || c == ':' || c == '>' || c == '<' || c == '=' || c == '(' || c == ')' || c == '{' || c == '}' || c == '+' || c == '-' || c == '*' || c == '/' || c == ',' || c == '{' || c == '}';
 		private static bool IsUnknown(char c) => !(char.IsWhiteSpace(c) || IsStartIdentifier(c) || IsSymbol(c) || IsDigit(c));
 
 		private sealed class LiteralScannerT : IBuiltInTypeToken.IVisitor<IToken>
@@ -413,23 +413,9 @@ namespace Compiler
 			else if (cur == ')')
 				return new ParenthesisCloseToken(start, leadingToken);
 			else if (cur == '{')
-			{
-				while (Cursor < Text.Length)
-				{
-					var c = Text[Cursor];
-					++Cursor;
-					if (c == '}')
-					{
-						var generating = Text[start..Cursor];
-						var value = generating[1..^1];
-						return new AttributeToken(value, generating, start, leadingToken);
-					}
-				}
-				Messages.Add(new Messages.MissingEndOfAttributeMessage(SourcePosition.FromStartLength(start, 0)));
-				var generating2 = Text[start..Cursor];
-				var value2 = generating2[1..];
-				return new AttributeToken(value2, generating2, start, leadingToken);
-			}
+				return new BraceOpenToken(start, leadingToken);
+			else if (cur == '}')
+				return new BraceCloseToken(start, leadingToken);
 			else if (cur == '+')
 				return new PlusToken(start, leadingToken);
 			else if (cur == '-')
