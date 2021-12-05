@@ -576,6 +576,9 @@
     <SyntaxInterface>
       <Name>ITypeDeclarationBodySyntax</Name>
     </SyntaxInterface>
+    <SyntaxInterface>
+      <Name>IInitializerElementSyntax</Name>
+    </SyntaxInterface>
   </SyntaxInterfaces>
   <SyntaxClasses>
     <SyntaxClass>
@@ -1021,6 +1024,75 @@
       <Element>
         <Name>ParameterKind</Name>
         <Type>IParameterKindToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>InitializationExpressionSyntax</Name>
+      <Interface>IExpressionSyntax</Interface>
+      <Element>
+        <Name>TokenBraceOpen</Name>
+        <Type>BraceOpenToken</Type>
+      </Element>
+      <Element>
+        <Name>Elements</Name>
+        <Kind>CommaSeparated</Kind>
+        <Type>IInitializerElementSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenBraceClose</Name>
+        <Type>BraceCloseToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>FieldInitializerElementSyntax</Name>
+      <Interface>IInitializerElementSyntax</Interface>
+      <Element>
+        <Name>TokenDot</Name>
+        <Type>DotToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenName</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenAssign</Name>
+        <Type>AssignToken</Type>
+      </Element>
+      <Element>
+        <Name>Value</Name>
+        <Type>IExpressionSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>IndexInitializerElementSyntax</Name>
+      <Interface>IInitializerElementSyntax</Interface>
+      <Element>
+        <Name>TokenBracketOpen</Name>
+        <Type>BracketOpenToken</Type>
+      </Element>
+      <Element>
+        <Name>Index</Name>
+        <Type>IExpressionSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenBracketClose</Name>
+        <Type>BracketCloseToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenAssign</Name>
+        <Type>AssignToken</Type>
+      </Element>
+      <Element>
+        <Name>Value</Name>
+        <Type>IExpressionSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>ExpressionElementSyntax</Name>
+      <Interface>IInitializerElementSyntax</Interface>
+      <Element>
+        <Name>Value</Name>
+        <Type>IExpressionSyntax</Type>
       </Element>
     </SyntaxClass>
     <!--Statements-->

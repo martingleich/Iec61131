@@ -24,9 +24,13 @@ namespace Tests
 		public static ITypeSyntax ParseType(string input) => NoErrorParse(Parser.ParseType)(input);
 		public static IStatementSyntax ParseStatements(string input) => NoErrorParse(Parser.ParsePouBody)(input);
 		public static IExpressionSyntax ParseExpression(string input, params Action<IMessage>[] checks) => ParseWithError(Parser.ParseExpression, checks)(input);
-		public static Action<SyntaxArray<T>> SyntaxArray<T>(params Action<T>[] checkes) where T : ISyntax => arr =>
+		public static Action<SyntaxArray<T>> SyntaxArray<T>(params Action<T>[] checks) where T : ISyntax => arr =>
 		{
-			Assert.Collection(arr.Values, checkes);
+			Assert.Collection(arr.Values, checks);
+		};
+		public static Action<SyntaxCommaSeparated<T>> SyntaxCommaSeperated<T>(params Action<T>[] checks) where T : ISyntax => arr =>
+		{
+			Assert.Collection(arr.Values, checks);
 		};
 		public static Action<ISyntax> VariableExpressionSyntax(string name) =>
 			VariableExpressionSyntax(name.ToCaseInsensitive());

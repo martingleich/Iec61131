@@ -66,19 +66,23 @@ namespace Compiler
 		public readonly HeadSyntax? Head;
 		public readonly SourcePosition SourcePosition { get; }
 
-		public IEnumerator<T> GetEnumerator()
+		public IEnumerable<T> Values
 		{
-			if (Head is not null)
+			get
 			{
-				yield return Head.Value;
-				var tailParam = Head.Tail;
-				while (tailParam is not null)
+				if (Head is not null)
 				{
-					yield return tailParam.Value;
-					tailParam = tailParam.Tail;
+					yield return Head.Value;
+					var tailParam = Head.Tail;
+					while (tailParam is not null)
+					{
+						yield return tailParam.Value;
+						tailParam = tailParam.Tail;
+					}
 				}
 			}
 		}
+		public IEnumerator<T> GetEnumerator() => Values.GetEnumerator();
 
 		[ExcludeFromCodeCoverage]
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
