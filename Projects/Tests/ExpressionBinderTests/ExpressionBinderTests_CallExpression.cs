@@ -268,5 +268,4 @@ namespace Tests.ExpressionBinderTests
 				.BindGlobalExpression("unknown_symbol(arg := 17)", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 	}
-
 }

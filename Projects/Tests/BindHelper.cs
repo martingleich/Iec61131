@@ -143,12 +143,18 @@ namespace Tests
 		public static readonly TestProject NewProject = NewNamedProject("Test");
 		public static TestProject NewNamedProject(string name) => new(Project.Empty(name.ToCaseInsensitive()));
 
+		public static Action<object> OfType<T>(Action<T> action) => x => action(Assert.IsType<T>(x));
 		public static Action<InitializerBoundExpression.ABoundElement> ArrayElement(int index, Action<IBoundExpression> expression) => elem =>
 		{
 			var indexElem = Assert.IsType<InitializerBoundExpression.ABoundElement.ArrayElement>(elem);
 			Assert.Equal(index, indexElem.Index.Value);
 			expression(indexElem.Value);
 		};
+		public static Action<InitializerBoundExpression.ABoundElement> FieldElement(string fieldName, Action<IBoundExpression> expression) => OfType<InitializerBoundExpression.ABoundElement.FieldElement>(elem =>
+		{
+			AssertEx.EqualCaseInsensitive(fieldName, elem.Field.Name);
+			expression(elem.Value);
+		});
 		public static Action<InitializerBoundExpression.ABoundElement> AllElements(Action<IBoundExpression> expression) => elem =>
 		{
 			var allElements = Assert.IsType<InitializerBoundExpression.ABoundElement.AllElements>(elem);
@@ -161,6 +167,11 @@ namespace Tests
 			var litValue = Assert.IsType<IntLiteralValue>(litExpr.Value);
 			Assert.Equal(value, litValue.Value);
 		};
+		public static Action<IBoundExpression> BoundBoolLiteral(bool value) => OfType<LiteralBoundExpression>(expr =>
+		{
+			var litValue = Assert.IsType<BooleanLiteralValue>(expr.Value);
+			Assert.Equal(value, litValue.Value);
+		});
 		public static Action<IBoundExpression> BoundVariable(string name) => expr =>
 		{
 			var varExpr = Assert.IsType<VariableBoundExpression>(expr);
