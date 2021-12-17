@@ -1088,6 +1088,30 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>AllIndicesInitializerElementSyntax</Name>
+      <Interface>IInitializerElementSyntax</Interface>
+      <Element>
+        <Name>TokenBracketOpen</Name>
+        <Type>BracketOpenToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenDots</Name>
+        <Type>DotsToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenBracketClose</Name>
+        <Type>BracketCloseToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenAssign</Name>
+        <Type>AssignToken</Type>
+      </Element>
+      <Element>
+        <Name>Value</Name>
+        <Type>IExpressionSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>ExpressionElementSyntax</Name>
       <Interface>IInitializerElementSyntax</Interface>
       <Element>

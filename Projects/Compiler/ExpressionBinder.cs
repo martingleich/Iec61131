@@ -54,7 +54,7 @@ namespace Compiler
 				return new ImplicitPointerTypeCastBoundExpression(boundValue, targetPointerType);
 			}
 			else if (
-				TypeRelations.IsBuiltInType(targetType, out var builtInTarget) && 
+				TypeRelations.IsBuiltInType(targetType, out var builtInTarget) &&
 				TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) &&
 				SystemScope.BuiltInFunctionTable.TryGetCastFunction(builtInSource, builtInTarget) is FunctionVariableSymbol castFunction)
 			{
@@ -439,10 +439,6 @@ namespace Compiler
 				boundExpression = ImplicitCast(boundExpression, aliasType);
 			}
 			return ImplicitCast(boundExpression, context);
-		}
-		public IBoundExpression Visit(InitializationExpressionSyntax initializationExpressionSyntax, IType? context)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }

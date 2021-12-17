@@ -140,5 +140,13 @@ namespace Tests
 					"field".ToCaseInsensitive(),
 					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
 		}
+		[Fact]
+		public void AllAssignExpression()
+		{
+			var expr = ParseExpression("{[..] := z}");
+			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+				AllIndicesInitializerElementSyntax(
+					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
+		}
 	}
 }

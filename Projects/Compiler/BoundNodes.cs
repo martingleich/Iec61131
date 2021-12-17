@@ -370,7 +370,83 @@ namespace Compiler
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 	}
+	public sealed class BoundConstantIntegerValue
+	{
+		public IBoundExpression? Expression;
+		public int Value;
 
+		public BoundConstantIntegerValue(IBoundExpression? expression, int value)
+		{
+			Expression = expression;
+			Value = value;
+		}
+		public override string ToString() => Value.ToString();
+	}
+	public sealed class InitializerBoundExpression : IBoundExpression
+	{
+		public abstract class ABoundElement
+		{
+			public readonly IBoundExpression Value;
+
+			protected ABoundElement(IBoundExpression value)
+			{
+				Value = value ?? throw new ArgumentNullException(nameof(value));
+			}
+
+			public sealed class ArrayElement : ABoundElement
+			{
+				public readonly ImmutableArray<BoundConstantIntegerValue> Indices;
+
+				public ArrayElement(ImmutableArray<BoundConstantIntegerValue> indices, IBoundExpression value) : base(value)
+				{
+					Indices = indices;
+				}
+
+				public override string ToString() => $"[{string.Join(", ", Indices)}] := {Value}";
+			}
+			public sealed class AllElements : ABoundElement
+			{
+				public AllElements(IBoundExpression value) : base(value)
+				{
+				}
+			}
+			public sealed class FieldElement : ABoundElement
+			{
+				public readonly FieldVariableSymbol Field;
+				public FieldElement(FieldVariableSymbol field, IBoundExpression value) : base(value)
+				{
+					Field = field ?? throw new ArgumentNullException(nameof(field));
+				}
+				public override string ToString() => $".{Field.Name} := {Value}";
+			}
+			public sealed class UnknownElement : ABoundElement
+			{
+				public UnknownElement(IBoundExpression value) : base(value)
+				{
+				}
+			}
+		}
+
+		public ImmutableArray<ABoundElement> Elements;
+
+		public InitializerBoundExpression(ImmutableArray<ABoundElement> elements, IType type, INode originalNode)
+		{
+			Elements = elements;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+		}
+
+		public IType Type { get; }
+		public INode OriginalNode { get; }
+
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override string ToString() => $"{Type.Code}#{{{string.Join(", ", Elements)}}}";
+	}
+	
 	public sealed class SequenceBoundStatement : IBoundStatement
 	{
 		public INode OriginalNode { get; }

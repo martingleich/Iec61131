@@ -2,6 +2,7 @@
 {
 	public static class ImplicitName
 	{
+		public static readonly CaseInsensitiveString ErrorType = "__Error_Type".ToCaseInsensitive();
 		public static readonly CaseInsensitiveString NullType = "__Null_Type".ToCaseInsensitive();
 		public static readonly CaseInsensitiveString ErrorFunction = "__Error_Function".ToCaseInsensitive();
 		public static readonly CaseInsensitiveString ErrorModule = "__Error_Module".ToCaseInsensitive();

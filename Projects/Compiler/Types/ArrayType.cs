@@ -1,6 +1,7 @@
 ﻿using Compiler.Messages;
 using Compiler.Scopes;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -22,6 +23,7 @@ namespace Compiler.Types
 			}
 
 			public int Size => UpperBound - LowerBound + 1;
+			public bool IsInRange(int index) => index >= LowerBound && index <= UpperBound;
 
 			public bool Equals(Range other) => LowerBound == other.LowerBound && UpperBound == other.UpperBound;
 			public override bool Equals(object? obj) => throw new NotImplementedException("Use Equals(ArrayRange) instead");
@@ -30,6 +32,8 @@ namespace Compiler.Types
 			public static bool operator ==(Range left, Range right) => left.Equals(right);
 
 			public static bool operator !=(Range left, Range right) => !(left == right);
+
+			public IEnumerable<int> Values => Enumerable.Range(LowerBound, Size);
 		}
 
 		private readonly ArrayTypeSyntax? MaybeSyntax;

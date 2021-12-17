@@ -67,11 +67,21 @@ namespace Compiler
 				}
 				else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
 				{
-					var index = ParseExpression();
-					var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-					var tokenAssign = Match(AssignToken.Synthesize);
-					var value = ParseExpression();
-					return new IndexInitializerElementSyntax(tokenBracketOpen, index, tokenBracketClose, tokenAssign, value);
+					if (TryMatch<DotsToken>(out var tokenDots))
+					{
+						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+						var tokenAssign = Match(AssignToken.Synthesize);
+						var value = ParseExpression();
+						return new AllIndicesInitializerElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose, tokenAssign, value);
+					}
+					else
+					{
+						var index = ParseExpression();
+						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+						var tokenAssign = Match(AssignToken.Synthesize);
+						var value = ParseExpression();
+						return new IndexInitializerElementSyntax(tokenBracketOpen, index, tokenBracketClose, tokenAssign, value);
+					}
 				}
 				else
 				{

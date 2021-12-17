@@ -470,4 +470,84 @@ namespace Compiler.Messages
 
 		public override string Text => "This variable cannot have an initial value.";
 	}
+	
+	public sealed class CannotInferTypeForInitializerMessage : ACriticalMessage
+	{
+		public CannotInferTypeForInitializerMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "Cannot infer a type for this structured initializer.";
+	}
+	public sealed class CannotUseAnInitializerForThisTypeMessage : ACriticalMessage
+	{
+		public CannotUseAnInitializerForThisTypeMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "Cannot use an initializer for this type.";
+	}
+	public sealed class TypeDoesNotHaveThisElementMessage : ACriticalMessage
+	{
+		public TypeDoesNotHaveThisElementMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "This type does not have this element.";
+	}
+	public sealed class DuplicateInitializerElementMessage : ACriticalMessage
+	{
+		public readonly SourcePosition Original;
+		public DuplicateInitializerElementMessage(SourcePosition position, SourcePosition original) : base(position)
+		{
+			Original = original;
+		}
+
+		public override string Text => "Element was already initialzed earlier.";
+	}
+	public sealed class CannotUsePositionalElementAfterExplicitMessage : ACriticalMessage
+	{
+		public CannotUsePositionalElementAfterExplicitMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => "Cannot use an implicit element after an explicit on.";
+	}
+	public sealed class IndexNotInitializedMessage : ACriticalMessage
+	{
+		public readonly int Index;
+		public IndexNotInitializedMessage(int index, SourcePosition position) : base(position)
+		{
+			Index = index;
+		}
+
+		public override string Text => $"Missing initializer for index '{Index}'.";
+	}
+	public sealed class FieldNotInitializedMessage : ACriticalMessage
+	{
+		public readonly FieldVariableSymbol Field;
+		public FieldNotInitializedMessage(FieldVariableSymbol field, SourcePosition position) : base(position)
+		{
+			Field = field ?? throw new ArgumentNullException(nameof(field));
+		}
+
+		public override string Text => $"Missing initializer for field '{Field.Name}'.";
+	}
+	
+	public sealed class MissingElementsInInitializerMessage : ACriticalMessage
+	{
+		public MissingElementsInInitializerMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => $"Missing initializer.";
+	}
+	public sealed class CannotUseImplicitInitializerForThisTypeMessage : ACriticalMessage
+	{
+		public CannotUseImplicitInitializerForThisTypeMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => $"Cannot use implicit initializer for this type.";
+	}
 }

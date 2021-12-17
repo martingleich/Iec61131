@@ -7,6 +7,8 @@ Initial values:
 	Bound expression for VAR_TEMP-Var.
 
 Add initializers
+Make VAR_INPUT readonly
+Check for write before read, i.e. A value must be initialized before it is read for the first time.
 Simple incremental compile
 Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.
 LateLanguageUpdates
