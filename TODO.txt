@@ -1,4 +1,3 @@
-Make VAR_INPUT readonly
 Check for write before read, i.e. A value must be initialized before it is read for the first time.
 Check that all outputs are assigned before end of callable
 

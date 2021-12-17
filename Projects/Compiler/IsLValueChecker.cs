@@ -10,8 +10,15 @@ namespace Compiler
 
 		public ErrorsAnd<bool> Visit(VariableBoundExpression variableBoundExpression)
 		{
-			if (variableBoundExpression.Variable is FunctionVariableSymbol funcVar)
-				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(funcVar, variableBoundExpression.OriginalNode.SourcePosition));
+			if (variableBoundExpression.Variable is FunctionVariableSymbol functionVariable)
+				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(functionVariable, variableBoundExpression.OriginalNode.SourcePosition));
+			else if (variableBoundExpression.Variable is ParameterVariableSymbol parameterVariable)
+			{
+				if (parameterVariable.Kind.Equals(ParameterKind.Input))
+					return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(parameterVariable, variableBoundExpression.OriginalNode.SourcePosition));
+				else
+					return ErrorsAnd.Create(true);
+			}
 			else
 				return ErrorsAnd.Create(true);
 		}

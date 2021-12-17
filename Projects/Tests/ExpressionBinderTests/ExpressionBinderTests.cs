@@ -395,12 +395,5 @@ namespace Tests.ExpressionBinderTests
 				.BindGlobalExpression("ptr^", null);
 			AssertEx.NotAConstant(boundExpression, SystemScope);
 		}
-		[Fact]
-		public static void Error_FunctionNotAssignable()
-		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "")
-				.AddPou("FUNCTION tester", "foo := foo;").BindBodies(ErrorOfType<CannotAssignToVariableMessage>());
-		}
 	}
 }
