@@ -46,6 +46,8 @@ namespace Compiler.Types
 		public int ElementCount => Ranges.Aggregate(1, (x, r) => x * r.Size);
 		public string Code => $"ARRAY[{string.Join(", ", Ranges)}] OF {BaseType.Code}";
 
+		public bool IsEmpty => Ranges.Any(r => r.Size == 0);
+
 		public ArrayType(IType baseType, ImmutableArray<Range> ranges)
 		{
 			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));

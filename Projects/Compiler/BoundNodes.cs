@@ -395,14 +395,14 @@ namespace Compiler
 
 			public sealed class ArrayElement : ABoundElement
 			{
-				public readonly ImmutableArray<BoundConstantIntegerValue> Indices;
+				public readonly BoundConstantIntegerValue Index;
 
-				public ArrayElement(ImmutableArray<BoundConstantIntegerValue> indices, IBoundExpression value) : base(value)
+				public ArrayElement(BoundConstantIntegerValue index, IBoundExpression value) : base(value)
 				{
-					Indices = indices;
+					Index = index ?? throw new ArgumentNullException(nameof(index));
 				}
 
-				public override string ToString() => $"[{string.Join(", ", Indices)}] := {Value}";
+				public override string ToString() => $"[{Index}] := {Value}";
 			}
 			public sealed class AllElements : ABoundElement
 			{

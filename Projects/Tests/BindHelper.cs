@@ -142,12 +142,38 @@ namespace Tests
 
 		public static readonly TestProject NewProject = NewNamedProject("Test");
 		public static TestProject NewNamedProject(string name) => new(Project.Empty(name.ToCaseInsensitive()));
+
+		public static Action<InitializerBoundExpression.ABoundElement> ArrayElement(int index, Action<IBoundExpression> expression) => elem =>
+		{
+			var indexElem = Assert.IsType<InitializerBoundExpression.ABoundElement.ArrayElement>(elem);
+			Assert.Equal(index, indexElem.Index.Value);
+			expression(indexElem.Value);
+		};
+		public static Action<InitializerBoundExpression.ABoundElement> AllElements(Action<IBoundExpression> expression) => elem =>
+		{
+			var allElements = Assert.IsType<InitializerBoundExpression.ABoundElement.AllElements>(elem);
+			expression(allElements.Value);
+		};
+
+		public static Action<IBoundExpression> BoundIntLiteral(short value) => expr =>
+		{
+			var litExpr = Assert.IsType<LiteralBoundExpression>(expr);
+			var litValue = Assert.IsType<IntLiteralValue>(litExpr.Value);
+			Assert.Equal(value, litValue.Value);
+		};
+		public static Action<IBoundExpression> BoundVariable(string name) => expr =>
+		{
+			var varExpr = Assert.IsType<VariableBoundExpression>(expr);
+			AssertEx.EqualCaseInsensitive(name, varExpr.Variable.Name);
+		};
 	}
 
 	public static class AssertEx
 	{
 		public static void EqualCaseInsensitive(string expected, CaseInsensitiveString input)
 			=> Assert.Equal(expected.ToCaseInsensitive(), input);
+		public static void EqualCaseInsensitive(string expected, string input)
+			=> Assert.Equal(expected.ToCaseInsensitive(), input.ToCaseInsensitive());
 		public static void CheckVariable(IVariableSymbol var, string name, IType type)
 		{
 			Assert.Equal(name.ToCaseInsensitive(), var.Name);

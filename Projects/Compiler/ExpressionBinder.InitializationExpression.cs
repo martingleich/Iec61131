@@ -40,7 +40,8 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotUseAnInitializerForThisTypeMessage(initializationExpressionSyntax.SourcePosition));
+				if(!targetType.IsError())
+					MessageBag.Add(new CannotUseAnInitializerForThisTypeMessage(initializationExpressionSyntax.SourcePosition));
 				baseBound = new InitializerBoundExpression(ImmutableArray<InitializerBoundExpression.ABoundElement>.Empty, targetType, initializationExpressionSyntax);
 			}
 			return ImplicitCast(baseBound, context);
@@ -63,7 +64,7 @@ namespace Compiler
 				private readonly ExpressionBinder _expressionBinder;
 
 				private int _implicitCursor;
-				private bool _inPositionalPart;
+				private bool _inPositionalPart = true;
 				private bool _reportedImplicitError;
 
 				private readonly Dictionary<int, SourcePosition> _setIndicies = new();
@@ -83,7 +84,7 @@ namespace Compiler
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
 				{
-					_inPositionalPart = true;
+					_inPositionalPart = false;
 					var boundIndex = indexInitializerElementSyntax.Index.Accept(_expressionBinder, _expressionBinder.SystemScope.DInt);
 					var indexValue = (DIntLiteralValue?)ConstantExpressionEvaluator.EvaluateConstant(_expressionBinder.SystemScope, boundIndex, Messages);
 					if (indexValue != null)
@@ -94,7 +95,7 @@ namespace Compiler
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(ExpressionElementSyntax expressionElementSyntax)
 				{
-					if (_inPositionalPart)
+					if (!_inPositionalPart)
 					{
 						if (!_reportedImplicitError)
 						{
@@ -104,23 +105,20 @@ namespace Compiler
 					}
 					else
 					{
-						++_implicitCursor;
 						var index = new BoundConstantIntegerValue(null, _implicitCursor);
+						++_implicitCursor;
 						AddElement(expressionElementSyntax.SourcePosition, index, expressionElementSyntax.Value);
 					}
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
 				{
+					_inPositionalPart = false;
 					var boundValue = allIndicesInitializerElementSyntax.Value.Accept(_expressionBinder, _elementType);
-					bool isValid = true;
 					foreach (var i in _range.Values)
-						isValid &= MarkIndexUsed(i, allIndicesInitializerElementSyntax.TokenDots.SourcePosition);
+						MarkIndexUsed(i, allIndicesInitializerElementSyntax.TokenDots.SourcePosition);
 
-					if (isValid)
-					{
-						var element = new InitializerBoundExpression.ABoundElement.AllElements(boundValue);
-						_elements.Add(element);
-					}
+					var element = new InitializerBoundExpression.ABoundElement.AllElements(boundValue);
+					_elements.Add(element);
 				}
 
 				private bool MarkIndexUsed(int index, SourcePosition indexPosition)
@@ -147,7 +145,7 @@ namespace Compiler
 					var boundValue = value.Accept(_expressionBinder, _elementType);
 					if (MarkIndexUsed(index.Value, indexPosition))
 					{
-						var element = new InitializerBoundExpression.ABoundElement.ArrayElement(ImmutableArray.Create(index), boundValue);
+						var element = new InitializerBoundExpression.ABoundElement.ArrayElement(index, boundValue);
 						_elements.Add(element);
 					}
 				}
@@ -208,9 +206,9 @@ namespace Compiler
 				{
 					Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourcePosition));
 				}
-				private InitializerBoundExpression GetBound(INode originalNode, IType type)
+				private InitializerBoundExpression GetBound(INode originalNode, IType type, bool isEmpty)
 				{
-					if (_elements.Count == 0)
+					if (_elements.Count == 0 && !isEmpty)
 						Messages.Add(new MissingElementsInInitializerMessage(originalNode.SourcePosition));
 					return new InitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
 				}
@@ -220,7 +218,7 @@ namespace Compiler
 					var initializer = new MultiDimensionalArrayInitializer(type.BaseType, binder);
 					foreach (var element in syntax.Elements)
 						element.Accept(initializer);
-					return initializer.GetBound(syntax, type);
+					return initializer.GetBound(syntax, type, type.IsEmpty);
 				}
 			}
 		}
