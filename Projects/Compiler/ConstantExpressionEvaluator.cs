@@ -119,5 +119,6 @@ namespace Compiler
 		public ILiteralValue? Visit(FieldAccessBoundExpression fieldAccessBoundExpression) => NotAConstant(fieldAccessBoundExpression);
 		public ILiteralValue? Visit(CallBoundExpression functionCallBoundExpression) => NotAConstant(functionCallBoundExpression);
 		public ILiteralValue? Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAConstant(implicitDiscardBoundExpression);
+		public ILiteralValue? Visit(InitializerBoundExpression initializerBoundExpression) => NotAConstant(initializerBoundExpression);
 	}
 }

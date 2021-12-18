@@ -35,6 +35,7 @@ namespace Compiler
 			T Visit(FieldAccessBoundExpression fieldAccessBoundExpression);
 			T Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression);
 			T Visit(CallBoundExpression callBoundExpression);
+			T Visit(InitializerBoundExpression initializerBoundExpression);
 		}
 	}
 
@@ -439,10 +440,7 @@ namespace Compiler
 		public IType Type { get; }
 		public INode OriginalNode { get; }
 
-		public T Accept<T>(IBoundExpression.IVisitor<T> visitor)
-		{
-			throw new NotImplementedException();
-		}
+		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public override string ToString() => $"{Type.Code}#{{{string.Join(", ", Elements)}}}";
 	}

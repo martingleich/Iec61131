@@ -42,5 +42,6 @@ namespace Compiler
 		public ErrorsAnd<bool> Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => NotAssignable(implicitAliasFromBaseTypeCastBoundExpression);
 		public ErrorsAnd<bool> Visit(CallBoundExpression functionCallBoundExpression) => NotAssignable(functionCallBoundExpression);
 		public ErrorsAnd<bool> Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression) => NotAssignable(implicitDiscardBoundExpression);
+		public ErrorsAnd<bool> Visit(InitializerBoundExpression initializerBoundExpression) => NotAssignable(initializerBoundExpression);
 	}
 }

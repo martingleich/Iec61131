@@ -1,4 +1,5 @@
-﻿using Compiler.Messages;
+﻿using Compiler;
+using Compiler.Messages;
 using Xunit;
 
 namespace Tests.ExpressionBinderTests
@@ -33,52 +34,71 @@ namespace Tests.ExpressionBinderTests
 		[Fact]
 		public static void Error_FunctionCallNotAssignable()
 		{
-			BindHelper.NewProject
+			var boundExpression = BindHelper.NewProject
 				.AddPou("FUNCTION bar : INT", "bar := 0;")
-				.AddPou("FUNCTION foo", "bar() := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+				.BindGlobalExpression("bar()", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_LiteralNotAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "6 := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("7", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_UnaryOpNotAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_IN_OUT x : INT; END_VAR", "(-x) := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("x", "INT")
+				.BindGlobalExpression("-x", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_BinaryOpNotAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "(1-6) := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("(1-6)", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_SizeofAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "SIZEOF(INT) := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("SIZEOF(INT)", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_PointerOffsetAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_IN_OUT ptr : POINTER TO INT; END_VAR ", "(ptr - 3) := 0;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO INT")
+				.BindGlobalExpression("ptr - 3", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 		[Fact]
 		public static void Error_PointerDiffrenceAssignable()
 		{
-			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_IN_OUT ptr : POINTER TO INT; ptr2 : POINTER TO INT; END_VAR ", "(ptr - ptr2) := 5;")
-				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO INT")
+				.WithGlobalVar("ptr2", "POINTER TO INT")
+				.BindGlobalExpression("ptr - ptr2", null);
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
+		}
+		[Fact]
+		public static void Error_InitializerAssignable()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("{1}", "ARRAY[0..0] OF INT");
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
+		}
+		[Fact]
+		public static void Error_PointerCaseAssignable()
+		{
+			var boundExpression = BindHelper.NewProject
+				.WithGlobalVar("ptr", "POINTER TO INT")
+				.BindGlobalExpression("ptr", "POINTER TO REAL");
+			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}
 	}
 }
