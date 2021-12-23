@@ -6,7 +6,7 @@ using SingleMessageTest = System.Action<Compiler.Messages.IMessage>;
 
 namespace Tests
 {
-	public static class ErrorTestHelper
+	public static class ErrorHelper
 	{
 		public static MessageTest ExactlyMessages(params SingleMessageTest[] tests) => bag =>
 		{

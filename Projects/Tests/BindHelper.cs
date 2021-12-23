@@ -4,13 +4,14 @@ using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
 
 namespace Tests
 {
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 
 	public static class BindHelper
 	{
@@ -45,12 +46,13 @@ namespace Tests
 			public TestBoundBodies BindBodies(params Action<IMessage>[] checks)
 			{
 				ExactlyMessages()(MyProject.LazyParseMessages.Value);
-				var boundFunctionPous = MyProject.LazyBoundModule.Value.FunctionPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
-				var boundFBPous = MyProject.LazyBoundModule.Value.FunctionBlockPous.ToImmutableDictionary(x => x.Key.Name, x => x.Value.LazyBoundBody.Value);
-				var boundPous = boundFunctionPous.Concat(boundFBPous).ToImmutableDictionary(x => x.Key, x => x.Value);
-				var bindMessages = boundPous.Values.SelectMany(x => x.Item2).Concat(MyProject.LazyBoundModule.Value.InterfaceMessages);
+				var boundModule = MyProject.LazyBoundModule.Value;
+				var boundPous1 = boundModule.FunctionPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
+				var boundPous2 = boundModule.FunctionBlockPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
+				var boundPous = Enumerable.Concat(boundPous1, boundPous2).ToImmutableDictionary();
+				var bindMessages = boundModule.InterfaceMessages.Concat(boundPous.Values.SelectMany(p => p.LazyBoundBody.Value.Errors));
 				ExactlyMessages(checks)(bindMessages);
-				return new(boundPous);
+				return new(boundModule, boundPous);
 			}
 
 			public IBoundExpression BindGlobalExpression(string expression, string? targetType, params Action<IMessage>[] checks)
@@ -126,16 +128,26 @@ namespace Tests
 
 		public sealed class TestBoundBodies
 		{
-			private readonly ImmutableDictionary<CaseInsensitiveString, (IBoundStatement, ImmutableArray<IMessage>)> BoundPous;
-			public TestBoundBodies(ImmutableDictionary<CaseInsensitiveString, (IBoundStatement, ImmutableArray<IMessage>)> boundPous)
+			public readonly BoundModule BoundModule;
+			public readonly ImmutableDictionary<ISymbol, BoundPou> BoundPous;
+			public TestBoundBodies(BoundModule boundModule, ImmutableDictionary<ISymbol, BoundPou> boundPous)
 			{
+				BoundModule = boundModule;
 				BoundPous = boundPous;
 			}
+
+			public KeyValuePair<ISymbol, BoundPou> this[CaseInsensitiveString name] => BoundPous.First(s => s.Key.Name == name);
 
 			public TestBoundBodies Inspect(string name, Action<IBoundStatement> check) => Inspect(name.ToCaseInsensitive(), check);
 			public TestBoundBodies Inspect(CaseInsensitiveString name, Action<IBoundStatement> check)
 			{
-				check(BoundPous[name].Item1);
+				check(this[name].Value.LazyBoundBody.Value.Value);
+				return this;
+			}
+			public TestBoundBodies InspectFlowMessages(string name, params Action<IMessage>[] checks)
+			{
+				var entry = this[name.ToCaseInsensitive()];
+				ExactlyMessages(checks)(entry.Value.LazyFlowAnalyis.Value);
 				return this;
 			}
 		}

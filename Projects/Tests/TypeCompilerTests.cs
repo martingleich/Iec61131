@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Tests
 {
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 	public sealed class TypeCompilerTests
 	{
 		private static readonly StructuredTypeSymbol MyType = new(
@@ -36,7 +36,7 @@ namespace Tests
 			var source = ParserTestHelper.ParseType(input);
 			var bag = new MessageBag();
 			var bound = Compiler.TypeCompiler.MapComplete(naiveScope, source, bag);
-			ErrorTestHelper.ExactlyMessages(errorChecks)(bag);
+			ErrorHelper.ExactlyMessages(errorChecks)(bag);
 			check(bound);
 		}
 

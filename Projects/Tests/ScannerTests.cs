@@ -6,7 +6,7 @@ using Xunit;
 namespace Tests
 {
 	using static ScannerTestHelper;
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 	public class ScannerTests
 	{
 		[Fact]

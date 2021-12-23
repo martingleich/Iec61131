@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Tests
 {
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 
 	public sealed class FunctionBlockBindingTests
 	{

@@ -16,7 +16,7 @@ namespace Tests
 		{
 			var parseMessages = new MessageBag();
 			var source = parse(input, parseMessages);
-			ErrorTestHelper.ExactlyMessages(checks)(parseMessages);
+			ErrorHelper.ExactlyMessages(checks)(parseMessages);
 			return source;
 		};
 		public static Func<string, T> NoErrorParse<T>(Func<string, MessageBag, T> parse) => ParseWithError(parse);

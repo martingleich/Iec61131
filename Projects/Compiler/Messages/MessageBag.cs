@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -40,5 +41,6 @@ namespace Compiler.Messages
 			Messages.CopyTo(array, arrayIndex);
 		}
 		public bool Remove(IMessage item) => Messages.Remove(item);
+
 	}
 }

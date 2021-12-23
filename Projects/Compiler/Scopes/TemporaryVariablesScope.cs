@@ -4,8 +4,8 @@ namespace Compiler.Scopes
 {
 	public sealed class TemporaryVariablesScope : AInnerScope<IScope>
 	{
-		private readonly SymbolSet<LocalVariableSymbol> LocalVariables;
-		public TemporaryVariablesScope(IScope outerScope, SymbolSet<LocalVariableSymbol> localVariables) : base(outerScope)
+		public readonly OrderedSymbolSet<LocalVariableSymbol> LocalVariables;
+		public TemporaryVariablesScope(IScope outerScope, OrderedSymbolSet<LocalVariableSymbol> localVariables) : base(outerScope)
 		{
 			LocalVariables = localVariables;
 		}

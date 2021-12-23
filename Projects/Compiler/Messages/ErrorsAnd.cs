@@ -29,7 +29,7 @@ namespace Compiler.Messages
 		public bool HasErrors => Errors.Any();
 
 		public ErrorsAnd<T2> MoveErrors<T2>(T2 newValue) => new(newValue, Errors);
-		public ErrorsAnd<T2> Apply<T2>(Func<T, T2> func) => new(func(Value), Errors);
+		public ErrorsAnd<T2> Select<T2>(Func<T, T2> func) => new(func(Value), Errors);
 		public ErrorsAnd<T2> ApplyEx<T2>(Func<T, ErrorsAnd<T2>> func)
 		{
 			var result = func(Value);

@@ -4,7 +4,7 @@
 	using Compiler.Messages;
 	using System;
 	using Xunit;
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 	public sealed class FunctionBlockBodyBindingTests
 	{
 		[Theory]

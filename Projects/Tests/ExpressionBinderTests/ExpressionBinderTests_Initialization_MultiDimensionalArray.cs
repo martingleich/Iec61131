@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Tests.ExpressionBinderTests
 {
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 	using static BindHelper;
 
 	public static class ExpressionBinderTests_Initialization_MultiDimensionalArray

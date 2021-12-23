@@ -240,7 +240,7 @@ namespace Compiler.Messages
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
-		public override string Text => $"Cannot assign to a new value to the variable {Variable.Name}.";
+		public override string Text => $"Cannot assign a new value to the variable {Variable.Name}.";
 	}
 	public sealed class SyntaxOnlyAllowedInLoopMessage : ACriticalMessage
 	{
@@ -550,4 +550,33 @@ namespace Compiler.Messages
 
 		public override string Text => $"Cannot use implicit initializer for this type.";
 	}
+	public sealed class UseOfUnassignedVariableMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol Variable;
+		public UseOfUnassignedVariableMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		{
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+		}
+
+		public override string Text => $"Cannot read the variable '{Variable.Name}' before it was assigned.";
+	}
+	public sealed class VariableMustBeAssignedBeforeEndOfFunctionMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol Variable;
+		public VariableMustBeAssignedBeforeEndOfFunctionMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		{
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+		}
+
+		public override string Text => $"The variable '{Variable.Name}' must be assigned a variable before the end of the function.";
+	}
+	public sealed class UnreachableCodeMessage : AUncriticalMessage
+	{
+		public UnreachableCodeMessage(SourcePosition position) : base(position)
+		{
+		}
+
+		public override string Text => $"Unreachable code detected.";
+	}
+	
 }

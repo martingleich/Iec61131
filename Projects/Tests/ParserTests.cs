@@ -6,7 +6,7 @@ namespace Tests
 {
 	using static ParserTestHelper;
 	using static ScannerTestHelper;
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 
 	public sealed class ParserTests
 	{

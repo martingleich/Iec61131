@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Tests
 {
-	using static ErrorTestHelper;
+	using static ErrorHelper;
 
 	public sealed class FunctionBindingTests
 	{
@@ -214,6 +214,17 @@ namespace Tests
 					var initialExpr = Assert.IsType<VariableBoundExpression>(variable.InitialValue);
 					AssertEx.EqualCaseInsensitive("inputArg", initialExpr.Variable.Name);
 				});
+		}
+
+		[Theory]
+		[InlineData("FUNCTION", "VAR")]
+		[InlineData("FUNCTION", "VAR_TEMP")]
+		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
+		public void InitialValue_CannotReadTemp(string pouKind, string varKind)
+		{
+			BindHelper.NewProject
+				.AddPou($"{pouKind} foo {varKind} otherTemp : INT; END_VAR {varKind} value : INT := otherTemp; END_VAR", "")
+				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => AssertEx.EqualCaseInsensitive("otherTemp", msg.Identifier)));
 		}
 	}
 }

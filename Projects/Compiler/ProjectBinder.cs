@@ -61,14 +61,19 @@ namespace Compiler
 
 	public sealed class BoundPou
 	{
-		public readonly Lazy<(IBoundStatement, ImmutableArray<IMessage>)> LazyBoundBody;
+		public readonly Lazy<ErrorsAnd<IBoundStatement>> LazyBoundBody;
+		public readonly Lazy<ImmutableArray<IMessage>> LazyFlowAnalyis;
 
-		public BoundPou(Lazy<(IBoundStatement, ImmutableArray<IMessage>)> lazyBoundBody)
+		private BoundPou(
+			Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody,
+			Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis)
 		{
 			LazyBoundBody = lazyBoundBody ?? throw new ArgumentNullException(nameof(lazyBoundBody));
+			LazyFlowAnalyis = lazyFlowAnalyis ?? throw new ArgumentNullException(nameof(lazyFlowAnalyis));
 		}
 
 		private static readonly object? Marker = new();
+
 		static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, Func<IVarDeclKindToken, bool> isLocal, MessageBag messages)
 			=> ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
 				kind => isLocal(kind) ? Marker : null,
@@ -82,33 +87,64 @@ namespace Compiler
 						type,
 						initialValue);
 				});
+
+		static (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) CreateBoundBody(
+			TemporaryVariablesScope scope,
+			MessageBag messageBag,
+			IStatementSyntax body)
+		{
+			var bound = StatementBinder.Bind(body, scope, messageBag);
+			return (messageBag.ToErrorsAnd(bound), scope.LocalVariables);
+		}
+		private static ImmutableArray<IMessage> AnalyzeFlow(ICallableTypeSymbol symbol, Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBound)
+		{
+			var (boundBody, localVariables) = lazyBound.Value;
+			var trackedVariables =
+				EnumerableExtensions.Concat(
+					localVariables.Where(v => v.InitialValue == null).Select(v => KeyValuePair.Create((IVariableSymbol)v, FlowAnalyzer.VariableKind.Unrequired)),
+					symbol.Parameters.Where(p => p.Kind == ParameterKind.Output).Select(v => KeyValuePair.Create((IVariableSymbol)v, FlowAnalyzer.VariableKind.Required)))
+				.ToImmutableArray();
+			var messageBag = new MessageBag();
+			var initialExpressions = localVariables.Select(v => v.InitialValue).WhereNotNull();
+			FlowAnalyzer.Analyse(initialExpressions, boundBody.Value, trackedVariables, messageBag);
+			return messageBag.ToImmutable();
+		}
 		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
 		{
-			(IBoundStatement, ImmutableArray<IMessage>) Bind()
+			(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
 			{
 				var messageBag = new MessageBag();
 				var callableScope = new InsideCallableScope(scope, symbol);
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
 				foreach (var local in localVariables)
 				{
 					if (symbol.Parameters.TryGetValue(local.Name, out var existing))
 						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringPosition, local.DeclaringPosition));
 				}
 				var innerScope = new TemporaryVariablesScope(callableScope, localVariables);
-				var bound = StatementBinder.Bind(body, innerScope, messageBag);
-				return (bound, messageBag.ToImmutable());
+				return CreateBoundBody(innerScope, messageBag, body);
 			}
 
-			return new BoundPou(new Lazy<(IBoundStatement, ImmutableArray<IMessage>)>(Bind));
+			return Create(Bind, symbol);
+
+		}
+		static BoundPou Create(
+			Func<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> bind,
+			ICallableTypeSymbol symbol)
+		{
+			var lazyBound = LazyExtensions.Create(bind);
+			var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
+			var lazyBoundBody = lazyBound.Select(x => x.Item1);
+			return new BoundPou(lazyBoundBody, lazyFlowAnalyis);
 		}
 
 		public static BoundPou FromFunctionBlock(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionBlockSymbol symbol)
 		{
-			(IBoundStatement, ImmutableArray<IMessage>) Bind()
+			(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
 			{
 				var messageBag = new MessageBag();
 				var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToSymbolSetWithDuplicates(messageBag);
+				var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
 				foreach (var local in localVariables)
 				{
 					if (symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
@@ -117,11 +153,10 @@ namespace Compiler
 						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringPosition, local.DeclaringPosition));
 				}
 				var innerScope = new TemporaryVariablesScope(insideFbScope, localVariables);
-				var bound = StatementBinder.Bind(body, innerScope, messageBag);
-				return (bound, messageBag.ToImmutable());
+				return CreateBoundBody(innerScope, messageBag, body);
 			}
 
-			return new BoundPou(new Lazy<(IBoundStatement, ImmutableArray<IMessage>)>(Bind));
+			return Create(Bind, symbol);
 		}
 	}
 
@@ -448,7 +483,7 @@ namespace Compiler
 					messages.Add(new OnlyVarGlobalInGvlMessage(kind.SourcePosition));
 				return vardecls.Select(v => BindVarDecl(gvlName, v, scope, messages));
 			}
-			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName,  VarDeclSyntax syntax, IScope scope, MessageBag messages)
+			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName, VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
 				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
 				var initial = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
