@@ -10,14 +10,15 @@ namespace Compiler
 		private readonly string Text;
 		private readonly LiteralScannerT LiteralScanner;
 		private readonly Messages.MessageBag Messages;
+		private readonly string File;
 
 		private int Cursor;
 		private SourcePoint CursorPoint => PointAtOffset(Cursor);
+		private SourcePoint PointAtOffset(int offset) => SourcePoint.FromOffset(File, offset);
 
-		private SourcePoint PointAtOffset(int offset) => SourcePoint.FromOffset(offset);
-
-		internal Scanner(string text, Messages.MessageBag messages)
+		internal Scanner(string file, string text, Messages.MessageBag messages)
 		{
+			File = file ?? throw new System.ArgumentNullException(nameof(file));
 			Text = text ?? throw new System.ArgumentNullException(nameof(text));
 			LiteralScanner = new LiteralScannerT(this);
 			Messages = messages ?? throw new System.ArgumentNullException(nameof(messages));
@@ -72,7 +73,7 @@ namespace Compiler
 						++Cursor;
 					}
 				}
-				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourceSpan.FromStartLength(commentStart, 0), "*" + terminator));
+				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(PointAtOffset(commentStart).WithLength(0), "*" + terminator));
 				var comment2 = Text[commentStart..Cursor];
 				return new CommentToken(comment2[2..], comment2, PointAtOffset(commentStart), leadingToken);
 			}
@@ -223,7 +224,7 @@ namespace Compiler
 				var text = Text[start..Cursor].ToCaseInsensitive();
 				var unit = DurationUnit.TryMap(text);
 				if (unit is null)
-					Messages.Add(new Messages.UnknownDurationUnitMessage(text, SourceSpan.FromStartLength(start, text.Length)));
+					Messages.Add(new Messages.UnknownDurationUnitMessage(text, SourceSpan.FromStartLength(PointAtOffset(start), text.Length)));
 				return unit;
 			}
 			(BigInteger, BigInteger) ScanFixPoint()
@@ -337,7 +338,7 @@ namespace Compiler
 				return ScanNumber(leadingToken);
 			else
 			{
-				Messages.Add(new Messages.InvalidBooleanLiteralMessage(SourceSpan.FromStartLength(Cursor, 0)));
+				Messages.Add(new Messages.InvalidBooleanLiteralMessage(CursorPoint.WithLength(0)));
 				return new FalseToken("", CursorPoint, leadingToken);
 			}
 		}
@@ -540,10 +541,10 @@ namespace Compiler
 			return FixTrailing(next);
 		}
 
-		public static ImmutableArray<IToken> Tokenize(string input, Messages.MessageBag messages)
+		public static ImmutableArray<IToken> Tokenize(string file, string input, Messages.MessageBag messages)
 		{
 			var allTokens = ImmutableArray.CreateBuilder<IToken>();
-			var scanner = new Scanner(input, messages);
+			var scanner = new Scanner(file, input, messages);
 			IToken token;
 			do
 			{

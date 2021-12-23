@@ -17,9 +17,9 @@ namespace Compiler
 		private readonly CommaSeperatedParser<EnumValueDeclarationSyntax, ParenthesisCloseToken> CommaSeperatedEnumValueDeclarationParser;
 		private readonly CommaSeperatedParser<IInitializerElementSyntax, BraceCloseToken> CommaSeperatedInitializerElementParser;
 
-		private Parser(string text, Messages.MessageBag messages)
+		private Parser(string file, string text, Messages.MessageBag messages)
 		{
-			Scanner = new Scanner(text, messages);
+			Scanner = new Scanner(file, text, messages);
 			CurToken = Scanner.Next(null);
 			Messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			CommaSeperatedRangeParser = MakeCommaSeperatedParser(ParseRange, IsExpressionStartToken, BracketCloseToken.Synthesize);
@@ -103,44 +103,44 @@ namespace Compiler
 				token is BraceOpenToken;
 		}
 
-		public static PouInterfaceSyntax ParsePouInterface(string input, Messages.MessageBag messages)
+		public static PouInterfaceSyntax ParsePouInterface(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParsePouInterface();
 			parser.ExpectEnd();
 			return result;
 		}
-		public static StatementListSyntax ParsePouBody(string input, Messages.MessageBag messages)
+		public static StatementListSyntax ParsePouBody(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParsePouBody();
 			parser.ExpectEnd();
 			return result;
 		}
-		public static ITypeSyntax ParseType(string input, Messages.MessageBag messages)
+		public static ITypeSyntax ParseType(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParseType();
 			parser.ExpectEnd();
 			return result;
 		}
-		public static IExpressionSyntax ParseExpression(string input, Messages.MessageBag messages)
+		public static IExpressionSyntax ParseExpression(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParseExpression();
 			parser.ExpectEnd();
 			return result;
 		}
-		public static TypeDeclarationSyntax ParseTypeDeclaration(string input, Messages.MessageBag messages)
+		public static TypeDeclarationSyntax ParseTypeDeclaration(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParseTypeDeclaration();
 			parser.ExpectEnd();
 			return result;
 		}
-		public static GlobalVarListSyntax ParseGlobalVarList(string input, Messages.MessageBag messages)
+		public static GlobalVarListSyntax ParseGlobalVarList(string file, string input, Messages.MessageBag messages)
 		{
-			var parser = new Parser(input, messages);
+			var parser = new Parser(file, input, messages);
 			var result = parser.ParseGlobalVarListSyntax();
 			parser.ExpectEnd();
 			return result;

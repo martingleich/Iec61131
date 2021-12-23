@@ -19,22 +19,26 @@ namespace Tests
 
 		public sealed class TestProject
 		{
+			private readonly int IdCounter;
 			public readonly Project MyProject;
-			public TestProject(Project myProject)
+			public TestProject(int idCounter, Project myProject)
 			{
+				IdCounter = idCounter;
 				MyProject = myProject ?? throw new ArgumentNullException(nameof(myProject));
 			}
 
 			public TestProject AddDutFast(string name, string source)
-				=> new(MyProject.Add(new DutLanguageSource($"TYPE {name} : {source}; END_TYPE")));
+				=> new(IdCounter + 1, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{name}", $"TYPE {name} : {source}; END_TYPE")));
 			public TestProject AddDut(string source)
-				=> new(MyProject.Add(new DutLanguageSource(source)));
+				=> new(IdCounter + 1, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{IdCounter}", source)));
 			public TestProject AddPou(string itf, string body)
-				=> new(MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource(itf, body)));
+				=> new(IdCounter + 1, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{IdCounter}", itf, body)));
 			public TestProject AddGVL(string name, string source)
-				=> new(MyProject.Add(new GlobalVariableListLanguageSource(name.ToCaseInsensitive(), source)));
+				=> new(IdCounter, MyProject.Add(new GlobalVariableListLanguageSource($"{MyProject.Name}/{name}", name.ToCaseInsensitive(), source)));
 			public TestProject AddLibrary(BoundModuleInterface @interface)
-				=> new(MyProject.Add(new LibraryLanguageSource(@interface)));
+				=> new(IdCounter, MyProject.Add(new LibraryLanguageSource(
+					SourcePoint.FromOffset($"{MyProject.Name}/Libraries/{@interface.Name}", 0).WithLength(0),
+					@interface)));
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{
@@ -104,7 +108,7 @@ namespace Tests
 			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
 			{
 				var expressionParseMessages = new MessageBag();
-				var expressionSyntax = Parser.ParseExpression(expression, expressionParseMessages);
+				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
 				ExactlyMessages()(expressionParseMessages);
 				ExactlyMessages()(Project.MyProject.LazyParseMessages.Value);
 				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
@@ -153,7 +157,7 @@ namespace Tests
 		}
 
 		public static readonly TestProject NewProject = NewNamedProject("Test");
-		public static TestProject NewNamedProject(string name) => new(Project.Empty(name.ToCaseInsensitive()));
+		public static TestProject NewNamedProject(string name) => new(0, Project.Empty(name.ToCaseInsensitive()));
 
 		public static Action<object> OfType<T>(Action<T> action) => x => action(Assert.IsType<T>(x));
 		public static Action<InitializerBoundExpression.ABoundElement> ArrayElement(int index, Action<IBoundExpression> expression) => elem =>

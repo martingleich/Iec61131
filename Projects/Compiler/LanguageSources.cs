@@ -6,11 +6,13 @@ namespace Compiler
 {
 	public sealed class TopLevelInterfaceAndBodyPouLanguageSource : ILanguageSource
 	{
+		public string File { get; }
 		public readonly string Interface;
 		public readonly string Body;
 
-		public TopLevelInterfaceAndBodyPouLanguageSource(string @interface, string body)
+		public TopLevelInterfaceAndBodyPouLanguageSource(string file, string @interface, string body)
 		{
+			File = file ?? throw new ArgumentNullException(nameof(file));
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
@@ -20,11 +22,13 @@ namespace Compiler
 
 	public sealed class GlobalVariableListLanguageSource : ILanguageSource
 	{
+		public string File { get; }
 		public readonly CaseInsensitiveString Name;
 		public readonly string Body;
 
-		public GlobalVariableListLanguageSource(CaseInsensitiveString name, string body)
+		public GlobalVariableListLanguageSource(string file, CaseInsensitiveString name, string body)
 		{
+			File = file ?? throw new ArgumentNullException(nameof(file));
 			Name = name;
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
@@ -34,10 +38,12 @@ namespace Compiler
 
 	public sealed class DutLanguageSource : ILanguageSource
 	{
+		public string File { get; }
 		public readonly string Source;
 
-		public DutLanguageSource(string source)
+		public DutLanguageSource(string file, string source)
 		{
+			File = file ?? throw new ArgumentNullException(nameof(file));
 			Source = source ?? throw new ArgumentNullException(nameof(source));
 		}
 
@@ -92,10 +98,12 @@ namespace Compiler
 
 	public readonly struct LibraryLanguageSource
 	{
+		public readonly SourceSpan SourceSpan;
 		public readonly BoundModuleInterface Interface;
 
-		public LibraryLanguageSource(BoundModuleInterface @interface)
+		public LibraryLanguageSource(SourceSpan sourceSpan, BoundModuleInterface @interface)
 		{
+			SourceSpan = sourceSpan;
 			Interface = @interface;
 		}
 		public CaseInsensitiveString Namespace => Interface.Name;

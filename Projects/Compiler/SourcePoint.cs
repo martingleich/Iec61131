@@ -4,21 +4,28 @@ namespace Compiler
 {
 	public readonly struct SourcePoint : IComparable<SourcePoint>, IEquatable<SourcePoint>
 	{
-		public static readonly SourcePoint Null = new (0);
+		public static readonly SourcePoint Null = new(null, 0);
 		public readonly int Offset;
+		public readonly string? File;
 
-		internal static SourcePoint FromOffset(int offset) => new (offset);
+		public static SourcePoint FromOffset(string file, int offset)
+		{
+			if (file is null)
+				throw new ArgumentNullException(nameof(file));
+			return new(file, offset);
+		}
 
-		private SourcePoint(int offset)
+		private SourcePoint(string? file, int offset)
 		{
 			if (offset < 0)
 				throw new ArgumentException($"{nameof(offset)}({offset}) must be zero or positive.");
+			File = file;
 			Offset = offset;
 		}
 
-		public SourcePoint PlusOffset(int offset) => new (checked(Offset + offset));
+		public SourcePoint PlusOffset(int offset) => new(File, checked(Offset + offset));
 
-		public override string ToString() => Offset.ToString();
+		public override string ToString() => $"{File}:{Offset}";
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public bool Equals(SourcePoint other) => Offset.Equals(other.Offset);
 		public int CompareTo(SourcePoint other) => Offset.CompareTo(other.Offset);
@@ -31,7 +38,14 @@ namespace Compiler
 		public static bool operator >(SourcePoint left, SourcePoint right) => left.CompareTo(right) > 0;
 		public static bool operator >=(SourcePoint left, SourcePoint right) => left.CompareTo(right) >= 0;
 
-		public static SourcePoint Min(SourcePoint a, SourcePoint b) => new(Math.Min(a.Offset, b.Offset));
-		public static SourcePoint Max(SourcePoint a, SourcePoint b) => new(Math.Max(a.Offset, b.Offset));
+		private static string? MergeFiles(string? a, string? b)
+		{
+			if (a != b)
+				throw new ArgumentException("Diffrent files cannot be merged");
+			return a;
+		}
+
+		public static SourcePoint Min(SourcePoint a, SourcePoint b) => new(MergeFiles(a.File, b.File), Math.Min(a.Offset, b.Offset));
+		public static SourcePoint Max(SourcePoint a, SourcePoint b) => new(MergeFiles(a.File, b.File), Math.Max(a.Offset, b.Offset));
 	}
 }

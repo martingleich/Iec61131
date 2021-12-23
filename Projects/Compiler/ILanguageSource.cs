@@ -2,6 +2,7 @@
 {
 	public interface ILanguageSource
 	{
+		public string File { get; }
 		public interface IVisitor
 		{
 			void Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource);

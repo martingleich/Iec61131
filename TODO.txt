@@ -1,4 +1,3 @@
-Use popsicle tree and add file to source span
 Add find expression at source span
 Add find bound expression at source span
 

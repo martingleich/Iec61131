@@ -135,7 +135,9 @@ namespace Compiler
 			if (forStatementSyntax.ByClause is not null)
 				boundStep = BindExpressionWithTargetType(forStatementSyntax.ByClause.StepSize, boundIndex.Type);
 			else
-				boundStep = BindExpressionWithTargetType(new LiteralExpressionSyntax(new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", default, default)), boundIndex.Type);
+				boundStep = BindExpressionWithTargetType(
+					new LiteralExpressionSyntax(
+						new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", SourcePoint.Null, null)), boundIndex.Type);
 
 			var realIndexType = TypeRelations.ResolveAlias(boundIndex.Type);
 			FunctionVariableSymbol incrementFunctionSymbol;

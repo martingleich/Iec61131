@@ -12,14 +12,14 @@ namespace Tests
 		{
 			Assert.Null(input);
 		};
-		public static Func<string, T> ParseWithError<T>(Func<string, MessageBag, T> parse, params Action<IMessage>[] checks) => input =>
+		public static Func<string, T> ParseWithError<T>(Func<string, string, MessageBag, T> parse, params Action<IMessage>[] checks) => input =>
 		{
 			var parseMessages = new MessageBag();
-			var source = parse(input, parseMessages);
+			var source = parse("input", input, parseMessages);
 			ErrorHelper.ExactlyMessages(checks)(parseMessages);
 			return source;
 		};
-		public static Func<string, T> NoErrorParse<T>(Func<string, MessageBag, T> parse) => ParseWithError(parse);
+		public static Func<string, T> NoErrorParse<T>(Func<string, string, MessageBag, T> parse) => ParseWithError(parse);
 		public static TypeDeclarationSyntax ParseTypeDeclaration(string input) => NoErrorParse(Parser.ParseTypeDeclaration)(input);
 		public static ITypeSyntax ParseType(string input) => NoErrorParse(Parser.ParseType)(input);
 		public static IStatementSyntax ParseStatements(string input) => NoErrorParse(Parser.ParsePouBody)(input);

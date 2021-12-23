@@ -7,7 +7,6 @@ namespace Compiler
 {
 	public readonly struct SourceSpan : IEquatable<SourceSpan>
 	{
-		public static SourceSpan FromStartLength(int start, int length) => FromStartLength(SourcePoint.FromOffset(start), length);
 		public static SourceSpan FromStartLength(SourcePoint start, int length)
 		{
 			if (length < 0)
@@ -52,5 +51,6 @@ namespace Compiler
 		public static SourceSpan ConvexHull(this IEnumerable<SourceSpan> self) => self.Aggregate(SourceSpan.ConvexHull);
 		public static SourceSpan SourceSpanHull(this IEnumerable<INode> self) => self.Select(self => self.SourceSpan).ConvexHull();
 		public static SourceSpan SourceSpanHull(this IEnumerable<IBoundExpression> self) => self.Select(self => self.OriginalNode).SourceSpanHull();
+		public static SourceSpan WithLength(this SourcePoint point, int length) => SourceSpan.FromStartLength(point, length);
 	}
 }

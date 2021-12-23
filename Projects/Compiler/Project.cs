@@ -52,7 +52,7 @@ namespace Compiler
 			if (source is null)
 				throw new ArgumentNullException(nameof(source));
 			var msg = new MessageBag();
-			var parsed = Parser.ParseTypeDeclaration(source.Source, msg);
+			var parsed = Parser.ParseTypeDeclaration(source.File, source.Source, msg);
 			return Add(new ParsedDutLanguageSource(source, parsed, msg.ToImmutable()));
 		}
 		public Project Add(TopLevelInterfaceAndBodyPouLanguageSource source)
@@ -60,8 +60,8 @@ namespace Compiler
 			if (source is null)
 				throw new ArgumentNullException(nameof(source));
 			var msg = new MessageBag();
-			var itf = Parser.ParsePouInterface(source.Interface, msg);
-			var body = Parser.ParsePouBody(source.Body, msg);
+			var itf = Parser.ParsePouInterface(source.File + "/itf", source.Interface, msg);
+			var body = Parser.ParsePouBody(source.File + "/impl", source.Body, msg);
 			return Add(new ParsedTopLevelInterfaceAndBodyPouLanguageSource(source, itf, body, msg.ToImmutable()));
 		}
 		public Project Add(GlobalVariableListLanguageSource source)
@@ -69,7 +69,7 @@ namespace Compiler
 			if (source is null)
 				throw new ArgumentNullException(nameof(source));
 			var msg = new MessageBag();
-			var body = Parser.ParseGlobalVarList(source.Body, msg);
+			var body = Parser.ParseGlobalVarList(source.File, source.Body, msg);
 			return Add(new ParsedGVLLanguageSource(source, source.Name, body, msg.ToImmutable()));
 		}
 	}

@@ -31,7 +31,6 @@ namespace Tests
 			self(tok);
 			Assert.Equal(pos, tok.StartPosition.Offset);
 			Assert.Equal(length, tok.Length);
-			Assert.Equal(SourceSpan.FromStartLength(pos, length), tok.SourceSpan);
 		};
 		public static TokenTest Leading(this TokenTest self, TokenTest leader) => tok =>
 		{
@@ -50,7 +49,7 @@ namespace Tests
 		{
 			int i = 0;
 			var msgBag = new MessageBag();
-			var allTokens = Scanner.Tokenize(input, msgBag);
+			var allTokens = Scanner.Tokenize("AssertAllTokens_WithError/input", input, msgBag);
 			foreach (var test in tests)
 			{
 				test(allTokens[i]);

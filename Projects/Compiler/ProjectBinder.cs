@@ -529,7 +529,7 @@ namespace Compiler
 			var rootScope = new RootScope(systemScope);
 			var messageBag = new MessageBag();
 
-			var librarySymbols = libraries.ToSymbolSetWithDuplicates(messageBag, lib => new LibrarySymbol(lib.Namespace, default, lib.Interface));
+			var librarySymbols = libraries.ToSymbolSetWithDuplicates(messageBag, lib => new LibrarySymbol(lib.Namespace, lib.SourceSpan, lib.Interface));
 			var dutSymbols = ImmutableArray.CreateRange(duts, dut => dut.Syntax.TypeBody.Accept(DutSymbolCreator.Instance, new(dut.Syntax, moduleName)));
 			var fbTypeSymbols = pous.Select(pou => pou.Interface.TokenPouKind.Accept(PouTypeSymbolCreator.Instance, new(pou, moduleName))).WhereNotNull().ToImmutableArray();
 			var workingTypeSymbols = dutSymbols.Concat(fbTypeSymbols).ToSymbolSetWithDuplicates(messageBag);
