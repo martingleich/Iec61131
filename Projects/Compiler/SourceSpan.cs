@@ -7,37 +7,43 @@ namespace Compiler
 {
 	public readonly struct SourceSpan : IEquatable<SourceSpan>
 	{
-		public static SourceSpan FromStartLength(int start, int length)
+		public static SourceSpan FromStartLength(int start, int length) => FromStartLength(new SourcePoint(start), length);
+		public static SourceSpan FromStartLength(SourcePoint start, int length)
 		{
-			if (start < 0)
-				throw new ArgumentException($"{nameof(start)}({start}) must be zero or positive.");
 			if (length < 0)
 				throw new ArgumentException($"{nameof(length)}({start}) must be zero or positive.");
-			if (start > int.MaxValue - length)
+			if (start.Offset > int.MaxValue - length)
 				throw new ArgumentException($"End of range must fit into int.");
-			return new SourceSpan(start, start + length);
+			return new SourceSpan(start, length);
 		}
-		public static SourceSpan ConvexHull(SourceSpan a, SourceSpan b) => new(
-				Math.Min(a.Start, b.Start),
-				Math.Max(a.End, b.End));
+		public static SourceSpan FromStartEnd(SourcePoint start, SourcePoint end)
+		{
+			if(end < start)
+				throw new ArgumentException($"{nameof(start)}({start}) must be before {nameof(end)}({end}).");
+			return new SourceSpan(start, end.Offset - start.Offset);
+		}
+		public static SourceSpan ConvexHull(SourceSpan a, SourceSpan b) => FromStartEnd(
+				SourcePoint.Min(a.Start, b.Start),
+				SourcePoint.Max(a.End, b.End));
 
-		private SourceSpan(int start, int end)
+		private SourceSpan(SourcePoint start, int length)
 		{
 			Start = start;
-			End = end;
+			Length = length;
 		}
 
-		public readonly int Start;
-		public readonly int End;
+		public readonly SourcePoint Start;
+		public SourcePoint End => Start.PlusOffset(Length);
+		public readonly int Length;
 		public bool Equals(SourceSpan other)
-			=> Start == other.Start && End == other.End;
+			=> Start == other.Start && Length == other.Length;
 		public override bool Equals(object? obj)
 			=> obj is SourceSpan pos && Equals(pos);
-		public override int GetHashCode() => HashCode.Combine(Start, End);
+		public override int GetHashCode() => HashCode.Combine(Start, Length);
 		public static bool operator ==(SourceSpan left, SourceSpan right) => left.Equals(right);
 		public static bool operator !=(SourceSpan left, SourceSpan right) => !(left == right);
 		[ExcludeFromCodeCoverage]
-		public override string ToString() => $"{Start}:{End - Start}";
+		public override string ToString() => $"{Start}:{Length}";
 	}
 
 
