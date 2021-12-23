@@ -21,12 +21,12 @@ namespace Compiler
 		public static IType MapComplete(IScope scope, ITypeSyntax syntax, MessageBag messageBag)
 		{
 			var symbol = syntax.Accept(new TypeCompiler(scope, messageBag));
-			DelayedLayoutType.RecursiveLayout(symbol, messageBag, syntax.SourcePosition);
+			DelayedLayoutType.RecursiveLayout(symbol, messageBag, syntax.SourceSpan);
 			return symbol;
 		}
 
 		public IType Visit(IdentifierTypeSyntax identifierTypeSyntax)
-			=> Scope.LookupType(identifierTypeSyntax.Identifier, identifierTypeSyntax.SourcePosition).Extract(MessageBag);
+			=> Scope.LookupType(identifierTypeSyntax.Identifier, identifierTypeSyntax.SourceSpan).Extract(MessageBag);
 
 		public IType Visit(BuiltInTypeSyntax builtInTypeSyntax) =>
 			Scope.SystemScope.MapTokenToType(builtInTypeSyntax.TokenType);
@@ -55,8 +55,8 @@ namespace Compiler
 		{
 			var scope = Scope.ResolveScope(scopedIdentifierTypeSyntax.Scope).Extract(MessageBag, out bool isMissingScope);
 			if (isMissingScope)
-				return ITypeSymbol.CreateError(scopedIdentifierTypeSyntax.TokenIdentifier.SourcePosition, scopedIdentifierTypeSyntax.Identifier);
-			return scope.LookupType(scopedIdentifierTypeSyntax.Identifier, scopedIdentifierTypeSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
+				return ITypeSymbol.CreateError(scopedIdentifierTypeSyntax.TokenIdentifier.SourceSpan, scopedIdentifierTypeSyntax.Identifier);
+			return scope.LookupType(scopedIdentifierTypeSyntax.Identifier, scopedIdentifierTypeSyntax.TokenIdentifier.SourceSpan).Extract(MessageBag);
 		}
 	}
 }

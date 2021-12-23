@@ -61,7 +61,7 @@ namespace Compiler
 			foreach (var (variable, kind) in trackedVariables)
 			{
 				if (kind == VariableKind.Required && !result.CanRead(_variableTable, variable))
-					messages.Add(new VariableMustBeAssignedBeforeEndOfFunctionMessage(variable, variable.DeclaringPosition));
+					messages.Add(new VariableMustBeAssignedBeforeEndOfFunctionMessage(variable, variable.DeclaringSpan));
 			}
 		}
 
@@ -77,7 +77,7 @@ namespace Compiler
 			{
 				if (!end.Reaches)
 				{
-					AddMessage(new UnreachableCodeMessage(st.OriginalNode.SourcePosition));
+					AddMessage(new UnreachableCodeMessage(st.OriginalNode.SourceSpan));
 					break;
 				}
 				else
@@ -207,7 +207,7 @@ namespace Compiler
 			public (FlowState, Assigner) Visit(VariableBoundExpression variableBoundExpression, FlowState context)
 			{
 				if (_readWrite && !context.CanRead(_owner._variableTable, variableBoundExpression.Variable, out context))
-					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourcePosition));
+					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
 				return (context, Assigner.ForVariable(variableBoundExpression.Variable));
 			}
 
@@ -244,7 +244,7 @@ namespace Compiler
 			public FlowState Visit(VariableBoundExpression variableBoundExpression, FlowState context)
 			{
 				if (!context.CanRead(_owner._variableTable, variableBoundExpression.Variable, out context))
-					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourcePosition));
+					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
 				return context;
 			}
 

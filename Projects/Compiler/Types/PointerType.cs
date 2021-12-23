@@ -17,9 +17,9 @@ namespace Compiler.Types
 
 		public override string ToString() => Code;
 
-		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
-			=> DelayedLayoutType.RecursiveLayout(BaseType, messageBag, position);
-		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourceSpan span)
+			=> DelayedLayoutType.RecursiveLayout(BaseType, messageBag, span);
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourceSpan span)
 			=> LayoutInfo;
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

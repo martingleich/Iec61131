@@ -69,7 +69,7 @@ namespace Compiler
 						++Cursor;
 					}
 				}
-				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourcePosition.FromStartLength(commentStart, 0), "*" + terminator));
+				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourceSpan.FromStartLength(commentStart, 0), "*" + terminator));
 				var comment2 = Text[commentStart..Cursor];
 				return new CommentToken(comment2[2..], comment2, commentStart, leadingToken);
 			}
@@ -220,7 +220,7 @@ namespace Compiler
 				var text = Text[start..Cursor].ToCaseInsensitive();
 				var unit = DurationUnit.TryMap(text);
 				if (unit is null)
-					Messages.Add(new Messages.UnknownDurationUnitMessage(text, SourcePosition.FromStartLength(start, text.Length)));
+					Messages.Add(new Messages.UnknownDurationUnitMessage(text, SourceSpan.FromStartLength(start, text.Length)));
 				return unit;
 			}
 			(BigInteger, BigInteger) ScanFixPoint()
@@ -334,7 +334,7 @@ namespace Compiler
 				return ScanNumber(leadingToken);
 			else
 			{
-				Messages.Add(new Messages.InvalidBooleanLiteralMessage(SourcePosition.FromStartLength(Cursor, 0)));
+				Messages.Add(new Messages.InvalidBooleanLiteralMessage(SourceSpan.FromStartLength(Cursor, 0)));
 				return new FalseToken("", Cursor, leadingToken);
 			}
 		}

@@ -8,39 +8,39 @@ namespace Compiler.Messages
 {
 	public interface IMessage
 	{
-		SourcePosition Position { get; }
+		SourceSpan Span { get; }
 		string Text { get; }
 		bool Critical { get; }
 	}
 	public abstract class ACriticalMessage : IMessage
 	{
-		protected ACriticalMessage(SourcePosition position)
+		protected ACriticalMessage(SourceSpan span)
 		{
-			Position = position;
+			Span = span;
 		}
 
-		public SourcePosition Position { get; }
+		public SourceSpan Span { get; }
 		public abstract string Text { get; }
 		public bool Critical => true;
 		[ExcludeFromCodeCoverage]
-		public override string ToString() => $"{Position} {Text}";
+		public override string ToString() => $"{Span} {Text}";
 	}
 	public abstract class AUncriticalMessage : IMessage
 	{
-		protected AUncriticalMessage(SourcePosition position)
+		protected AUncriticalMessage(SourceSpan span)
 		{
-			Position = position;
+			Span = span;
 		}
 
-		public SourcePosition Position { get; }
+		public SourceSpan Span { get; }
 		public abstract string Text { get; }
 		public bool Critical => false;
 		[ExcludeFromCodeCoverage]
-		public override string ToString() => $"{Position} {Text}";
+		public override string ToString() => $"{Span} {Text}";
 	}
 	public sealed class InvalidBooleanLiteralMessage : ACriticalMessage
 	{
-		public InvalidBooleanLiteralMessage(SourcePosition position) : base(position)
+		public InvalidBooleanLiteralMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -49,7 +49,7 @@ namespace Compiler.Messages
 	public sealed class MissingEndOfMultilineCommentMessage : ACriticalMessage
 	{
 		public readonly string Expected;
-		public MissingEndOfMultilineCommentMessage(SourcePosition position, string expected) : base(position)
+		public MissingEndOfMultilineCommentMessage(SourceSpan span, string expected) : base(span)
 		{
 			Expected = expected ?? throw new ArgumentNullException(nameof(expected));
 		}
@@ -58,7 +58,7 @@ namespace Compiler.Messages
 	}
 	public sealed class MissingEndOfAttributeMessage : ACriticalMessage
 	{
-		public MissingEndOfAttributeMessage(SourcePosition position) : base(position)
+		public MissingEndOfAttributeMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -66,7 +66,7 @@ namespace Compiler.Messages
 	}
 	public sealed class UnexpectedTokenMessage : ACriticalMessage
 	{
-		public UnexpectedTokenMessage(IToken receivedToken, params Type[] expectedTokenTypes) : base(receivedToken.SourcePosition)
+		public UnexpectedTokenMessage(IToken receivedToken, params Type[] expectedTokenTypes) : base(receivedToken.SourceSpan)
 		{
 			if (expectedTokenTypes is null) throw new ArgumentNullException(nameof(expectedTokenTypes));
 			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
@@ -80,7 +80,7 @@ namespace Compiler.Messages
 	}
 	public sealed class ExpectedExpressionMessage : ACriticalMessage
 	{
-		public ExpectedExpressionMessage(SourcePosition position) : base(position)
+		public ExpectedExpressionMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -91,7 +91,7 @@ namespace Compiler.Messages
 		public readonly string Generating;
 		public readonly IType? TargetType;
 
-		public ConstantDoesNotFitIntoTypeMessage(string generating, IType? targetType, SourcePosition sourcePosition) : base(sourcePosition)
+		public ConstantDoesNotFitIntoTypeMessage(string generating, IType? targetType, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Generating = generating ?? throw new ArgumentNullException(nameof(generating));
 			TargetType = targetType;
@@ -110,7 +110,7 @@ namespace Compiler.Messages
 	}
 	public sealed class InvalidArrayRangesMessage : ACriticalMessage
 	{
-		public InvalidArrayRangesMessage(SourcePosition position) : base(position)
+		public InvalidArrayRangesMessage(SourceSpan span) : base(span)
 		{
 		}
 		public override string Text => $"The array ranges are invalid";
@@ -119,7 +119,7 @@ namespace Compiler.Messages
 	{
 		public readonly CaseInsensitiveString Identifier;
 
-		public TypeNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public TypeNotFoundMessage(CaseInsensitiveString identifier, SourceSpan span) : base(span)
 		{
 			Identifier = identifier;
 		}
@@ -130,7 +130,7 @@ namespace Compiler.Messages
 	{
 		public readonly CaseInsensitiveString Identifier;
 
-		public VariableNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public VariableNotFoundMessage(CaseInsensitiveString identifier, SourceSpan span) : base(span)
 		{
 			Identifier = identifier;
 		}
@@ -141,7 +141,7 @@ namespace Compiler.Messages
 	{
 		public readonly CaseInsensitiveString Identifier;
 
-		public ScopeNotFoundMessage(CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public ScopeNotFoundMessage(CaseInsensitiveString identifier, SourceSpan span) : base(span)
 		{
 			Identifier = identifier;
 		}
@@ -153,7 +153,7 @@ namespace Compiler.Messages
 		public readonly ICallableTypeSymbol Function;
 		public readonly CaseInsensitiveString Identifier;
 
-		public ParameterNotFoundMessage(ICallableTypeSymbol function, CaseInsensitiveString identifier, SourcePosition position) : base(position)
+		public ParameterNotFoundMessage(ICallableTypeSymbol function, CaseInsensitiveString identifier, SourceSpan span) : base(span)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			Identifier = identifier;
@@ -163,7 +163,7 @@ namespace Compiler.Messages
 	}
 	public sealed class TypeNotCompleteMessage : ACriticalMessage
 	{
-		public TypeNotCompleteMessage(SourcePosition position) : base(position)
+		public TypeNotCompleteMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -172,8 +172,8 @@ namespace Compiler.Messages
 	public sealed class SymbolAlreadyExistsMessage : ACriticalMessage
 	{
 		public readonly CaseInsensitiveString Name;
-		public readonly SourcePosition AlreadyDeclaredPosition;
-		public SymbolAlreadyExistsMessage(CaseInsensitiveString name, SourcePosition first, SourcePosition second) : base(second)
+		public readonly SourceSpan AlreadyDeclaredPosition;
+		public SymbolAlreadyExistsMessage(CaseInsensitiveString name, SourceSpan first, SourceSpan second) : base(second)
 		{
 			Name = name;
 			AlreadyDeclaredPosition = first;
@@ -185,7 +185,7 @@ namespace Compiler.Messages
 		public readonly IType From;
 		public readonly IType To;
 
-		public TypeIsNotConvertibleMessage(IType from, IType to, SourcePosition position) : base(position)
+		public TypeIsNotConvertibleMessage(IType from, IType to, SourceSpan span) : base(span)
 		{
 			From = from ?? throw new ArgumentNullException(nameof(from));
 			To = to ?? throw new ArgumentNullException(nameof(to));
@@ -194,14 +194,14 @@ namespace Compiler.Messages
 	}
 	public sealed class NotAConstantMessage : ACriticalMessage
 	{
-		public NotAConstantMessage(SourcePosition position) : base(position)
+		public NotAConstantMessage(SourceSpan span) : base(span)
 		{
 		}
 		public override string Text => $"Not a constant value.";
 	}
 	public sealed class RecursiveConstantDeclarationMessage : ACriticalMessage
 	{
-		public RecursiveConstantDeclarationMessage(SourcePosition position) : base(position)
+		public RecursiveConstantDeclarationMessage(SourceSpan span) : base(span)
 		{
 		}
 		public override string Text => $"Recursive constant declaration";
@@ -210,7 +210,7 @@ namespace Compiler.Messages
 	{
 		private readonly ImmutableArray<IType> Types;
 
-		public CannotPerformArithmeticOnTypesMessage(SourcePosition position, params IType[] types) : base(position)
+		public CannotPerformArithmeticOnTypesMessage(SourceSpan span, params IType[] types) : base(span)
 		{
 			this.Types = types.ToImmutableArray();
 		}
@@ -226,7 +226,7 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotAssignToSyntaxMessage : ACriticalMessage
 	{
-		public CannotAssignToSyntaxMessage(SourcePosition position) : base(position)
+		public CannotAssignToSyntaxMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -235,7 +235,7 @@ namespace Compiler.Messages
 	public sealed class CannotAssignToVariableMessage : ACriticalMessage
 	{
 		public readonly IVariableSymbol Variable; 
-		public CannotAssignToVariableMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		public CannotAssignToVariableMessage(IVariableSymbol variable, SourceSpan span) : base(span)
 		{
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
@@ -244,14 +244,14 @@ namespace Compiler.Messages
 	}
 	public sealed class SyntaxOnlyAllowedInLoopMessage : ACriticalMessage
 	{
-		public SyntaxOnlyAllowedInLoopMessage(SourcePosition position) : base(position)
+		public SyntaxOnlyAllowedInLoopMessage(SourceSpan span) : base(span)
 		{
 		}
 		public override string Text => $"This syntax is not allowed outside of a loop.";
 	}
 	public sealed class OverflowInConstantContextMessage : ACriticalMessage
 	{
-		public OverflowInConstantContextMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		public OverflowInConstantContextMessage(SourceSpan sourceSpan) : base(sourceSpan)
 		{
 		}
 
@@ -259,7 +259,7 @@ namespace Compiler.Messages
 	}
 	public sealed class DivsionByZeroInConstantContextMessage : ACriticalMessage
 	{
-		public DivsionByZeroInConstantContextMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		public DivsionByZeroInConstantContextMessage(SourceSpan sourceSpan) : base(sourceSpan)
 		{
 		}
 
@@ -269,7 +269,7 @@ namespace Compiler.Messages
 	{
 		public readonly IType Type;
 
-		public CannotDereferenceTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
+		public CannotDereferenceTypeMessage(IType type, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
@@ -280,7 +280,7 @@ namespace Compiler.Messages
 	{
 		public readonly IType Type;
 
-		public CannotIndexTypeMessage(IType type, SourcePosition sourcePosition) : base(sourcePosition)
+		public CannotIndexTypeMessage(IType type, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
@@ -292,7 +292,7 @@ namespace Compiler.Messages
 		public readonly int ExpectedIndices;
 		public readonly int PassedIndices;
 
-		public WrongNumberOfDimensionInIndexMessage(int expectedIndices, int passedIndices, SourcePosition sourcePosition) : base(sourcePosition)
+		public WrongNumberOfDimensionInIndexMessage(int expectedIndices, int passedIndices, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			ExpectedIndices = expectedIndices;
 			PassedIndices = passedIndices;
@@ -305,7 +305,7 @@ namespace Compiler.Messages
 		public readonly IType BaseType;
 		public readonly CaseInsensitiveString FieldName;
 
-		public FieldNotFoundMessage(IType baseType, CaseInsensitiveString fieldName, SourcePosition sourcePosition) : base(sourcePosition)
+		public FieldNotFoundMessage(IType baseType, CaseInsensitiveString fieldName, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 			FieldName = fieldName;
@@ -316,7 +316,7 @@ namespace Compiler.Messages
 
 	public sealed class OnlyVarGlobalInGvlMessage : ACriticalMessage
 	{
-		public OnlyVarGlobalInGvlMessage(SourcePosition sourcePosition) : base(sourcePosition)
+		public OnlyVarGlobalInGvlMessage(SourceSpan sourceSpan) : base(sourceSpan)
 		{
 		}
 
@@ -328,7 +328,7 @@ namespace Compiler.Messages
 		public readonly EnumTypeSymbol EnumType;
 		public readonly CaseInsensitiveString Name;
 
-		public EnumValueNotFoundMessage(EnumTypeSymbol enumType, CaseInsensitiveString name, SourcePosition sourcePosition) : base(sourcePosition)
+		public EnumValueNotFoundMessage(EnumTypeSymbol enumType, CaseInsensitiveString name, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			EnumType = enumType ?? throw new ArgumentNullException(nameof(enumType));
 			Name = name;
@@ -340,7 +340,7 @@ namespace Compiler.Messages
 	public sealed class TypeExpectedMessage : ACriticalMessage
 	{
 		public readonly IToken ReceivedToken;
-		public TypeExpectedMessage(IToken receivedToken) : base(receivedToken.SourcePosition)
+		public TypeExpectedMessage(IToken receivedToken) : base(receivedToken.SourceSpan)
 		{
 			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
 		}
@@ -351,7 +351,7 @@ namespace Compiler.Messages
 	{
 		public readonly IType CalledType;
 
-		public CannotCallTypeMessage(IType calledType, SourcePosition sourcePosition) : base(sourcePosition)
+		public CannotCallTypeMessage(IType calledType, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			CalledType = calledType ?? throw new ArgumentNullException(nameof(calledType));
 		}
@@ -363,7 +363,7 @@ namespace Compiler.Messages
 		public readonly ICallableTypeSymbol Function;
 		public readonly int PassedCount;
 
-		public WrongNumberOfArgumentsMessage(ICallableTypeSymbol function, int passedCount, SourcePosition sourcePosition) : base(sourcePosition)
+		public WrongNumberOfArgumentsMessage(ICallableTypeSymbol function, int passedCount, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Function = function ?? throw new ArgumentNullException(nameof(function));
 			PassedCount = passedCount;
@@ -375,7 +375,7 @@ namespace Compiler.Messages
 	{
 		public readonly ParameterVariableSymbol Symbol;
 
-		public NonInputParameterMustBePassedExplicit(ParameterVariableSymbol symbol, SourcePosition sourcePosition) : base(sourcePosition)
+		public NonInputParameterMustBePassedExplicit(ParameterVariableSymbol symbol, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 		}
@@ -388,7 +388,7 @@ namespace Compiler.Messages
 		public readonly IType Type1;
 		public readonly IType Type2;
 
-		public InoutArgumentMustHaveSameTypeMessage(IType type1, IType type2, SourcePosition sourcePosition) : base(sourcePosition)
+		public InoutArgumentMustHaveSameTypeMessage(IType type1, IType type2, SourceSpan sourceSpan) : base(sourceSpan)
 		{
 			Type1 = type1 ?? throw new ArgumentNullException(nameof(type1));
 			Type2 = type2 ?? throw new ArgumentNullException(nameof(type2));
@@ -402,7 +402,7 @@ namespace Compiler.Messages
 		public readonly ParameterVariableSymbol Symbol;
 		public readonly IParameterKindToken ParameterKind;
 
-		public ParameterKindDoesNotMatchAssignMessage(ParameterVariableSymbol symbol, IParameterKindToken parameterKind) : base(parameterKind.SourcePosition)
+		public ParameterKindDoesNotMatchAssignMessage(ParameterVariableSymbol symbol, IParameterKindToken parameterKind) : base(parameterKind.SourceSpan)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 			ParameterKind = parameterKind ?? throw new ArgumentNullException(nameof(parameterKind));
@@ -414,9 +414,9 @@ namespace Compiler.Messages
 	public sealed class ParameterWasAlreadyPassedMessage : ACriticalMessage
 	{
 		public readonly ParameterVariableSymbol Symbol;
-		public readonly SourcePosition OriginalPosition;
+		public readonly SourceSpan OriginalPosition;
 
-		public ParameterWasAlreadyPassedMessage(ParameterVariableSymbol symbol, SourcePosition originalPosition, SourcePosition duplicatePosition) : base(duplicatePosition)
+		public ParameterWasAlreadyPassedMessage(ParameterVariableSymbol symbol, SourceSpan originalPosition, SourceSpan duplicatePosition) : base(duplicatePosition)
 		{
 			Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 			OriginalPosition = originalPosition;
@@ -426,7 +426,7 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotUsePositionalParameterAfterExplicitMessage : ACriticalMessage
 	{
-		public CannotUsePositionalParameterAfterExplicitMessage(SourcePosition position) : base(position)
+		public CannotUsePositionalParameterAfterExplicitMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -436,7 +436,7 @@ namespace Compiler.Messages
 	public sealed class CannotUseTypeAsLoopIndexMessage : ACriticalMessage
 	{
 		public readonly IType Type;
-		public CannotUseTypeAsLoopIndexMessage(IType type, SourcePosition position) : base(position)
+		public CannotUseTypeAsLoopIndexMessage(IType type, SourceSpan span) : base(span)
 		{
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
@@ -446,7 +446,7 @@ namespace Compiler.Messages
 	public sealed class UnknownDurationUnitMessage : ACriticalMessage
 	{
 		public readonly CaseInsensitiveString UnitText;
-		public UnknownDurationUnitMessage(CaseInsensitiveString unitText, SourcePosition position) : base(position)
+		public UnknownDurationUnitMessage(CaseInsensitiveString unitText, SourceSpan span) : base(span)
 		{
 			UnitText = unitText; 
 		}
@@ -464,7 +464,7 @@ namespace Compiler.Messages
 	}
 	public sealed class VariableCannotHaveInitialValueMessage : ACriticalMessage
 	{
-		public VariableCannotHaveInitialValueMessage(SourcePosition position) : base(position)
+		public VariableCannotHaveInitialValueMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -473,7 +473,7 @@ namespace Compiler.Messages
 	
 	public sealed class CannotInferTypeForInitializerMessage : ACriticalMessage
 	{
-		public CannotInferTypeForInitializerMessage(SourcePosition position) : base(position)
+		public CannotInferTypeForInitializerMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -481,7 +481,7 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotUseAnInitializerForThisTypeMessage : ACriticalMessage
 	{
-		public CannotUseAnInitializerForThisTypeMessage(SourcePosition position) : base(position)
+		public CannotUseAnInitializerForThisTypeMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -489,7 +489,7 @@ namespace Compiler.Messages
 	}
 	public sealed class TypeDoesNotHaveThisElementMessage : ACriticalMessage
 	{
-		public TypeDoesNotHaveThisElementMessage(SourcePosition position) : base(position)
+		public TypeDoesNotHaveThisElementMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -497,8 +497,8 @@ namespace Compiler.Messages
 	}
 	public sealed class DuplicateInitializerElementMessage : ACriticalMessage
 	{
-		public readonly SourcePosition Original;
-		public DuplicateInitializerElementMessage(SourcePosition position, SourcePosition original) : base(position)
+		public readonly SourceSpan Original;
+		public DuplicateInitializerElementMessage(SourceSpan span, SourceSpan original) : base(span)
 		{
 			Original = original;
 		}
@@ -507,7 +507,7 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotUsePositionalElementAfterExplicitMessage : ACriticalMessage
 	{
-		public CannotUsePositionalElementAfterExplicitMessage(SourcePosition position) : base(position)
+		public CannotUsePositionalElementAfterExplicitMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -516,7 +516,7 @@ namespace Compiler.Messages
 	public sealed class IndexNotInitializedMessage : ACriticalMessage
 	{
 		public readonly int Index;
-		public IndexNotInitializedMessage(int index, SourcePosition position) : base(position)
+		public IndexNotInitializedMessage(int index, SourceSpan span) : base(span)
 		{
 			Index = index;
 		}
@@ -526,7 +526,7 @@ namespace Compiler.Messages
 	public sealed class FieldNotInitializedMessage : ACriticalMessage
 	{
 		public readonly FieldVariableSymbol Field;
-		public FieldNotInitializedMessage(FieldVariableSymbol field, SourcePosition position) : base(position)
+		public FieldNotInitializedMessage(FieldVariableSymbol field, SourceSpan span) : base(span)
 		{
 			Field = field ?? throw new ArgumentNullException(nameof(field));
 		}
@@ -536,7 +536,7 @@ namespace Compiler.Messages
 	
 	public sealed class MissingElementsInInitializerMessage : ACriticalMessage
 	{
-		public MissingElementsInInitializerMessage(SourcePosition position) : base(position)
+		public MissingElementsInInitializerMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -544,7 +544,7 @@ namespace Compiler.Messages
 	}
 	public sealed class CannotUseImplicitInitializerForThisTypeMessage : ACriticalMessage
 	{
-		public CannotUseImplicitInitializerForThisTypeMessage(SourcePosition position) : base(position)
+		public CannotUseImplicitInitializerForThisTypeMessage(SourceSpan span) : base(span)
 		{
 		}
 
@@ -553,7 +553,7 @@ namespace Compiler.Messages
 	public sealed class UseOfUnassignedVariableMessage : ACriticalMessage
 	{
 		public readonly IVariableSymbol Variable;
-		public UseOfUnassignedVariableMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		public UseOfUnassignedVariableMessage(IVariableSymbol variable, SourceSpan span) : base(span)
 		{
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
@@ -563,7 +563,7 @@ namespace Compiler.Messages
 	public sealed class VariableMustBeAssignedBeforeEndOfFunctionMessage : ACriticalMessage
 	{
 		public readonly IVariableSymbol Variable;
-		public VariableMustBeAssignedBeforeEndOfFunctionMessage(IVariableSymbol variable, SourcePosition position) : base(position)
+		public VariableMustBeAssignedBeforeEndOfFunctionMessage(IVariableSymbol variable, SourceSpan span) : base(span)
 		{
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
@@ -572,7 +572,7 @@ namespace Compiler.Messages
 	}
 	public sealed class UnreachableCodeMessage : AUncriticalMessage
 	{
-		public UnreachableCodeMessage(SourcePosition position) : base(position)
+		public UnreachableCodeMessage(SourceSpan span) : base(span)
 		{
 		}
 

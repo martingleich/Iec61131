@@ -99,7 +99,7 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(exitStatementSyntax.SourcePosition));
+				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(exitStatementSyntax.SourceSpan));
 				return new SequenceBoundStatement(exitStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
 			}
 		}
@@ -112,7 +112,7 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(continueStatementSyntax.SourcePosition));
+				MessageBag.Add(new SyntaxOnlyAllowedInLoopMessage(continueStatementSyntax.SourceSpan));
 				return new SequenceBoundStatement(continueStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
 			}
 		}
@@ -145,9 +145,9 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.IndexVariable.SourcePosition));
+				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.IndexVariable.SourceSpan));
 				var errorName = ImplicitName.ErrorBinaryOperator(realIndexType.Code, realIndexType.Code, "ADD");
-				incrementFunctionSymbol = FunctionVariableSymbol.CreateError(forStatementSyntax.SourcePosition, errorName, realIndexType);
+				incrementFunctionSymbol = FunctionVariableSymbol.CreateError(forStatementSyntax.SourceSpan, errorName, realIndexType);
 			}
 
 			var bodyScope = new LoopScope(Scope);

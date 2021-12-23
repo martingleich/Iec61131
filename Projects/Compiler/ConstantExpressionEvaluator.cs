@@ -27,7 +27,7 @@ namespace Compiler
 		private ILiteralValue? NotAConstant(IBoundExpression node) => NotAConstant(node.OriginalNode);
 		private ILiteralValue? NotAConstant(INode node)
 		{
-			MessageBag.Add(new NotAConstantMessage(node.SourcePosition));
+			MessageBag.Add(new NotAConstantMessage(node.SourceSpan));
 			return null;
 		}
 		private ILiteralValue? EvaluateConstantFunction(IBoundExpression expression, FunctionVariableSymbol function, params ILiteralValue?[] args)
@@ -80,7 +80,7 @@ namespace Compiler
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
 		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression)
 		{
-			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, sizeOfTypeBoundExpression.OriginalNode.SourcePosition);
+			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, sizeOfTypeBoundExpression.OriginalNode.SourceSpan);
 			if (undefinedLayoutInf.TryGet(out var layoutInfo))
 				return new IntLiteralValue(checked((short)layoutInfo.Size), sizeOfTypeBoundExpression.Type);
 			else

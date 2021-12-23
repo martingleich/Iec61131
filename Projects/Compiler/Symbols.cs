@@ -8,41 +8,41 @@ namespace Compiler
 	public interface ISymbol
 	{
 		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 	}
 
 	public interface IVariableSymbol : ISymbol
 	{
 		IType Type { get; }
 
-		public static IVariableSymbol CreateError(SourcePosition declaringPosition, CaseInsensitiveString name) =>
-			new ErrorVariableSymbol(declaringPosition, name, ITypeSymbol.CreateErrorForVar(declaringPosition, name));
+		public static IVariableSymbol CreateError(SourceSpan declaringSpan, CaseInsensitiveString name) =>
+			new ErrorVariableSymbol(declaringSpan, name, ITypeSymbol.CreateErrorForVar(declaringSpan, name));
 	}
 
 	public abstract class AVariableSymbol : IVariableSymbol
 	{
-		protected AVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
+		protected AVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type)
 		{
 			Name = name;
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public IType Type { get; }
 		public override string ToString() => $"{Name} : {Type}";
 	}
 	
 	public sealed class FieldVariableSymbol : AVariableSymbol
 	{
-		public FieldVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		public FieldVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)
 		{
 		}
 	}
 	public sealed class LocalVariableSymbol : AVariableSymbol
 	{
-		public LocalVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type, IBoundExpression? initialValue) : base(declaringPosition, name, type)
+		public LocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type, IBoundExpression? initialValue) : base(declaringSpan, name, type)
 		{
 			InitialValue = initialValue;
 		}
@@ -50,7 +50,7 @@ namespace Compiler
 	}
 	public sealed class ErrorVariableSymbol : AVariableSymbol
 	{
-		public ErrorVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, IType type) : base(declaringPosition, name, type)
+		public ErrorVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)
 		{
 		}
 
@@ -58,12 +58,12 @@ namespace Compiler
 	public sealed class GlobalVariableSymbol : AVariableSymbol
 	{
 		public GlobalVariableSymbol(
-			SourcePosition declaringPosition,
+			SourceSpan declaringSpan,
 			CaseInsensitiveString moduleName,
 			CaseInsensitiveString gvlName,
 			CaseInsensitiveString name,
 			IType type,
-			IBoundExpression? initialValueSyntax) : base(declaringPosition, name, type)
+			IBoundExpression? initialValueSyntax) : base(declaringSpan, name, type)
 		{
 			UniqueName = $"{moduleName}::{gvlName}::{name}";
 			InitialValueSyntax = initialValueSyntax;
@@ -95,16 +95,16 @@ namespace Compiler
 
 	public sealed class EnumVariableSymbol : IVariableSymbol
 	{
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name { get; }
 		private EnumLiteralValue? _value;
 		public EnumLiteralValue Value => _value ?? throw new InvalidOperationException("Value is not initialised yet");
 		IType IVariableSymbol.Type => Type;
 		public readonly EnumTypeSymbol Type;
 
-		public EnumVariableSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, EnumLiteralValue value)
+		public EnumVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, EnumLiteralValue value)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Name = name;
 			_value = value ?? throw new ArgumentNullException(nameof(value));
 			Type = value.Type;
@@ -114,10 +114,10 @@ namespace Compiler
 
 		private readonly IExpressionSyntax? MaybeValueSyntax;
 		private readonly IScope? MaybeScope;
-		internal EnumVariableSymbol(IScope scope, SourcePosition declaringPosition, CaseInsensitiveString name, IExpressionSyntax value, EnumTypeSymbol enumTypeSymbol)
+		internal EnumVariableSymbol(IScope scope, SourceSpan declaringSpan, CaseInsensitiveString name, IExpressionSyntax value, EnumTypeSymbol enumTypeSymbol)
 		{
 			MaybeScope = scope ?? throw new ArgumentNullException(nameof(scope));
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Name = name;
 			MaybeValueSyntax = value ?? throw new ArgumentNullException(nameof(value));
 			Type = enumTypeSymbol ?? throw new ArgumentNullException(nameof(enumTypeSymbol));
@@ -131,7 +131,7 @@ namespace Compiler
 
 			if (InGetConstantValue)
 			{
-				messageBag.Add(new RecursiveConstantDeclarationMessage(MaybeValueSyntax!.SourcePosition));
+				messageBag.Add(new RecursiveConstantDeclarationMessage(MaybeValueSyntax!.SourceSpan));
 				return _value = new EnumLiteralValue(Type, new UnknownLiteralValue(Type.BaseType));
 			}
 
@@ -144,20 +144,20 @@ namespace Compiler
 	}
 	public sealed class ParameterVariableSymbol : IVariableSymbol
 	{
-		public static ParameterVariableSymbol CreateError(int id, SourcePosition position)
-			=> CreateError(ImplicitName.ErrorParam(id), position);
-		public static ParameterVariableSymbol CreateError(CaseInsensitiveString name, SourcePosition position)
-			=> new (ParameterKind.Input, position, name, ITypeSymbol.CreateErrorForVar(position, name));
-		public ParameterVariableSymbol(ParameterKind kind, SourcePosition declaringPosition, CaseInsensitiveString name, IType type)
+		public static ParameterVariableSymbol CreateError(int id, SourceSpan span)
+			=> CreateError(ImplicitName.ErrorParam(id), span);
+		public static ParameterVariableSymbol CreateError(CaseInsensitiveString name, SourceSpan span)
+			=> new (ParameterKind.Input, span, name, ITypeSymbol.CreateErrorForVar(span, name));
+		public ParameterVariableSymbol(ParameterKind kind, SourceSpan declaringSpan, CaseInsensitiveString name, IType type)
 		{
 			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Name = name;
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public ParameterKind Kind { get; }
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name { get; }
 		public IType Type { get; }
 
@@ -175,15 +175,15 @@ namespace Compiler
 		public FunctionTypeSymbol Type { get; }
 		public CaseInsensitiveString Name => Type.Name;
 		public UniqueSymbolId UniqueId => Type.UniqueId;
-		public SourcePosition DeclaringPosition => Type.DeclaringPosition;
-		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition)
-			=> new(FunctionTypeSymbol.CreateError(sourcePosition));
-		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name)
-			=> new(FunctionTypeSymbol.CreateError(sourcePosition, name));
-		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition, IType returnType)
-			=> new(FunctionTypeSymbol.CreateError(sourcePosition, returnType));
-		public static FunctionVariableSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
-			=> new(FunctionTypeSymbol.CreateError(sourcePosition, name, returnType));
+		public SourceSpan DeclaringSpan => Type.DeclaringSpan;
+		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan)
+			=> new(FunctionTypeSymbol.CreateError(sourceSpan));
+		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString name)
+			=> new(FunctionTypeSymbol.CreateError(sourceSpan, name));
+		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan, IType returnType)
+			=> new(FunctionTypeSymbol.CreateError(sourceSpan, returnType));
+		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString name, IType returnType)
+			=> new(FunctionTypeSymbol.CreateError(sourceSpan, name, returnType));
 
 		public override string ToString() => UniqueId.ToString();
 	}
@@ -192,57 +192,57 @@ namespace Compiler
 	{
 		public readonly SymbolSet<GlobalVariableSymbol> Variables;
 
-		public GlobalVariableListSymbol(SourcePosition declaringPosition, CaseInsensitiveString name, SymbolSet<GlobalVariableSymbol> variables)
+		public GlobalVariableListSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, SymbolSet<GlobalVariableSymbol> variables)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Name = name;
 			Variables = variables;
 		}
 
 		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 
-		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
-		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => Variables.TryGetValue(identifier, out var symbol)
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan errorPosition) => Variables.TryGetValue(identifier, out var symbol)
 			? ErrorsAnd.Create<IVariableSymbol>(symbol)
 			: EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
 	}
 
 	public interface IScopeSymbol : ISymbol
 	{
-		ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition);
-		ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition);
-		ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition);
+		ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan errorPosition);
+		ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan errorPosition);
+		ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan errorPosition);
 
-		public static IScopeSymbol CreateError(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public static IScopeSymbol CreateError(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> new ErrorScopeSymbol(identifier, errorPosition);
 	}
 
 	public static class EmptyScopeHelper
 	{
-		public static ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public static ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> ErrorsAnd.Create(IVariableSymbol.CreateError(errorPosition, identifier), new VariableNotFoundMessage(identifier, errorPosition));
-		public static ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString scopeName,CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public static ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString scopeName,CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> ErrorsAnd.Create(ITypeSymbol.CreateError(errorPosition, identifier), new TypeNotFoundMessage(identifier, errorPosition));
-		public static ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public static ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString scopeName, CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> ErrorsAnd.Create(IScopeSymbol.CreateError(identifier, errorPosition), new ScopeNotFoundMessage(identifier, errorPosition));
 	}
 
 	public sealed class ErrorScopeSymbol : IScopeSymbol
 	{
-		public ErrorScopeSymbol(CaseInsensitiveString name, SourcePosition declaringPosition)
+		public ErrorScopeSymbol(CaseInsensitiveString name, SourceSpan declaringSpan)
 		{
 			Name = name;
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 		}
 
 		public CaseInsensitiveString Name { get; }
-		public SourcePosition DeclaringPosition { get; }
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
-		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
-		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition) => EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
+		public SourceSpan DeclaringSpan { get; }
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan errorPosition) => EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan errorPosition) => EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan errorPosition) => EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
 	}
 }

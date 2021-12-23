@@ -1,6 +1,6 @@
-Use popsicle tree and add file to source position
-Add find expression at source position
-Add find bound expression at source position
+Use popsicle tree and add file to source span
+Add find expression at source span
+Add find bound expression at source span
 
 Simple incremental compile
 Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.

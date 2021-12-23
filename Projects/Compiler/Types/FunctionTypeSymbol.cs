@@ -26,36 +26,36 @@ namespace Compiler.Types
 		public readonly bool IsError;
 		public CaseInsensitiveString Name => UniqueId.Name;
 		public UniqueSymbolId UniqueId { get; }
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
 		public LayoutInfo LayoutInfo => new (0, 1);
 		public string Code => Name.Original;
 
-		public FunctionTypeSymbol(CaseInsensitiveString module, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterVariableSymbol> parameters) :
-			this(false, module, name, declaringPosition, parameters)
+		public FunctionTypeSymbol(CaseInsensitiveString module, CaseInsensitiveString name, SourceSpan declaringSpan, OrderedSymbolSet<ParameterVariableSymbol> parameters) :
+			this(false, module, name, declaringSpan, parameters)
 		{
 		}
-		private FunctionTypeSymbol(bool isError, CaseInsensitiveString module, CaseInsensitiveString name, SourcePosition declaringPosition, OrderedSymbolSet<ParameterVariableSymbol> parameters)
+		private FunctionTypeSymbol(bool isError, CaseInsensitiveString module, CaseInsensitiveString name, SourceSpan declaringSpan, OrderedSymbolSet<ParameterVariableSymbol> parameters)
 		{
 			IsError = isError;
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			Parameters = parameters;
 			UniqueId = new UniqueSymbolId(module, name);
 		}
 
 		public override string ToString() => UniqueId.ToString();
 
-		public static FunctionTypeSymbol CreateError(SourcePosition sourcePosition)
-			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourcePosition, ImplicitName.ErrorFunction));
-		public static FunctionTypeSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name)
-			=> CreateError(sourcePosition, name, ITypeSymbol.CreateErrorForFunc(sourcePosition, name));
-		public static FunctionTypeSymbol CreateError(SourcePosition sourcePosition, IType returnType)
-			=> CreateError(sourcePosition, ImplicitName.ErrorFunction, returnType);
-		public static FunctionTypeSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString name, IType returnType)
-			=> CreateError(sourcePosition, ImplicitName.ErrorModule, name, returnType);
-		public static FunctionTypeSymbol CreateError(SourcePosition sourcePosition, CaseInsensitiveString module, CaseInsensitiveString name, IType returnType)
-			=> new(true, module, name, sourcePosition, OrderedSymbolSet.ToOrderedSymbolSet(
-				new ParameterVariableSymbol(ParameterKind.Output, sourcePosition, name, returnType)));
+		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan)
+			=> CreateError(sourceSpan, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourceSpan, ImplicitName.ErrorFunction));
+		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString name)
+			=> CreateError(sourceSpan, name, ITypeSymbol.CreateErrorForFunc(sourceSpan, name));
+		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan, IType returnType)
+			=> CreateError(sourceSpan, ImplicitName.ErrorFunction, returnType);
+		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString name, IType returnType)
+			=> CreateError(sourceSpan, ImplicitName.ErrorModule, name, returnType);
+		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString module, CaseInsensitiveString name, IType returnType)
+			=> new(true, module, name, sourceSpan, OrderedSymbolSet.ToOrderedSymbolSet(
+				new ParameterVariableSymbol(ParameterKind.Output, sourceSpan, name, returnType)));
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

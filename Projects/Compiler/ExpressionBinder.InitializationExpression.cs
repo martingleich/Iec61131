@@ -17,8 +17,8 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotInferTypeForInitializerMessage(initializationExpressionSyntax.SourcePosition));
-				targetType = ITypeSymbol.CreateError(initializationExpressionSyntax.SourcePosition, ImplicitName.ErrorType);
+				MessageBag.Add(new CannotInferTypeForInitializerMessage(initializationExpressionSyntax.SourceSpan));
+				targetType = ITypeSymbol.CreateError(initializationExpressionSyntax.SourceSpan, ImplicitName.ErrorType);
 			}
 
 			var resolvedTargetType = TypeRelations.ResolveAlias(targetType);
@@ -41,7 +41,7 @@ namespace Compiler
 			else
 			{
 				if(!targetType.IsError())
-					MessageBag.Add(new CannotUseAnInitializerForThisTypeMessage(initializationExpressionSyntax.SourcePosition));
+					MessageBag.Add(new CannotUseAnInitializerForThisTypeMessage(initializationExpressionSyntax.SourceSpan));
 				baseBound = new InitializerBoundExpression(ImmutableArray<InitializerBoundExpression.ABoundElement>.Empty, targetType, initializationExpressionSyntax);
 			}
 			return ImplicitCast(baseBound, context);
@@ -67,7 +67,7 @@ namespace Compiler
 				private bool _inPositionalPart = true;
 				private bool _reportedImplicitError;
 
-				private readonly Dictionary<int, SourcePosition> _setIndicies = new();
+				private readonly Dictionary<int, SourceSpan> _setIndicies = new();
 				private readonly ImmutableArray<InitializerBoundExpression.ABoundElement>.Builder _elements = ImmutableArray.CreateBuilder<InitializerBoundExpression.ABoundElement>();
 
 				private OneDimensionalArrayInitializer( ArrayType.Range range, IType elementType, ExpressionBinder binder)
@@ -80,7 +80,7 @@ namespace Compiler
 
 				void IInitializerElementSyntax.IVisitor.Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
 				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourcePosition));
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourceSpan));
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
 				{
@@ -90,7 +90,7 @@ namespace Compiler
 					if (indexValue != null)
 					{
 						var index = new BoundConstantIntegerValue(boundIndex, indexValue.Value);
-						AddElement(indexInitializerElementSyntax.Index.SourcePosition, index, indexInitializerElementSyntax.Value);
+						AddElement(indexInitializerElementSyntax.Index.SourceSpan, index, indexInitializerElementSyntax.Value);
 					}
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(ExpressionElementSyntax expressionElementSyntax)
@@ -99,7 +99,7 @@ namespace Compiler
 					{
 						if (!_reportedImplicitError)
 						{
-							Messages.Add(new CannotUsePositionalElementAfterExplicitMessage(expressionElementSyntax.SourcePosition));
+							Messages.Add(new CannotUsePositionalElementAfterExplicitMessage(expressionElementSyntax.SourceSpan));
 							_reportedImplicitError = true;
 						}
 					}
@@ -107,7 +107,7 @@ namespace Compiler
 					{
 						var index = new BoundConstantIntegerValue(null, _implicitCursor);
 						++_implicitCursor;
-						AddElement(expressionElementSyntax.SourcePosition, index, expressionElementSyntax.Value);
+						AddElement(expressionElementSyntax.SourceSpan, index, expressionElementSyntax.Value);
 					}
 				}
 				void IInitializerElementSyntax.IVisitor.Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
@@ -115,13 +115,13 @@ namespace Compiler
 					_inPositionalPart = false;
 					var boundValue = allIndicesInitializerElementSyntax.Value.Accept(_expressionBinder, _elementType);
 					foreach (var i in _range.Values)
-						MarkIndexUsed(i, allIndicesInitializerElementSyntax.TokenDots.SourcePosition);
+						MarkIndexUsed(i, allIndicesInitializerElementSyntax.TokenDots.SourceSpan);
 
 					var element = new InitializerBoundExpression.ABoundElement.AllElements(boundValue);
 					_elements.Add(element);
 				}
 
-				private bool MarkIndexUsed(int index, SourcePosition indexPosition)
+				private bool MarkIndexUsed(int index, SourceSpan indexPosition)
 				{
 					if (!_setIndicies.TryAdd(index, indexPosition))
 					{
@@ -134,7 +134,7 @@ namespace Compiler
 						return true;
 					}
 				}
-				private void AddElement(SourcePosition indexPosition, BoundConstantIntegerValue index, IExpressionSyntax value)
+				private void AddElement(SourceSpan indexPosition, BoundConstantIntegerValue index, IExpressionSyntax value)
 				{
 					if (!_range.IsInRange(index.Value))
 					{
@@ -155,7 +155,7 @@ namespace Compiler
 					foreach (var i in _range.Values)
 					{
 						if (!_setIndicies.ContainsKey(i))
-							Messages.Add(new IndexNotInitializedMessage(i, originalNode.SourcePosition));
+							Messages.Add(new IndexNotInitializedMessage(i, originalNode.SourceSpan));
 					}
 					return new InitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
 				}
@@ -174,7 +174,7 @@ namespace Compiler
 				private MessageBag Messages => _expressionBinder.MessageBag;
 				private readonly ExpressionBinder _expressionBinder;
 				private readonly ImmutableArray<InitializerBoundExpression.ABoundElement>.Builder _elements = ImmutableArray.CreateBuilder<InitializerBoundExpression.ABoundElement>();
-				private SourcePosition _originalBound;
+				private SourceSpan _originalBound;
 
 				private MultiDimensionalArrayInitializer(IType elementType, ExpressionBinder expressionBinder)
 				{
@@ -184,32 +184,32 @@ namespace Compiler
 
 				public void Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
 				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourcePosition));
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourceSpan));
 				}
 
 				public void Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
 				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourcePosition));
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourceSpan));
 				}
 
 				public void Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
 				{
 					if (_elements.Count != 0)
-						Messages.Add(new DuplicateInitializerElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourcePosition, _originalBound));
+						Messages.Add(new DuplicateInitializerElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourceSpan, _originalBound));
 
 					var boundValue = allIndicesInitializerElementSyntax.Value.Accept(_expressionBinder, _elementType);
 					_elements.Add(new InitializerBoundExpression.ABoundElement.AllElements(boundValue));
-					_originalBound = allIndicesInitializerElementSyntax.TokenDots.SourcePosition;
+					_originalBound = allIndicesInitializerElementSyntax.TokenDots.SourceSpan;
 				}
 
 				public void Visit(ExpressionElementSyntax expressionElementSyntax)
 				{
-					Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourcePosition));
+					Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourceSpan));
 				}
 				private InitializerBoundExpression GetBound(INode originalNode, IType type, bool isEmpty)
 				{
 					if (_elements.Count == 0 && !isEmpty)
-						Messages.Add(new MissingElementsInInitializerMessage(originalNode.SourcePosition));
+						Messages.Add(new MissingElementsInInitializerMessage(originalNode.SourceSpan));
 					return new InitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
 				}
 
@@ -229,7 +229,7 @@ namespace Compiler
 			private readonly SymbolSet<FieldVariableSymbol> _fields;
 			private readonly ExpressionBinder _binder;
 			private MessageBag Messages => _binder.MessageBag;
-			private readonly Dictionary<FieldVariableSymbol, SourcePosition> _setFields = new(SymbolByNameComparer<FieldVariableSymbol>.Instance);
+			private readonly Dictionary<FieldVariableSymbol, SourceSpan> _setFields = new(SymbolByNameComparer<FieldVariableSymbol>.Instance);
 			private readonly ImmutableArray<InitializerBoundExpression.ABoundElement>.Builder _elements = ImmutableArray.CreateBuilder<InitializerBoundExpression.ABoundElement>();
 
 			private StructuredTypeInitializer(IType type, SymbolSet<FieldVariableSymbol> fields, ExpressionBinder binder)
@@ -239,12 +239,12 @@ namespace Compiler
 				_binder = binder ?? throw new ArgumentNullException(nameof(binder));
 			}
 
-			private void MarkUsed(FieldVariableSymbol field, SourcePosition position)
+			private void MarkUsed(FieldVariableSymbol field, SourceSpan span)
 			{
-				if (!_setFields.TryAdd(field, position))
+				if (!_setFields.TryAdd(field, span))
 				{
 					var original = _setFields[field];
-					Messages.Add(new DuplicateInitializerElementMessage(position, original));
+					Messages.Add(new DuplicateInitializerElementMessage(span, original));
 				}
 			}
 			void IInitializerElementSyntax.IVisitor.Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
@@ -252,13 +252,13 @@ namespace Compiler
 				InitializerBoundExpression.ABoundElement element;
 				if (_fields.TryGetValue(fieldInitializerElementSyntax.Name, out var field))
 				{
-					MarkUsed(field, fieldInitializerElementSyntax.TokenName.SourcePosition);
+					MarkUsed(field, fieldInitializerElementSyntax.TokenName.SourceSpan);
 					var boundValue = fieldInitializerElementSyntax.Value.Accept(_binder, field.Type);
 					element = new InitializerBoundExpression.ABoundElement.FieldElement(field, boundValue);
 				}
 				else
 				{
-					Messages.Add(new FieldNotFoundMessage(_type, fieldInitializerElementSyntax.Name, fieldInitializerElementSyntax.TokenName.SourcePosition));
+					Messages.Add(new FieldNotFoundMessage(_type, fieldInitializerElementSyntax.Name, fieldInitializerElementSyntax.TokenName.SourceSpan));
 					var boundValue = fieldInitializerElementSyntax.Value.Accept(_binder, null);
 					element = new InitializerBoundExpression.ABoundElement.UnknownElement(boundValue);
 				}
@@ -266,22 +266,22 @@ namespace Compiler
 			}
 			void IInitializerElementSyntax.IVisitor.Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
 			{
-				Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourcePosition));
+				Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourceSpan));
 			}
 			void IInitializerElementSyntax.IVisitor.Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
 			{
-				Messages.Add(new TypeDoesNotHaveThisElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourcePosition));
+				Messages.Add(new TypeDoesNotHaveThisElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourceSpan));
 			}
 			void IInitializerElementSyntax.IVisitor.Visit(ExpressionElementSyntax expressionElementSyntax)
 			{
-				Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourcePosition));
+				Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourceSpan));
 			}
 
 			private IBoundExpression Bind(INode originalNode)
 			{
 				foreach (var field in _fields)
 					if (!_setFields.ContainsKey(field))
-						Messages.Add(new FieldNotInitializedMessage(field, originalNode.SourcePosition));
+						Messages.Add(new FieldNotInitializedMessage(field, originalNode.SourceSpan));
 
 				return new InitializerBoundExpression(_elements.ToImmutable(), _type, originalNode);
 			}

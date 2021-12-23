@@ -39,7 +39,7 @@ namespace Tests
 			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
 			Assert.Equal(8, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
-			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
+			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringSpan.Start),
 				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(boundInterface.SystemScope.Int, a.Type); },
 				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(boundInterface.SystemScope.Real, b.Type); });
 		}
@@ -54,7 +54,7 @@ namespace Tests
 			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
 			Assert.Equal(4, myType.LayoutInfo.Size);
 			Assert.Equal("MySimpleType", myType.Name.Original);
-			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringPosition.Start),
+			Assert.Collection(myType.Fields.OrderBy(f => f.DeclaringSpan.Start),
 				a => { Assert.Equal("a", a.Name.Original); Assert.Equal(boundInterface.SystemScope.Int, a.Type); },
 				b => { Assert.Equal("b", b.Name.Original); Assert.Equal(boundInterface.SystemScope.Real, b.Type); });
 		}

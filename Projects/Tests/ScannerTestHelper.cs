@@ -26,12 +26,12 @@ namespace Tests
 			self(tok);
 			Assert.Equal(generating, tok.Generating);
 		};
-		public static TokenTest Position(this TokenTest self, int pos, int length) => tok =>
+		public static TokenTest Span(this TokenTest self, int pos, int length) => tok =>
 		{
 			self(tok);
 			Assert.Equal(pos, tok.StartPosition);
 			Assert.Equal(length, tok.Length);
-			Assert.Equal(SourcePosition.FromStartLength(pos, length), tok.SourcePosition);
+			Assert.Equal(SourceSpan.FromStartLength(pos, length), tok.SourceSpan);
 		};
 		public static TokenTest Leading(this TokenTest self, TokenTest leader) => tok =>
 		{

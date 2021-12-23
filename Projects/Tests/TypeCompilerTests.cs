@@ -23,10 +23,10 @@ namespace Tests
 				Types = types;
 			}
 
-			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
+			public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan sourceSpan) =>
 				Types.TryGetValue(identifier, out var type)
 				? ErrorsAnd.Create(type)
-				: base.LookupType(identifier, sourcePosition);
+				: base.LookupType(identifier, sourceSpan);
 		}
 
 		private static void AssertTypeCompiler(string input, Action<IType> check, params Action<IMessage>[] errorChecks)

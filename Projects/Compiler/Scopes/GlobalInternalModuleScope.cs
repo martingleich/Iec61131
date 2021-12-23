@@ -13,14 +13,14 @@ namespace Compiler.Scopes
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));
 		}
 
-		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.Types.TryGetValue(identifier, out var dutType)
+		public override ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan sourceSpan) => Interface.Types.TryGetValue(identifier, out var dutType)
 			? ErrorsAnd.Create(dutType)
-			: base.LookupType(identifier, sourcePosition);
-		public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.Scopes.TryGetValue(identifier, out var symbol)
+			: base.LookupType(identifier, sourceSpan);
+		public override ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan sourceSpan) => Interface.Scopes.TryGetValue(identifier, out var symbol)
 			? ErrorsAnd.Create(symbol)
-			: base.LookupScope(identifier, sourcePosition);
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => Interface.FunctionSymbols.TryGetValue(identifier, out var functionVariable)
+			: base.LookupScope(identifier, sourceSpan);
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan) => Interface.FunctionSymbols.TryGetValue(identifier, out var functionVariable)
 			? ErrorsAnd.Create<IVariableSymbol>(functionVariable)
-			: base.LookupVariable(identifier, sourcePosition);
+			: base.LookupVariable(identifier, sourceSpan);
 	}
 }

@@ -13,8 +13,8 @@ namespace Compiler.Scopes
 		}
 
 		public SystemScope SystemScope => OuterScope.SystemScope;
-		public virtual ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupType(identifier, sourcePosition);
-		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupVariable(identifier, sourcePosition);
-		public virtual ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition) => OuterScope.LookupScope(identifier, sourcePosition);
+		public virtual ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan sourceSpan) => OuterScope.LookupType(identifier, sourceSpan);
+		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan) => OuterScope.LookupVariable(identifier, sourceSpan);
+		public virtual ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan sourceSpan) => OuterScope.LookupScope(identifier, sourceSpan);
 	}
 }

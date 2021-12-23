@@ -9,11 +9,11 @@ namespace Compiler
 		{
 			if (syntax.Scope is ScopeQualifierSyntax ownerScopeSyntax)
 			{
-				return scope.ResolveScope(ownerScopeSyntax).ApplyEx(ownerScope => ownerScope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourcePosition));
+				return scope.ResolveScope(ownerScopeSyntax).ApplyEx(ownerScope => ownerScope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourceSpan));
 			}
 			else
 			{
-				return scope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourcePosition);
+				return scope.LookupScope(syntax.ScopeName, syntax.TokenScopeName.SourceSpan);
 			}
 		}
 	}

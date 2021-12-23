@@ -15,20 +15,20 @@ namespace Compiler.Types
 		private bool Inside_RecusiveLayout;
 		public void RecursiveLayout<T>(
 			MessageBag messageBag, 
-			SourcePosition position,
+			SourceSpan span,
 			bool isUnion,
 			SymbolSet<T> fields) where T : IVariableSymbol
 		{
 			if (RecursiveLayoutWasDone)
 				return;
 
-			GetLayoutInfo(messageBag, position, isUnion, fields);
+			GetLayoutInfo(messageBag, span, isUnion, fields);
 
 			if (!Inside_RecusiveLayout)
 			{
 				Inside_RecusiveLayout = true;
 				foreach (var field in fields)
-					DelayedLayoutType.RecursiveLayout(field.Type, messageBag, field.DeclaringPosition);
+					DelayedLayoutType.RecursiveLayout(field.Type, messageBag, field.DeclaringSpan);
 				Inside_RecusiveLayout = false;
 			}
 			RecursiveLayoutWasDone = true;
@@ -47,7 +47,7 @@ namespace Compiler.Types
 
 		public UndefinedLayoutInfo GetLayoutInfo<T>(
 			MessageBag messageBag,
-			SourcePosition position,
+			SourceSpan span,
 			bool isUnion,
 			SymbolSet<T> fields) where T : IVariableSymbol
 		{
@@ -64,7 +64,7 @@ namespace Compiler.Types
 					var fieldLayouts = new List<LayoutInfo>();
 					foreach (var field in fields)
 					{
-						var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringPosition);
+						var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringSpan);
 						if (undefinedLayoutInfo.TryGet(out var layoutInfo))
 							fieldLayouts.Add(layoutInfo);
 						else
@@ -73,7 +73,7 @@ namespace Compiler.Types
 					Inside_GetLayoutInfo = false;
 					MaybeLayoutInfo = isUnion ? LayoutInfo.Union(fieldLayouts) : LayoutInfo.Struct(fieldLayouts);
 					if(isUndefined == true)
-						messageBag.Add(new TypeNotCompleteMessage(position));
+						messageBag.Add(new TypeNotCompleteMessage(span));
 				}
 			}
 			return MaybeLayoutInfo.Value;

@@ -14,17 +14,17 @@ namespace Compiler.Types
 		public LayoutInfo LayoutInfo => _layoutHelper.LayoutInfo;
 		private SymbolSet<FieldVariableSymbol> _fields;
 		public SymbolSet<FieldVariableSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized");
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 
 		public StructuredTypeSymbol(
-			SourcePosition declaringPosition,
+			SourceSpan declaringSpan,
 			bool isUnion,
 			CaseInsensitiveString module,
 			CaseInsensitiveString name,
 			SymbolSet<FieldVariableSymbol> fields,
 			LayoutInfo layoutInfo)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			IsUnion = isUnion;
 			_fields = fields;
 			_layoutHelper = new StructuredLayoutHelper(layoutInfo);
@@ -34,12 +34,12 @@ namespace Compiler.Types
 		public override string ToString() => Name.ToString();
 
 		internal StructuredTypeSymbol(
-			SourcePosition declaringPosition,
+			SourceSpan declaringSpan,
 			bool isUnion,
 			CaseInsensitiveString module,
 			CaseInsensitiveString name)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			IsUnion = isUnion;
 			_layoutHelper = new StructuredLayoutHelper();
 			UniqueId = new( module, name);
@@ -47,8 +47,8 @@ namespace Compiler.Types
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 
-		public UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position) => _layoutHelper.GetLayoutInfo(messageBag, position, IsUnion, Fields);
-		public void RecursiveLayout(MessageBag messageBag, SourcePosition position) => _layoutHelper.RecursiveLayout(messageBag, position, IsUnion, Fields);
+		public UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourceSpan span) => _layoutHelper.GetLayoutInfo(messageBag, span, IsUnion, Fields);
+		public void RecursiveLayout(MessageBag messageBag, SourceSpan span) => _layoutHelper.RecursiveLayout(messageBag, span, IsUnion, Fields);
 		internal void InternalSetFields(SymbolSet<FieldVariableSymbol> fields)
 		{
 			if (!_fields.IsDefault)

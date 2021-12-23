@@ -19,7 +19,7 @@ namespace Tests
 		public void WhitespaceInput()
 		{
 			AssertAllTokens(" ",
-				EndToken.Leading(WhitespaceToken(" ").Generating(" ").Position(0, 1)).Trailing(Assert.Null));
+				EndToken.Leading(WhitespaceToken(" ").Generating(" ").Span(0, 1)).Trailing(Assert.Null));
 		}
 		[Fact]
 		public void MixedWhitespace()
@@ -31,19 +31,19 @@ namespace Tests
 		public void IntegerBare()
 		{
 			AssertAllTokens("1234",
-				IntegerLiteralToken(1234).Generating("1234").Position(0, 4));
+				IntegerLiteralToken(1234).Generating("1234").Span(0, 4));
 		}
 		[Fact]
 		public void IntegerLeading()
 		{
 			AssertAllTokens("\t1234",
-				IntegerLiteralToken(1234).Generating("1234").Position(1, 4).Leading(WhitespaceToken("\t")));
+				IntegerLiteralToken(1234).Generating("1234").Span(1, 4).Leading(WhitespaceToken("\t")));
 		}
 		[Fact]
 		public void IntegerTrailing()
 		{
 			AssertAllTokens("1234\t",
-				IntegerLiteralToken(1234).Generating("1234").Position(0, 4).Trailing(WhitespaceToken("\t")));
+				IntegerLiteralToken(1234).Generating("1234").Span(0, 4).Trailing(WhitespaceToken("\t")));
 		}
 		[Fact]
 		public void OverflowingInteger()
@@ -210,7 +210,7 @@ namespace Tests
 		public void LineComment()
 		{
 			AssertAllTokens("// Hallo",
-				EndToken.Leading(CommentToken(" Hallo").Generating("// Hallo").Position(0, 8)));
+				EndToken.Leading(CommentToken(" Hallo").Generating("// Hallo").Span(0, 8)));
 		}
 		[Fact]
 		public void LineCommentEndWindows()

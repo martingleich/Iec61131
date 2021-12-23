@@ -65,7 +65,7 @@ namespace SourceGenerator
 			cw.WriteLine($"public {Name}({Elements.Select(elem => $"{elem.TypeName} {elem.ArgName}").DelimitWith(", ")})");
 			cw.StartBlock();
 			cw.WriteLines(Elements.Select(elem => $"{elem.Name} = {elem.ArgName};"));
-			cw.WriteLine("SourcePosition = SourcePosition.ConvexHull(FirstNonNullChild.SourcePosition, LastNonNullChild.SourcePosition);");
+			cw.WriteLine("SourceSpan = SourceSpan.ConvexHull(FirstNonNullChild.SourceSpan, LastNonNullChild.SourceSpan);");
 			cw.EndBlock();
 			cw.WriteLines(Elements.Select(elem => $"public readonly {elem.TypeName} {elem.Name};"));
 			cw.WriteLines(Elements.Where(syn => syn.IsTokenWithValue && !syn.IsNullable).Select(elem => $"public {((TokenDescriptionWithValue)elem.BaseType).ValueType} {GetValueName(elem)} => {elem.Name}.Value;"));
@@ -78,7 +78,7 @@ namespace SourceGenerator
 			}
 			cw.WriteLine($"public INode FirstNonNullChild => {FirstNonNullChild()};");
 			cw.WriteLine($"public INode LastNonNullChild => {LastNonNullChild()};");
-			cw.WriteLine("public SourcePosition SourcePosition {get;}");
+			cw.WriteLine("public SourceSpan SourceSpan {get;}");
 			cw.WriteLine("public System.Collections.Generic.IEnumerable<INode> GetChildren()");
 			cw.StartBlock();
 			cw.WriteLines(Elements.Select(e => e.IsNullable

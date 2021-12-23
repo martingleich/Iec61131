@@ -6,7 +6,7 @@ namespace Compiler.Types
 	public sealed class FunctionBlockSymbol : ICallableTypeSymbol, ITypeSymbol, _IDelayedLayoutType
 	{
 		public string Code => Name.Original;
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name => UniqueId.Name;
 		public UniqueSymbolId UniqueId { get; }
 
@@ -17,9 +17,9 @@ namespace Compiler.Types
 		public OrderedSymbolSet<ParameterVariableSymbol> Parameters => !_parameters.IsDefault ? _parameters : throw new InvalidOperationException("Parameters is not initialized.");
 		private OrderedSymbolSet<ParameterVariableSymbol> _parameters;
 
-		public FunctionBlockSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name)
+		public FunctionBlockSymbol(SourceSpan declaringSpan, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			_layoutHelper = new StructuredLayoutHelper();
 			UniqueId = new UniqueSymbolId(module, name);
 		}
@@ -41,15 +41,15 @@ namespace Compiler.Types
 			_parameters = parameters;
 		}
 
-		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position) => _layoutHelper.GetLayoutInfo(
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourceSpan span) => _layoutHelper.GetLayoutInfo(
 			messageBag,
-			position,
+			span,
 			false,
 			Fields);
 
-		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position) => _layoutHelper.GetLayoutInfo(
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourceSpan span) => _layoutHelper.GetLayoutInfo(
 			messageBag,
-			position,
+			span,
 			false,
 			Fields);
 		public override string ToString() => UniqueId.ToString();

@@ -61,7 +61,7 @@ namespace Compiler
 				return new ImplicitCastBoundExpression(boundValue, castFunction);
 			}
 
-			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourcePosition));
+			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourceSpan));
 			return new ImplicitErrorCastBoundExpression(boundValue, targetType);
 		}
 
@@ -108,8 +108,8 @@ namespace Compiler
 
 				if (!operatorFunction.HasValue)
 				{
-					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundLeft.Type, boundRight.Type));
-					var function = FunctionVariableSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourcePosition,
+					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundLeft.Type, boundRight.Type));
+					var function = FunctionVariableSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourceSpan,
 						ImplicitName.ErrorBinaryOperator(boundLeft.Type.Code, boundRight.Type.Code, SystemScope.BuiltInFunctionTable.GetBinaryOperatorFunctionName(binaryOperatorExpressionSyntax.TokenOperator)));
 					operatorFunction = new OperatorFunction(function, false);
 				}
@@ -188,8 +188,8 @@ namespace Compiler
 
 			if (!operatorFunction.HasValue)
 			{
-				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition, boundValue.Type));
-				var function = FunctionVariableSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourcePosition,
+				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundValue.Type));
+				var function = FunctionVariableSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourceSpan,
 					ImplicitName.ErrorUnaryOperator(boundValue.Type.Code, SystemScope.BuiltInFunctionTable.GetUnaryOperatorFunctionName(unaryOperatorExpressionSyntax.TokenOperator)));
 				operatorFunction = new OperatorFunction(function, false);
 			}
@@ -206,7 +206,7 @@ namespace Compiler
 
 		public IBoundExpression Visit(VariableExpressionSyntax variableExpressionSyntax, IType? context)
 		{
-			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier, variableExpressionSyntax.SourcePosition).Extract(MessageBag);
+			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier, variableExpressionSyntax.SourceSpan).Extract(MessageBag);
 			var boundExpression = new VariableBoundExpression(variableExpressionSyntax, variable);
 			return ImplicitCast(boundExpression, context);
 		}
@@ -217,9 +217,9 @@ namespace Compiler
 			var name = compoAccessExpressionSyntax.TokenIdentifier;
 			if (!(boundLeft.Type is StructuredTypeSymbol structuredType && structuredType.Fields.TryGetValue(name.Value, out var field)))
 			{
-				MessageBag.Add(!boundLeft.Type.IsError(), new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourcePosition));
+				MessageBag.Add(!boundLeft.Type.IsError(), new FieldNotFoundMessage(boundLeft.Type, name.Value, name.SourceSpan));
 				field = new FieldVariableSymbol(
-					name.SourcePosition,
+					name.SourceSpan,
 					name.Value,
 					boundLeft.Type);
 			}
@@ -240,7 +240,7 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotDereferenceTypeMessage(value.Type, derefExpressionSyntax.SourcePosition));
+				MessageBag.Add(new CannotDereferenceTypeMessage(value.Type, derefExpressionSyntax.SourceSpan));
 				baseType = value.Type;
 				castedValue = value;
 			}
@@ -256,8 +256,8 @@ namespace Compiler
 				if (expectedCount != boundIndices.Length)
 				{
 					var sourcePos = expectedCount < boundIndices.Length
-						? boundIndices.Skip(expectedCount).SourcePositionHull()
-						: boundIndices.Last().OriginalNode.SourcePosition;
+						? boundIndices.Skip(expectedCount).SourceSpanHull()
+						: boundIndices.Last().OriginalNode.SourceSpan;
 					MessageBag.Add(new WrongNumberOfDimensionInIndexMessage(1, boundIndices.Length, sourcePos));
 				}
 			}
@@ -277,7 +277,7 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotIndexTypeMessage(boundBase.Type, indexAccessExpressionSyntax.TokenBracketOpen.SourcePosition));
+				MessageBag.Add(new CannotIndexTypeMessage(boundBase.Type, indexAccessExpressionSyntax.TokenBracketOpen.SourceSpan));
 				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, boundBase.Type, castedIndices), context);
 			}
 		}
@@ -293,8 +293,8 @@ namespace Compiler
 			var boundCallee = callExpressionSyntax.Callee.Accept(this, null);
 			if (boundCallee.Type is not ICallableTypeSymbol callableType)
 			{
-				MessageBag.Add(!boundCallee.Type.IsError(), new CannotCallTypeMessage(boundCallee.Type, callExpressionSyntax.Callee.SourcePosition));
-				callableType = FunctionTypeSymbol.CreateError(callExpressionSyntax.Callee.SourcePosition, boundCallee.Type);
+				MessageBag.Add(!boundCallee.Type.IsError(), new CannotCallTypeMessage(boundCallee.Type, callExpressionSyntax.Callee.SourceSpan));
+				callableType = FunctionTypeSymbol.CreateError(callExpressionSyntax.Callee.SourceSpan, boundCallee.Type);
 			}
 			var boundArgs = BindFunctionCall(callableType, callExpressionSyntax.Arguments);
 			var boundCall = new CallBoundExpression(callExpressionSyntax, boundCallee, boundArgs, callableType.GetReturnType());
@@ -309,7 +309,7 @@ namespace Compiler
 				if (args.Count != function.GetParameterCountWithoutReturn())
 				{
 					// Error wrong number of arguments.
-					MessageBag.Add(!isError, new WrongNumberOfArgumentsMessage(function, args.Count, args.SourcePosition));
+					MessageBag.Add(!isError, new WrongNumberOfArgumentsMessage(function, args.Count, args.SourceSpan));
 				}
 
 				var boundArguments = ImmutableArray.CreateBuilder<BoundCallArgument>();
@@ -324,8 +324,8 @@ namespace Compiler
 						if (!function.Parameters.TryGetValue(explicitParameterSyntax.Identifier, out var explicitParameter) ||
 							explicitParameterSyntax.Identifier == function.Name) // The implicit output for return is not accessable from the outside
 						{
-							MessageBag.Add(!isError, new ParameterNotFoundMessage(function, explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition));
-							symbol = ParameterVariableSymbol.CreateError(explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourcePosition);
+							MessageBag.Add(!isError, new ParameterNotFoundMessage(function, explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourceSpan));
+							symbol = ParameterVariableSymbol.CreateError(explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourceSpan);
 						}
 						else
 						{
@@ -340,12 +340,12 @@ namespace Compiler
 					{
 						if (afterExplicit)
 						{
-							MessageBag.Add(new CannotUsePositionalParameterAfterExplicitMessage(arg.SourcePosition));
-							symbol = ParameterVariableSymbol.CreateError(nextParamId, arg.SourcePosition);
+							MessageBag.Add(new CannotUsePositionalParameterAfterExplicitMessage(arg.SourceSpan));
+							symbol = ParameterVariableSymbol.CreateError(nextParamId, arg.SourceSpan);
 						}
 						else if (nextParamId >= function.Parameters.Length)
 						{
-							symbol = ParameterVariableSymbol.CreateError(nextParamId, arg.SourcePosition);
+							symbol = ParameterVariableSymbol.CreateError(nextParamId, arg.SourceSpan);
 						}
 						else
 						{
@@ -353,7 +353,7 @@ namespace Compiler
 						}
 
 						if (!symbol.Kind.Equals(ParameterKind.Input))
-							MessageBag.Add(new NonInputParameterMustBePassedExplicit(symbol, arg.SourcePosition));
+							MessageBag.Add(new NonInputParameterMustBePassedExplicit(symbol, arg.SourceSpan));
 
 						++nextParamId;
 					}
@@ -375,7 +375,7 @@ namespace Compiler
 						var first = d.First();
 						foreach (var d2 in d.Skip(1))
 						{
-							MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourcePosition, d2.Parameter.OriginalNode.SourcePosition));
+							MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourceSpan, d2.Parameter.OriginalNode.SourceSpan));
 						}
 					}
 				}
@@ -409,7 +409,7 @@ namespace Compiler
 						var boundArg = arg.Accept(this, null);
 						var boundParameter = new VariableBoundExpression(arg, symbol);
 						if (!TypeRelations.IsIdentical(boundArg.Type, boundParameter.Type))
-							MessageBag.Add(new InoutArgumentMustHaveSameTypeMessage(boundArg.Type, boundParameter.Type, arg.SourcePosition));
+							MessageBag.Add(new InoutArgumentMustHaveSameTypeMessage(boundArg.Type, boundParameter.Type, arg.SourceSpan));
 						IsLValueChecker.IsLValue(boundArg).Extract(MessageBag);
 						return new(
 							symbol,
@@ -429,9 +429,9 @@ namespace Compiler
 			var scope = Scope.ResolveScope(scopedVariableExpressionSyntax.Scope).Extract(MessageBag, out bool missingScope);
 			IVariableSymbol variable;
 			if (missingScope)
-				variable = IVariableSymbol.CreateError(scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition, scopedVariableExpressionSyntax.Identifier);
+				variable = IVariableSymbol.CreateError(scopedVariableExpressionSyntax.TokenIdentifier.SourceSpan, scopedVariableExpressionSyntax.Identifier);
 			else
-				variable = scope.LookupVariable(scopedVariableExpressionSyntax.Identifier, scopedVariableExpressionSyntax.TokenIdentifier.SourcePosition).Extract(MessageBag);
+				variable = scope.LookupVariable(scopedVariableExpressionSyntax.Identifier, scopedVariableExpressionSyntax.TokenIdentifier.SourceSpan).Extract(MessageBag);
 			IBoundExpression boundExpression = new VariableBoundExpression(scopedVariableExpressionSyntax, variable);
 			if (scope is AliasTypeSymbol aliasType && variable is EnumVariableSymbol)
 			{

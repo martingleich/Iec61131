@@ -26,9 +26,9 @@ namespace Compiler.Types
 
 		public override string ToString() => Code;
 
-		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourceSpan span)
 		{
-			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, span);
 		}
 		private static int CalculateStringSize(IScope scope, MessageBag messageBag, IExpressionSyntax? sizeExpr)
 		{
@@ -44,7 +44,7 @@ namespace Compiler.Types
 					return 0;
 			}
 		}
-		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourceSpan span)
 		{
 			if (!MaybeSize.HasValue)
 				MaybeSize = CalculateStringSize(MaybeScope!, messageBag, MaybeSyntax!.Size?.Size);

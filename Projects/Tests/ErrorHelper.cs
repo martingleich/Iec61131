@@ -10,7 +10,7 @@ namespace Tests
 	{
 		public static MessageTest ExactlyMessages(params SingleMessageTest[] tests) => bag =>
 		{
-			Assert.Collection(bag.OrderBy(msg => msg.Position.Start), tests);
+			Assert.Collection(bag.OrderBy(msg => msg.Span.Start), tests);
 		};
 
 		public static SingleMessageTest ErrorOfType<T>() => ErrorOfType<T>(err => { });

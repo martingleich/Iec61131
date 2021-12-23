@@ -13,11 +13,11 @@ namespace Compiler.Scopes
 
 		public SystemScope SystemScope { get; }
 
-		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-			=> EmptyScopeHelper.LookupScope(CaseInsensitiveString.Empty, identifier, sourcePosition);
-		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-			=> EmptyScopeHelper.LookupType(CaseInsensitiveString.Empty, identifier, sourcePosition);
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
-			=> EmptyScopeHelper.LookupVariable(CaseInsensitiveString.Empty, identifier, sourcePosition);
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan sourceSpan)
+			=> EmptyScopeHelper.LookupScope(CaseInsensitiveString.Empty, identifier, sourceSpan);
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan sourceSpan)
+			=> EmptyScopeHelper.LookupType(CaseInsensitiveString.Empty, identifier, sourceSpan);
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan)
+			=> EmptyScopeHelper.LookupVariable(CaseInsensitiveString.Empty, identifier, sourceSpan);
 	}
 }

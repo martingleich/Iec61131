@@ -96,7 +96,7 @@ namespace SourceGenerator
 		public IToken? LeadingNonSyntax { get; }
 		public IToken? TrailingNonSyntax { get; set; }
 		public int Length => Generating.Length;
-		public SourcePosition SourcePosition => SourcePosition.FromStartLength(StartPosition, Length);
+		public SourceSpan SourceSpan => SourceSpan.FromStartLength(StartPosition, Length);
 	}
 
 	public abstract class DefaultTokenWithValueImplementation<T> : DefaultTokenImplementation, ITokenWithValue<T>

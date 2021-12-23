@@ -12,8 +12,8 @@ namespace Compiler.Scopes
 			EnumTypeSymbol = enumTypeSymbol;
 		}
 
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition) =>
-			EnumTypeSymbol.Values.TryGetValue(identifier, out var value) ? value : base.LookupVariable(identifier, sourcePosition);
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan) =>
+			EnumTypeSymbol.Values.TryGetValue(identifier, out var value) ? value : base.LookupVariable(identifier, sourceSpan);
 
 		public override string ToString() => $"{EnumTypeSymbol} < {OuterScope}";
 	}

@@ -10,11 +10,11 @@ namespace Compiler.Scopes
 			FieldVariables = fieldVariables;
 		}
 
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan)
 		{
 			if (FieldVariables.TryGetValue(identifier, out var localVariableSymbol))
 				return localVariableSymbol;
-			return base.LookupVariable(identifier, sourcePosition);
+			return base.LookupVariable(identifier, sourceSpan);
 		}
 	}
 }

@@ -5,7 +5,7 @@ namespace Compiler
 {
 	public interface INode
 	{
-		SourcePosition SourcePosition { get; }
+		SourceSpan SourceSpan { get; }
 	}
 	public interface IToken : INode
 	{

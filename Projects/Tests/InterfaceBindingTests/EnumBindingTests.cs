@@ -30,7 +30,7 @@ namespace Tests
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
-			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
+			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringSpan.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(2, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);
@@ -45,7 +45,7 @@ namespace Tests
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
-			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
+			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringSpan.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(0, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);
@@ -60,7 +60,7 @@ namespace Tests
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
-			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringPosition.Start),
+			Assert.Collection(myEnum.Values.OrderBy(e => e.DeclaringSpan.Start),
 				first => { Assert.Equal("First", first.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(first.Value.InnerValue).Value); },
 				second => { Assert.Equal("Second", second.Name.Original); Assert.Equal(1, Assert.IsType<IntLiteralValue>(second.Value.InnerValue).Value); }
 				);

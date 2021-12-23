@@ -70,7 +70,7 @@
 				}
 
 				// Insert at end if there is still space in the bucket.
-				// NOTE: You could make the position completly random in range[0;probe]
+				// NOTE: You could make the span completly random in range[0;probe]
 				uint pos = probe == PROBES_COUNT ? RandProbe() : probe;
 				key = unchecked(hash + (pos * (pos + 1)) / 2) & SHARED_COUNT_MASK;
 				var stringValue = start == 0 && length == baseString.Length ? baseString : baseString.Substring(start, length);

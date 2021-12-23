@@ -157,7 +157,7 @@ namespace Compiler
 
 		private StatementListSyntax ParseStatementList<TEnd>(Func<int, TEnd> endSynthesiszer, out TEnd outEnd) where TEnd : class, IToken
 		{
-			var defaultStart = CurToken.SourcePosition;
+			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<IStatementSyntax>();
 			while (CurToken is not TEnd && CurToken is not EndToken)
 			{
@@ -256,7 +256,7 @@ namespace Compiler
 				var tokenThen = Match(ThenToken.Synthesize);
 				while (CurToken is not EndToken && CurToken is not ElsifToken && CurToken is not ElseToken && CurToken is not EndIfToken)
 					statements.Add(ParseStatement());
-				var ifBranch = new IfBranchSyntax(tokenIf, condition, tokenThen, statements.ToStatementList(tokenThen.SourcePosition));
+				var ifBranch = new IfBranchSyntax(tokenIf, condition, tokenThen, statements.ToStatementList(tokenThen.SourceSpan));
 				statements.Clear();
 				while (TryMatch<ElsifToken>(out var tokenElsif))
 				{
@@ -264,7 +264,7 @@ namespace Compiler
 					tokenThen = Match(ThenToken.Synthesize);
 					while (CurToken is not EndToken && CurToken is not ElsifToken && CurToken is not ElseToken && CurToken is not EndIfToken)
 						statements.Add(ParseStatement());
-					elsifBranches.Add(new ElsifBranchSyntax(tokenElsif, condition, tokenThen, statements.ToStatementList(tokenThen.SourcePosition)));
+					elsifBranches.Add(new ElsifBranchSyntax(tokenElsif, condition, tokenThen, statements.ToStatementList(tokenThen.SourceSpan)));
 					statements.Clear();
 				}
 				ElseBranchSyntax? elseBranch;
@@ -272,7 +272,7 @@ namespace Compiler
 				{
 					while (CurToken is not EndToken && CurToken is not EndIfToken)
 						statements.Add(ParseStatement());
-					elseBranch = new ElseBranchSyntax(tokenElse, statements.ToStatementList(tokenElse.SourcePosition));
+					elseBranch = new ElseBranchSyntax(tokenElse, statements.ToStatementList(tokenElse.SourceSpan));
 				}
 				else
 				{
@@ -281,13 +281,13 @@ namespace Compiler
 
 				var tokenEndIf = Match(EndIfToken.Synthesize);
 
-				return new IfStatementSyntax(ifBranch, elsifBranches.ToSyntaxArray(tokenThen.SourcePosition), elseBranch, tokenEndIf);
+				return new IfStatementSyntax(ifBranch, elsifBranches.ToSyntaxArray(tokenThen.SourceSpan), elseBranch, tokenEndIf);
 			}
 		}
 
 		private SyntaxArray<AttributeSyntax> ParseAttributes()
 		{
-			var defaultPosition = CurToken.SourcePosition;
+			var defaultPosition = CurToken.SourceSpan;
 			var attributes = ImmutableArray.CreateBuilder<AttributeSyntax>();
 			while (TryMatch<AttributeToken>(out var tokenAttribute))
 				attributes.Add(new AttributeSyntax(tokenAttribute));
@@ -318,7 +318,7 @@ namespace Compiler
 
 		private SyntaxArray<VarDeclBlockSyntax> ParseVariableDeclBlocks()
 		{
-			var defaultStart = CurToken.SourcePosition;
+			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<VarDeclBlockSyntax>();
 			while (CurToken is not EndToken)
 			{
@@ -344,7 +344,7 @@ namespace Compiler
 		}
 		private SyntaxArray<VarDeclSyntax> ParseVariableDeclarations<TEnd>(Func<int, TEnd> synthesizeEnd, out TEnd tokenEndVar) where TEnd : class, IToken
 		{
-			var defaultStart = CurToken.SourcePosition;
+			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<VarDeclSyntax>();
 			while (CurToken is not EndToken && CurToken is not TEnd)
 			{
@@ -587,7 +587,7 @@ namespace Compiler
 				}
 				else
 				{
-					Messages.Add(new Messages.ExpectedExpressionMessage(CurToken.SourcePosition));
+					Messages.Add(new Messages.ExpectedExpressionMessage(CurToken.SourceSpan));
 					Skip(); // Skip the bad token.
 					return new VariableExpressionSyntax(Synthesize(IdentifierToken.Synthesize));
 				}
@@ -687,9 +687,9 @@ namespace Compiler
 
 			public SyntaxCommaSeparated<TElement> Parse(out TEnd endToken)
 			{
-				var start = Parser.CurToken.SourcePosition.End;
+				var start = Parser.CurToken.SourceSpan.End;
 				var firstParameter = ParseHead(out endToken);
-				return new SyntaxCommaSeparated<TElement>(firstParameter, SourcePosition.FromStartLength(start, 0));
+				return new SyntaxCommaSeparated<TElement>(firstParameter, SourceSpan.FromStartLength(start, 0));
 			}
 
 			private SyntaxCommaSeparated<TElement>.HeadSyntax? ParseHead(out TEnd TEnd)

@@ -11,9 +11,9 @@ namespace Compiler.Scopes
 		}
 		public SymbolSet<LocalVariableSymbol> Variables { get; }
 
-		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition sourcePosition)
+		public override ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan)
 			=> Variables.TryGetValue(identifier, out var value)
 			? ErrorsAnd.Create<IVariableSymbol>(value)
-			: base.LookupVariable(identifier, sourcePosition);
+			: base.LookupVariable(identifier, sourceSpan);
 	}
 }

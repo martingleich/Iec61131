@@ -56,7 +56,7 @@ namespace Compiler
 				if (!builder.TryAdd(sym.Name, sym))
 				{
 					if(messages != null)
-						messages.Add(new SymbolAlreadyExistsMessage(sym.Name, builder[sym.Name].DeclaringPosition, sym.DeclaringPosition));
+						messages.Add(new SymbolAlreadyExistsMessage(sym.Name, builder[sym.Name].DeclaringSpan, sym.DeclaringSpan));
 					else
 						throw new ArgumentException($"The symbol {sym} already exists.", nameof(symbols));
 				}

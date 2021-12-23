@@ -63,17 +63,17 @@ namespace Compiler.Types
 			MaybeScope = scope ?? throw new ArgumentNullException(nameof(scope));
 			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 		}
-		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourceSpan span)
 		{
-			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
-			DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, span);
+			DelayedLayoutType.RecursiveLayout(BaseType, messageBag, MaybeSyntax!.BaseType.SourceSpan);
 		}
-		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourceSpan span)
 		{
 			if (MaybeLayoutInfo is UndefinedLayoutInfo layoutInfo)
 				return layoutInfo;
 			Ranges = CalculateArrayRanges(MaybeScope!, messageBag, MaybeSyntax!, out var isValid);
-			var baseTypeLayout = DelayedLayoutType.GetLayoutInfo(BaseType, messageBag, MaybeSyntax!.BaseType.SourcePosition);
+			var baseTypeLayout = DelayedLayoutType.GetLayoutInfo(BaseType, messageBag, MaybeSyntax!.BaseType.SourceSpan);
 			if (baseTypeLayout.TryGet(out var x) && isValid)
 				MaybeLayoutInfo = LayoutInfo.Array(x, ElementCount);
 			else
@@ -109,7 +109,7 @@ namespace Compiler.Types
 			else if (range.Lower != null && range.Upper != null)
 				if (range.Upper.Value - range.Lower.Value + 1 < 0)
 				{
-					messageBag.Add(new InvalidArrayRangesMessage(range.Syntax.SourcePosition));
+					messageBag.Add(new InvalidArrayRangesMessage(range.Syntax.SourceSpan));
 					return new Range(range.Lower.Value, range.Lower.Value);
 				}
 				else

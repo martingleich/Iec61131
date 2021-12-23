@@ -4,24 +4,24 @@ namespace Compiler.Types
 {
 	public static class DelayedLayoutType
 	{
-		public static UndefinedLayoutInfo GetLayoutInfo(IType typeSymbol, MessageBag messageBag, SourcePosition position)
+		public static UndefinedLayoutInfo GetLayoutInfo(IType typeSymbol, MessageBag messageBag, SourceSpan span)
 		{
 			if (typeSymbol is _IDelayedLayoutType delayedLayoutType)
-				return delayedLayoutType.GetLayoutInfo(messageBag, position);
+				return delayedLayoutType.GetLayoutInfo(messageBag, span);
 			else
 				return typeSymbol.LayoutInfo;
 		}
-		public static void RecursiveLayout(IType typeSymbol, MessageBag messageBag, SourcePosition position)
+		public static void RecursiveLayout(IType typeSymbol, MessageBag messageBag, SourceSpan span)
 		{
 			if (typeSymbol is _IDelayedLayoutType delayedLayoutType)
-				delayedLayoutType.RecursiveLayout(messageBag, position);
+				delayedLayoutType.RecursiveLayout(messageBag, span);
 		}
 	}
 
 	internal interface _IDelayedLayoutType
 	{
-		UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourcePosition position);
-		void RecursiveLayout(MessageBag messageBag, SourcePosition position);
+		UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourceSpan span);
+		void RecursiveLayout(MessageBag messageBag, SourceSpan span);
 	}
 
 }

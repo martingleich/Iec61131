@@ -5,7 +5,7 @@ namespace Compiler.Types
 {
 	public sealed class AliasTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
-		public SourcePosition DeclaringPosition { get; }
+		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name => UniqueId.Name;
 		public UniqueSymbolId UniqueId { get; }
 		public IType? _aliasedType;
@@ -15,15 +15,15 @@ namespace Compiler.Types
 
 		public IType AliasedType => _aliasedType ?? throw new InvalidOperationException();
 
-		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name)
+		public AliasTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			_aliasedType = null;
 			UniqueId = new UniqueSymbolId(module, name);
 		}
-		public AliasTypeSymbol(SourcePosition declaringPosition, CaseInsensitiveString module, CaseInsensitiveString name, IType aliasedType)
+		public AliasTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString module, CaseInsensitiveString name, IType aliasedType)
 		{
-			DeclaringPosition = declaringPosition;
+			DeclaringSpan = declaringSpan;
 			_aliasedType = aliasedType ?? throw new ArgumentNullException(nameof(aliasedType));
 			MaybeLayoutInfo = aliasedType.LayoutInfo;
 			RecursiveLayoutWasDone = false;
@@ -45,7 +45,7 @@ namespace Compiler.Types
 			_aliasedType = aliasedType;
 		}
 
-		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourcePosition position)
+		UndefinedLayoutInfo _IDelayedLayoutType.GetLayoutInfo(MessageBag messageBag, SourceSpan span)
 		{
 			if (!MaybeLayoutInfo.HasValue)
 			{
@@ -56,7 +56,7 @@ namespace Compiler.Types
 				else
 				{
 					Inside_GetLayoutInfo = true;
-					var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(_aliasedType!, messageBag, position);
+					var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(_aliasedType!, messageBag, span);
 					Inside_GetLayoutInfo = false;
 					if (undefinedLayoutInfo.TryGet(out var layoutInfo))
 					{
@@ -65,7 +65,7 @@ namespace Compiler.Types
 					else
 					{
 						MaybeLayoutInfo = LayoutInfo.Zero;
-						messageBag.Add(new TypeNotCompleteMessage(DeclaringPosition));
+						messageBag.Add(new TypeNotCompleteMessage(DeclaringSpan));
 					}
 				}
 		
@@ -74,31 +74,31 @@ namespace Compiler.Types
 			return MaybeLayoutInfo.Value;
 		}
 
-		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourcePosition position)
+		void _IDelayedLayoutType.RecursiveLayout(MessageBag messageBag, SourceSpan span)
 		{
 			if (RecursiveLayoutWasDone)
 				return;
-			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, position);
+			((_IDelayedLayoutType)this).GetLayoutInfo(messageBag, span);
 
 			if (!Inside_RecusiveLayout)
 			{
 				Inside_RecusiveLayout = true;
-				DelayedLayoutType.RecursiveLayout(_aliasedType!, messageBag, position);
+				DelayedLayoutType.RecursiveLayout(_aliasedType!, messageBag, span);
 				Inside_RecusiveLayout = false;
 			}
 			RecursiveLayoutWasDone = true;
 		}
 
-		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan errorPosition)
 		{
 			if (AliasedType is IScopeSymbol aliasedScope)
 				return aliasedScope.LookupVariable(identifier, errorPosition);
 			else
 				return EmptyScopeHelper.LookupVariable(Name, identifier, errorPosition);
 		}
-		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
-		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourcePosition errorPosition)
+		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
 		public override string ToString() => UniqueId.ToString();
 	}

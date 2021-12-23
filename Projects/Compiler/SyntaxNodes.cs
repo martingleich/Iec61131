@@ -12,10 +12,10 @@ namespace Compiler
 
 	public readonly struct SyntaxCommaSeparated<T> : ISyntax, IEnumerable<T> where T : INode
 	{
-		public SyntaxCommaSeparated(HeadSyntax? head, SourcePosition startPosition)
+		public SyntaxCommaSeparated(HeadSyntax? head, SourceSpan startPosition)
 		{
 			Head = head;
-			SourcePosition = head is not null ? head.SourcePosition : startPosition;
+			SourceSpan = head is not null ? head.SourceSpan : startPosition;
 		}
 		public class TailSyntax : ISyntax
 		{
@@ -27,11 +27,11 @@ namespace Compiler
 				CommaToken = commaToken;
 				Value = value;
 				Tail = tail;
-				SourcePosition = SourcePosition.ConvexHull(FirstNonNullChild.SourcePosition, LastNonNullChild.SourcePosition);
+				SourceSpan = SourceSpan.ConvexHull(FirstNonNullChild.SourceSpan, LastNonNullChild.SourceSpan);
 			}
 			public INode FirstNonNullChild => CommaToken;
 			public INode LastNonNullChild => (INode?)Tail ?? Value;
-			public SourcePosition SourcePosition { get; }
+			public SourceSpan SourceSpan { get; }
 
 			public IEnumerable<INode> GetChildren()
 			{
@@ -49,11 +49,11 @@ namespace Compiler
 			{
 				Value = value;
 				Tail = tail;
-				SourcePosition = SourcePosition.ConvexHull(FirstNonNullChild.SourcePosition, LastNonNullChild.SourcePosition);
+				SourceSpan = SourceSpan.ConvexHull(FirstNonNullChild.SourceSpan, LastNonNullChild.SourceSpan);
 			}
 			public INode FirstNonNullChild => Value;
 			public INode LastNonNullChild => (INode?)Tail ?? Value;
-			public SourcePosition SourcePosition { get; }
+			public SourceSpan SourceSpan { get; }
 
 			public IEnumerable<INode> GetChildren()
 			{
@@ -64,7 +64,7 @@ namespace Compiler
 		}
 
 		public readonly HeadSyntax? Head;
-		public readonly SourcePosition SourcePosition { get; }
+		public readonly SourceSpan SourceSpan { get; }
 
 		public IEnumerable<T> Values
 		{
@@ -118,17 +118,17 @@ namespace Compiler
 
 	public readonly struct SyntaxArray<T> : ISyntax, IReadOnlyList<T> where T : ISyntax
 	{
-		public SyntaxArray(ImmutableArray<T> values, SourcePosition defaultStartPosition)
+		public SyntaxArray(ImmutableArray<T> values, SourceSpan defaultStartPosition)
 		{
 			Values = values;
 			if (values.Length > 0)
-				SourcePosition = SourcePosition.ConvexHull(values[0].SourcePosition, values[^1].SourcePosition); // The convex hull is equal to the convex hull of the first and last element, because the elements are ordered by start position.
+				SourceSpan = SourceSpan.ConvexHull(values[0].SourceSpan, values[^1].SourceSpan); // The convex hull is equal to the convex hull of the first and last element, because the elements are ordered by start span.
 			else
-				SourcePosition = defaultStartPosition;
+				SourceSpan = defaultStartPosition;
 		}
 
 		public readonly ImmutableArray<T> Values;
-		public SourcePosition SourcePosition { get; }
+		public SourceSpan SourceSpan { get; }
 
 		public int Count => Values.Length;
 		public T this[int index] => Values[index];
@@ -141,16 +141,16 @@ namespace Compiler
 
 	public static class SyntaxArray
 	{
-		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T> self, SourcePosition defaultStartPosition) where T : ISyntax
+		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T> self, SourceSpan defaultStartPosition) where T : ISyntax
 			=> new(self, defaultStartPosition);
-		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T>.Builder self, SourcePosition defaultStartPosition) where T : ISyntax
+		public static SyntaxArray<T> ToSyntaxArray<T>(this ImmutableArray<T>.Builder self, SourceSpan defaultStartPosition) where T : ISyntax
 			=> self.ToImmutable().ToSyntaxArray(defaultStartPosition);
 	}
 	public static class StatementListSyntaxExt
 	{
-		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax> self, SourcePosition defaultStartPosition)
+		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax> self, SourceSpan defaultStartPosition)
 			=> new(self.ToSyntaxArray(defaultStartPosition));
-		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax>.Builder self, SourcePosition defaultStartPosition)
+		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax>.Builder self, SourceSpan defaultStartPosition)
 			=> new(self.ToSyntaxArray(defaultStartPosition));
 	}
 }
