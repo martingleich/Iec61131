@@ -16,12 +16,12 @@ namespace SourceGenerator
 			cw.WriteLine("[ExcludeFromCodeCoverage]");
 			cw.WriteLine("public static class ScannerKeywordTable");
 			cw.StartBlock();
-			cw.WriteLine($"private static readonly System.Collections.Generic.Dictionary<string, Func<string, int, IToken?, IToken>> Table = new(System.StringComparer.InvariantCultureIgnoreCase)");
+			cw.WriteLine($"private static readonly System.Collections.Generic.Dictionary<string, Func<string, SourcePoint, IToken?, IToken>> Table = new(System.StringComparer.InvariantCultureIgnoreCase)");
 			cw.StartBlock();
 			foreach (var keyword in keywords)
 				cw.WriteLine($"[{keyword.Name}.DefaultGenerating] = {keyword.Name}.Create,");
 			cw.EndBlock(";");
-			cw.WriteLine("public static IToken? TryMap(string potentialKeyword, int startPosition, IToken? leadingNonSyntax)");
+			cw.WriteLine("public static IToken? TryMap(string potentialKeyword, SourcePoint startPosition, IToken? leadingNonSyntax)");
 			cw.StartBlock();
 			cw.WriteLine("if (Table.TryGetValue(potentialKeyword, out var creator))");
 			cw.StartBlock();
@@ -38,14 +38,14 @@ namespace SourceGenerator
 			cw.WriteLine("[ExcludeFromCodeCoverage]");
 			cw.WriteLine($"public sealed partial class {Name} : {Interfaces.Prepend("DefaultTokenImplementation").DelimitWith(", ")}");
 			cw.StartBlock();
-			cw.WriteLine($"public {Name}(string generating, int startPosition, IToken? leadingNonSyntax) : base(startPosition, leadingNonSyntax)");
+			cw.WriteLine($"public {Name}(string generating, SourcePoint startPosition, IToken? leadingNonSyntax) : base(startPosition, leadingNonSyntax)");
 			cw.StartBlock();
 			cw.WriteLine("Generating = generating;");
 			cw.EndBlock();
 			cw.WriteLine($"public override string Generating {{ get; }}");
 			cw.WriteLine($"public static readonly string DefaultGenerating = {LanguageUtils.ToCSharpString(Generating)};");
-			cw.WriteLine($"public static readonly Func<int, {Name}> Synthesize = startPosition => new {Name}(DefaultGenerating, startPosition, null);");
-			cw.WriteLine($"public static readonly Func<string, int, IToken?, {Name}> Create = (generating, startPosition, leadingNonSyntax) => new {Name}(generating, startPosition, leadingNonSyntax);");
+			cw.WriteLine($"public static readonly Func<SourcePoint, {Name}> Synthesize = startPosition => new {Name}(DefaultGenerating, startPosition, null);");
+			cw.WriteLine($"public static readonly Func<string, SourcePoint, IToken?, {Name}> Create = (generating, startPosition, leadingNonSyntax) => new {Name}(generating, startPosition, leadingNonSyntax);");
 			cw.WriteLine($"public override string ToString() => nameof({Name});");
 			cw.WriteCode(GetInterfaceImplCode());
 			cw.EndBlock();

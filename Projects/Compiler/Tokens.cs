@@ -9,7 +9,7 @@ namespace Compiler
 	}
 	public interface IToken : INode
 	{
-		int StartPosition { get; }
+		SourcePoint StartPosition { get; }
 		int Length { get; }
 		string Generating { get; }
 		IToken? LeadingNonSyntax { get; }

@@ -155,7 +155,7 @@ namespace Compiler
 
 		private StatementListSyntax ParsePouBody() => ParseStatementList(EndToken.Synthesize, out _);
 
-		private StatementListSyntax ParseStatementList<TEnd>(Func<int, TEnd> endSynthesiszer, out TEnd outEnd) where TEnd : class, IToken
+		private StatementListSyntax ParseStatementList<TEnd>(Func<SourcePoint, TEnd> endSynthesiszer, out TEnd outEnd) where TEnd : class, IToken
 		{
 			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<IStatementSyntax>();
@@ -342,7 +342,7 @@ namespace Compiler
 				return new(tokenVarDeclKind, tokenConstant, declarations, tokenEndVar);
 			}
 		}
-		private SyntaxArray<VarDeclSyntax> ParseVariableDeclarations<TEnd>(Func<int, TEnd> synthesizeEnd, out TEnd tokenEndVar) where TEnd : class, IToken
+		private SyntaxArray<VarDeclSyntax> ParseVariableDeclarations<TEnd>(Func<SourcePoint, TEnd> synthesizeEnd, out TEnd tokenEndVar) where TEnd : class, IToken
 		{
 			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<VarDeclSyntax>();
@@ -675,9 +675,9 @@ namespace Compiler
 			private readonly Parser Parser;
 			private readonly Func<TElement> ParseElement;
 			private readonly Func<IToken, bool> IsValid;
-			private readonly Func<int, TEnd> MakeEnd;
+			private readonly Func<SourcePoint, TEnd> MakeEnd;
 
-			public CommaSeperatedParser(Parser parser, Func<TElement> parseElement, Func<IToken, bool> isValid, Func<int, TEnd> makeEnd)
+			public CommaSeperatedParser(Parser parser, Func<TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
 			{
 				Parser = parser;
 				ParseElement = parseElement;
@@ -734,7 +734,7 @@ namespace Compiler
 			}
 		}
 
-		private CommaSeperatedParser<TElement, TEnd> MakeCommaSeperatedParser<TElement, TEnd>(Func<TElement> parseElement, Func<IToken, bool> isValid, Func<int, TEnd> makeEnd)
+		private CommaSeperatedParser<TElement, TEnd> MakeCommaSeperatedParser<TElement, TEnd>(Func<TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
 			where TElement : ISyntax where TEnd : class, IToken
 		{
 			return new CommaSeperatedParser<TElement, TEnd>(this, parseElement, isValid, makeEnd);
@@ -775,14 +775,14 @@ namespace Compiler
 			}
 			return result != null;
 		}
-		private T Match<T>(Func<int, T> synthesizer) where T : class, IToken
+		private T Match<T>(Func<SourcePoint, T> synthesizer) where T : class, IToken
 		{
 			if (!TryMatch<T>(out var result))
 				result = SynthesizeWithError(synthesizer);
 			return result;
 		}
-		private T Synthesize<T>(Func<int, T> synthesizer) => synthesizer(CurToken.StartPosition);
-		private T SynthesizeWithError<T>(Func<int, T> synthesizer)
+		private T Synthesize<T>(Func<SourcePoint, T> synthesizer) => synthesizer(CurToken.StartPosition);
+		private T SynthesizeWithError<T>(Func<SourcePoint, T> synthesizer)
 		{
 			AddUnexpectedTokenMessage(typeof(T));
 			return Synthesize(synthesizer);

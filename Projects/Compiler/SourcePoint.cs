@@ -4,9 +4,12 @@ namespace Compiler
 {
 	public readonly struct SourcePoint : IComparable<SourcePoint>, IEquatable<SourcePoint>
 	{
+		public static readonly SourcePoint Null = new (0);
 		public readonly int Offset;
 
-		public SourcePoint(int offset)
+		internal static SourcePoint FromOffset(int offset) => new (offset);
+
+		private SourcePoint(int offset)
 		{
 			if (offset < 0)
 				throw new ArgumentException($"{nameof(offset)}({offset}) must be zero or positive.");

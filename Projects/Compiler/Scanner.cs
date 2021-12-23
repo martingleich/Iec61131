@@ -12,6 +12,9 @@ namespace Compiler
 		private readonly Messages.MessageBag Messages;
 
 		private int Cursor;
+		private SourcePoint CursorPoint => PointAtOffset(Cursor);
+
+		private SourcePoint PointAtOffset(int offset) => SourcePoint.FromOffset(offset);
 
 		internal Scanner(string text, Messages.MessageBag messages)
 		{
@@ -40,7 +43,7 @@ namespace Compiler
 			if (whitespaceStart != Cursor)
 			{
 				var whitespace = StringPool.GetString(Text, whitespaceStart, Cursor - whitespaceStart);
-				return new WhitespaceToken(whitespace, whitespace, whitespaceStart, leadingToken);
+				return new WhitespaceToken(whitespace, whitespace, PointAtOffset(whitespaceStart), leadingToken);
 			}
 			return leadingToken;
 		}
@@ -61,7 +64,7 @@ namespace Compiler
 							++Cursor;
 							// End of comment
 							var comment = Text[commentStart..Cursor];
-							return new CommentToken(comment[2..^2], comment, commentStart, leadingToken);
+							return new CommentToken(comment[2..^2], comment, PointAtOffset(commentStart), leadingToken);
 						}
 					}
 					else
@@ -71,7 +74,7 @@ namespace Compiler
 				}
 				Messages.Add(new Messages.MissingEndOfMultilineCommentMessage(SourceSpan.FromStartLength(commentStart, 0), "*" + terminator));
 				var comment2 = Text[commentStart..Cursor];
-				return new CommentToken(comment2[2..], comment2, commentStart, leadingToken);
+				return new CommentToken(comment2[2..], comment2, PointAtOffset(commentStart), leadingToken);
 			}
 			return leadingToken;
 		}
@@ -105,7 +108,7 @@ namespace Compiler
 					}
 				}
 				var comment = Text[commentStart..Cursor];
-				return new CommentToken(comment[2..], comment, commentStart, leadingToken);
+				return new CommentToken(comment[2..], comment, PointAtOffset(commentStart), leadingToken);
 			}
 			return leadingToken;
 		}
@@ -131,7 +134,7 @@ namespace Compiler
 				var literalToken = Scanner.ScanNumber(builtInType.LeadingNonSyntax);
 				return new TypedLiteralToken(
 					new TypedLiteral(builtInType, literalToken),
-					Scanner.Text[builtInType.StartPosition..Scanner.Cursor],
+					Scanner.Text[builtInType.StartPosition.Offset..Scanner.Cursor],
 					builtInType.StartPosition, builtInType.LeadingNonSyntax);
 			}
 			private IToken ScanDuration(IBuiltInTypeToken builtInType)
@@ -139,7 +142,7 @@ namespace Compiler
 				var literalToken = Scanner.ScanDuration(builtInType.LeadingNonSyntax);
 				return new TypedLiteralToken(
 					new TypedLiteral(builtInType, literalToken),
-					Scanner.Text[builtInType.StartPosition..Scanner.Cursor],
+					Scanner.Text[builtInType.StartPosition.Offset..Scanner.Cursor],
 					builtInType.StartPosition, builtInType.LeadingNonSyntax);
 			}
 
@@ -168,7 +171,7 @@ namespace Compiler
 				var literalToken = Scanner.ScanBoolean(boolToken.LeadingNonSyntax);
 				return new TypedLiteralToken(
 					new TypedLiteral(boolToken, literalToken),
-					Scanner.Text[boolToken.StartPosition..Scanner.Cursor],
+					Scanner.Text[boolToken.StartPosition.Offset..Scanner.Cursor],
 					boolToken.StartPosition, boolToken.LeadingNonSyntax);
 			}
 
@@ -277,7 +280,7 @@ namespace Compiler
 			var result = total.Item1 / total.Item2;
 			if (isNegative)
 				result = -result;
-			return new DurationLiteralToken(OverflowingDuration.FromBigIntegerNanoseconds(result), Text[start..Cursor], start, leadingToken);
+			return new DurationLiteralToken(OverflowingDuration.FromBigIntegerNanoseconds(result), Text[start..Cursor], PointAtOffset(start), leadingToken);
 		}
 
 		private ILiteralToken ScanNumber(IToken? leadingToken)
@@ -294,7 +297,7 @@ namespace Compiler
 				while (Cursor < Text.Length && IsDigit(Text[Cursor]))
 					++Cursor;
 				var generating = Text[start..Cursor];
-				var literalValue = new RealLiteralToken(OverflowingReal.Parse(generating), generating, start, leadingToken);
+				var literalValue = new RealLiteralToken(OverflowingReal.Parse(generating), generating, PointAtOffset(start), leadingToken);
 				return literalValue;
 			}
 			else
@@ -302,7 +305,7 @@ namespace Compiler
 				var generating = Text[start..Cursor];
 				var pureValue = Text[valueStart..Cursor];
 				var value = OverflowingInteger.Parse(pureValue, isNegative);
-				return new IntegerLiteralToken(value, generating, start, leadingToken);
+				return new IntegerLiteralToken(value, generating, PointAtOffset(start), leadingToken);
 			}
 		}
 
@@ -335,7 +338,7 @@ namespace Compiler
 			else
 			{
 				Messages.Add(new Messages.InvalidBooleanLiteralMessage(SourceSpan.FromStartLength(Cursor, 0)));
-				return new FalseToken("", Cursor, leadingToken);
+				return new FalseToken("", CursorPoint, leadingToken);
 			}
 		}
 
@@ -346,7 +349,7 @@ namespace Compiler
 				var generating = Text[Cursor..(Cursor + keyword.Length)];
 				if (generating.ToCaseInsensitive() == keyword.ToCaseInsensitive())
 				{
-					if (ScannerKeywordTable.TryMap(generating, Cursor, leadingToken) is IToken token)
+					if (ScannerKeywordTable.TryMap(generating, CursorPoint, leadingToken) is IToken token)
 					{
 						Cursor += keyword.Length;
 						return token;
@@ -362,7 +365,7 @@ namespace Compiler
 			while (Cursor < Text.Length && IsMidIdentifier(Text[Cursor]))
 				++Cursor;
 			var generating = StringPool.GetString(Text, start, Cursor - start);
-			if (ScannerKeywordTable.TryMap(generating, start, leadingToken) is IToken token)
+			if (ScannerKeywordTable.TryMap(generating, PointAtOffset(start), leadingToken) is IToken token)
 			{
 				if (token is IBuiltInTypeToken builtInTypeToken)
 				{
@@ -376,7 +379,7 @@ namespace Compiler
 				return token;
 			}
 			else
-				return new IdentifierToken(generating.ToCaseInsensitive(), generating, start, leadingToken);
+				return new IdentifierToken(generating.ToCaseInsensitive(), generating, PointAtOffset(start), leadingToken);
 		}
 
 		private IToken ScanUnknown(IToken? leadingToken)
@@ -385,16 +388,17 @@ namespace Compiler
 			while (Cursor < Text.Length && IsUnknown(Text[Cursor]))
 				++Cursor;
 			var generating = Text[start..Cursor];
-			return new UnknownToken(generating, generating, start, leadingToken);
+			return new UnknownToken(generating, generating, PointAtOffset(start), leadingToken);
 		}
 
 		private IToken NextInternal(IToken? skipped)
 		{
 			var leadingToken = SkipNonSyntax(skipped);
-			if (Cursor >= Text.Length)
-				return new EndToken(Cursor, leadingToken);
-
 			int start = Cursor;
+			var startPoint = PointAtOffset(start);
+			if (start >= Text.Length)
+				return new EndToken(startPoint, leadingToken);
+
 			++Cursor;
 			char cur = Text[start];
 			if (IsDigit(cur))
@@ -405,47 +409,47 @@ namespace Compiler
 			else if (IsStartIdentifier(cur))
 				return ScanIdentifier(leadingToken);
 			else if (cur == '[')
-				return new BracketOpenToken(start, leadingToken);
+				return new BracketOpenToken(startPoint, leadingToken);
 			else if (cur == ']')
-				return new BracketCloseToken(start, leadingToken);
+				return new BracketCloseToken(startPoint, leadingToken);
 			else if (cur == '(')
-				return new ParenthesisOpenToken(start, leadingToken);
+				return new ParenthesisOpenToken(startPoint, leadingToken);
 			else if (cur == ')')
-				return new ParenthesisCloseToken(start, leadingToken);
+				return new ParenthesisCloseToken(startPoint, leadingToken);
 			else if (cur == '{')
-				return new BraceOpenToken(start, leadingToken);
+				return new BraceOpenToken(startPoint, leadingToken);
 			else if (cur == '}')
-				return new BraceCloseToken(start, leadingToken);
+				return new BraceCloseToken(startPoint, leadingToken);
 			else if (cur == '+')
-				return new PlusToken(start, leadingToken);
+				return new PlusToken(startPoint, leadingToken);
 			else if (cur == '-')
-				return new MinusToken(start, leadingToken);
+				return new MinusToken(startPoint, leadingToken);
 			else if (cur == '*')
 			{
 				if (Cursor < Text.Length && Text[Cursor] == '*')
 				{
 					++Cursor;
-					return new PowerToken(start, leadingToken);
+					return new PowerToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new StarToken(start, leadingToken);
+					return new StarToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == '/')
-				return new SlashToken(start, leadingToken);
+				return new SlashToken(startPoint, leadingToken);
 			else if (cur == ',')
-				return new CommaToken(start, leadingToken);
+				return new CommaToken(startPoint, leadingToken);
 			else if (cur == '=')
 			{
 				if (Cursor < Text.Length && Text[Cursor] == '>')
 				{
 					++Cursor;
-					return new DoubleArrowToken(start, leadingToken);
+					return new DoubleArrowToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new EqualToken(start, leadingToken);
+					return new EqualToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == '<')
@@ -453,16 +457,16 @@ namespace Compiler
 				if (Cursor < Text.Length && Text[Cursor] == '=')
 				{
 					++Cursor;
-					return new LessEqualToken(start, leadingToken);
+					return new LessEqualToken(startPoint, leadingToken);
 				}
 				else if (Cursor < Text.Length && Text[Cursor] == '>')
 				{
 					++Cursor;
-					return new UnEqualToken(start, leadingToken);
+					return new UnEqualToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new LessToken(start, leadingToken);
+					return new LessToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == '>')
@@ -470,11 +474,11 @@ namespace Compiler
 				if (Cursor < Text.Length && Text[Cursor] == '=')
 				{
 					++Cursor;
-					return new GreaterEqualToken(start, leadingToken);
+					return new GreaterEqualToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new GreaterToken(start, leadingToken);
+					return new GreaterToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == ':')
@@ -482,16 +486,16 @@ namespace Compiler
 				if (Cursor < Text.Length && Text[Cursor] == '=')
 				{
 					++Cursor;
-					return new AssignToken(start, leadingToken);
+					return new AssignToken(startPoint, leadingToken);
 				}
 				else if (Cursor < Text.Length && Text[Cursor] == ':')
 				{
 					++Cursor;
-					return new DoubleColonToken(start, leadingToken);
+					return new DoubleColonToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new ColonToken(start, leadingToken);
+					return new ColonToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == '.')
@@ -499,17 +503,17 @@ namespace Compiler
 				if (Cursor < Text.Length && Text[Cursor] == '.')
 				{
 					++Cursor;
-					return new DotsToken(start, leadingToken);
+					return new DotsToken(startPoint, leadingToken);
 				}
 				else
 				{
-					return new DotToken(start, leadingToken);
+					return new DotToken(startPoint, leadingToken);
 				}
 			}
 			else if (cur == ';')
-				return new SemicolonToken(start, leadingToken);
+				return new SemicolonToken(startPoint, leadingToken);
 			else if (cur == '^')
-				return new DerefToken(start, leadingToken);
+				return new DerefToken(startPoint, leadingToken);
 			else
 				return ScanUnknown(leadingToken);
 		}

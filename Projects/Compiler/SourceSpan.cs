@@ -7,7 +7,7 @@ namespace Compiler
 {
 	public readonly struct SourceSpan : IEquatable<SourceSpan>
 	{
-		public static SourceSpan FromStartLength(int start, int length) => FromStartLength(new SourcePoint(start), length);
+		public static SourceSpan FromStartLength(int start, int length) => FromStartLength(SourcePoint.FromOffset(start), length);
 		public static SourceSpan FromStartLength(SourcePoint start, int length)
 		{
 			if (length < 0)

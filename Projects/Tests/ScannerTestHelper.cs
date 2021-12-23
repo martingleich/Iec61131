@@ -29,7 +29,7 @@ namespace Tests
 		public static TokenTest Span(this TokenTest self, int pos, int length) => tok =>
 		{
 			self(tok);
-			Assert.Equal(pos, tok.StartPosition);
+			Assert.Equal(pos, tok.StartPosition.Offset);
 			Assert.Equal(length, tok.Length);
 			Assert.Equal(SourceSpan.FromStartLength(pos, length), tok.SourceSpan);
 		};

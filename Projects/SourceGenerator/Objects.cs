@@ -83,15 +83,13 @@ namespace SourceGenerator
 			cw.StartBlock();
 			cw.WriteLine(@"public abstract class DefaultTokenImplementation : IToken
 	{
-		protected DefaultTokenImplementation(int startPosition, IToken? leadingNonSyntax)
+		protected DefaultTokenImplementation(SourcePoint startPosition, IToken? leadingNonSyntax)
 		{
-			if (startPosition < 0)
-				throw new ArgumentException($""{startPosition} must be non-negative."");
 			StartPosition = startPosition;
 			LeadingNonSyntax = leadingNonSyntax;
 		}
 
-		public int StartPosition { get; }
+		public SourcePoint StartPosition { get; }
 		public abstract string Generating { get; }
 		public IToken? LeadingNonSyntax { get; }
 		public IToken? TrailingNonSyntax { get; set; }
@@ -101,7 +99,7 @@ namespace SourceGenerator
 
 	public abstract class DefaultTokenWithValueImplementation<T> : DefaultTokenImplementation, ITokenWithValue<T>
 	{
-		protected DefaultTokenWithValueImplementation(T value, string generating, int startPosition, IToken? leadingNonSyntax) :
+		protected DefaultTokenWithValueImplementation(T value, string generating, SourcePoint startPosition, IToken? leadingNonSyntax) :
 			base(startPosition, leadingNonSyntax)
 		{
 			Value = value;

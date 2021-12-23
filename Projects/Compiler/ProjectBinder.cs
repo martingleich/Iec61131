@@ -377,14 +377,14 @@ namespace Compiler
 					{
 						if (prevSymbol == null)
 						{
-							value = new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(0, OverflowingInteger.FromUlong(0, false)));
+							value = new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(SourcePoint.Null, OverflowingInteger.FromUlong(0, false)));
 						}
 						else
 						{
 							value = new BinaryOperatorExpressionSyntax(
-								new VariableExpressionSyntax(IdentifierToken.SynthesizeEx(0, prevSymbol.Name)),
-								PlusToken.Synthesize(0),
-								new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(0, OverflowingInteger.FromUlong(1, false))));
+								new VariableExpressionSyntax(IdentifierToken.SynthesizeEx(SourcePoint.Null, prevSymbol.Name)),
+								PlusToken.Synthesize(SourcePoint.Null),
+								new LiteralExpressionSyntax(IntegerLiteralToken.SynthesizeEx(SourcePoint.Null, OverflowingInteger.FromUlong(1, false))));
 						}
 					}
 					var valueSymbol = new EnumVariableSymbol(innerScope, valueSyntax.SourceSpan, valueSyntax.Identifier, value, Symbol);
