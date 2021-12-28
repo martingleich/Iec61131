@@ -92,7 +92,7 @@ namespace Tests
 		{
 			BindHelper.NewProject
 				.AddGVL("MyGvl", "")
-				.AddDutFast("MyGvl", "(First, Second)")
+				.AddDut("MyGvl", "(First, Second)")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyGvl".ToCaseInsensitive(), err.Name)));
 		}
 
@@ -111,7 +111,7 @@ namespace Tests
 		public void BindInitialValue_SIZEOF()
 		{
 			var boundInterfaces = BindHelper.NewProject
-				.AddDutFast("MyDut", "STRUCT field : INT; END_STRUCT")
+				.AddDut("MyDut", "STRUCT field : INT; END_STRUCT")
 				.AddGVL("MyGvl", "VAR_GLOBAL value : INT := SIZEOF(MyDut); END_VAR")
 				.BindInterfaces();
 			var gvl = boundInterfaces.GlobalVariableListSymbols["MyGvl"];

@@ -13,7 +13,7 @@
 		public void Error_Temp_XXX_Collision(string kind)
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION_BLOCK foo {kind} x : INT; END_VAR VAR_TEMP x : REAL; END_VAR", "")
+				.AddFunctionBlock("foo", $"{kind} x : INT; END_VAR VAR_TEMP x : REAL; END_VAR", "")
 				.BindBodies(ErrorOfType<SymbolAlreadyExistsMessage>(msg => Assert.Equal("x".ToCaseInsensitive(), msg.Name)));
 		}
 
@@ -24,7 +24,7 @@
 		public void Namelookup(string kind)
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION_BLOCK foo {kind} x : INT; END_VAR", "x;")
+				.AddFunctionBlock("foo", $"{kind} x : INT; END_VAR", "x;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -41,7 +41,7 @@
 		public void BindEmptyBody()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "")
+				.AddFunction("foo", "", "")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -53,7 +53,7 @@
 		public void BindEmptyStatement()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", ";")
+				.AddFunction("foo", "", ";")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -69,7 +69,7 @@
 		public void BindExpressionStatement(string expr, Type exprType)
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : INT; END_VAR", expr + ";")
+				.AddFunction("foo", "VAR x : INT; END_VAR", expr + ";")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -82,21 +82,21 @@
 		public void Error_OnDuplicateVarName()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : INT; x : REAL; END_VAR", "")
+				.AddFunction("foo", "VAR x : INT; x : REAL; END_VAR", "")
 				.BindBodies(ErrorOfType<SymbolAlreadyExistsMessage>(msg => Assert.Equal("x".ToCaseInsensitive(), msg.Name)));
 		}
 		[Fact]
 		public void Error_OnDuplicateVarNameAndArgument()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_INPUT x : INT; END_VAR VAR x : REAL; END_VAR", "")
+				.AddFunction("foo", "VAR_INPUT x : INT; END_VAR VAR x : REAL; END_VAR", "")
 				.BindBodies(ErrorOfType<SymbolAlreadyExistsMessage>(msg => Assert.Equal("x".ToCaseInsensitive(), msg.Name)));
 		}
 		[Fact]
 		public void Namelookup_Argument()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_INPUT x : INT; END_VAR", "x;")
+				.AddFunction("foo", "VAR_INPUT x : INT; END_VAR", "x;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -109,7 +109,7 @@
 		public void Namelookup_Local()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR y : INT; END_VAR", "y;")
+				.AddFunction("foo", "VAR y : INT; END_VAR", "y;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -122,14 +122,14 @@
 		public void Error_Namelookup_NoExist()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "doesNotExist;")
+				.AddFunction("foo", "", "doesNotExist;")
 				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => Assert.Equal("doesNotExist".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public void AssignStatement()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : INT; END_VAR", "x := 5;")
+				.AddFunction("foo", "VAR x : INT; END_VAR", "x := 5;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -142,7 +142,7 @@
 		public void Error_AssignStatement_InvalidLValueSyntax()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : INT; END_VAR", "(x + 5) := 5;")
+				.AddFunction("foo", "VAR x : INT; END_VAR", "(x + 5) := 5;")
 				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
 		}
 
@@ -150,7 +150,7 @@
 		public void AssignStatement_ImplicitCast()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : REAL; END_VAR", "x := DINT#25;")
+				.AddFunction("foo", "VAR x : REAL; END_VAR", "x := DINT#25;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -164,7 +164,7 @@
 		public void Error_AssignStatement_IncompatibleTypes()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR x : BOOL; END_VAR", "x := 5;")
+				.AddFunction("foo", "VAR x : BOOL; END_VAR", "x := 5;")
 				.BindBodies(ErrorOfType<ConstantDoesNotFitIntoTypeMessage>());
 		}
 
@@ -172,7 +172,7 @@
 		public void IfStatement_IfOnly()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; END_VAR", "IF xc THEN xb; END_IF")
+				.AddFunction("foo", "VAR xc : BOOL; xb : INT; END_VAR", "IF xc THEN xb; END_IF")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -186,7 +186,7 @@
 		public void IfStatement_IfWithElse()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yb : INT; END_VAR", "IF xc THEN xb; ELSE yb; END_IF")
+				.AddFunction("foo", "VAR xc : BOOL; xb : INT; yb : INT; END_VAR", "IF xc THEN xb; ELSE yb; END_IF")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -208,7 +208,7 @@
 		public void IfStatement_IfWithMultipleElsIf()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yc : BOOL; yb : INT; zc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSIF zc THEN zb; END_IF")
+				.AddFunction("foo", "VAR xc : BOOL; xb : INT; yc : BOOL; yb : INT; zc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSIF zc THEN zb; END_IF")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -235,7 +235,7 @@
 		public void IfStatement_IfWithElsIfElse()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; yb : INT; yc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSE zb; END_IF")
+				.AddFunction("foo", "VAR xc : BOOL; xb : INT; yb : INT; yc : BOOL; zb : INT; END_VAR", "IF xc THEN xb; ELSIF yc THEN yb; ELSE zb; END_IF")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -264,7 +264,7 @@
 		public void WhileStatement()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; xb : INT; END_VAR", "WHILE xc DO xb; END_WHILE")
+				.AddFunction("foo", "VAR xc : BOOL; xb : INT; END_VAR", "WHILE xc DO xb; END_WHILE")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -277,7 +277,7 @@
 		public void WhileStatement_WithExit()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; END_VAR", "WHILE xc DO EXIT; END_WHILE")
+				.AddFunction("foo", "VAR xc : BOOL; END_VAR", "WHILE xc DO EXIT; END_WHILE")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -289,7 +289,7 @@
 		public void WhileStatement_WithContinue()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR xc : BOOL; END_VAR", "WHILE xc DO CONTINUE; END_WHILE")
+				.AddFunction("foo", "VAR xc : BOOL; END_VAR", "WHILE xc DO CONTINUE; END_WHILE")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -303,14 +303,14 @@
 		public void Error_SyntaxOnlyInLoop(string syntax)
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", syntax)
+				.AddFunction("foo", "", syntax)
 				.BindBodies(ErrorOfType<SyntaxOnlyAllowedInLoopMessage>());
 		}
 		[Fact]
 		public void Return()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "RETURN;")
+				.AddFunction("foo", "", "RETURN;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -335,7 +335,7 @@
 		public static void WithType(string type)
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : {type}; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : {type}; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -353,7 +353,7 @@
 		public static void StepSize1()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO ; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -368,7 +368,7 @@
 		public static void ExplicitStep()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 10 TO 0 BY -1 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : INT; END_VAR", "FOR i := 10 TO 0 BY -1 DO ; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -383,7 +383,7 @@
 		public static void CastedStep()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : DINT; END_VAR", "FOR i := 10 TO 0 BY SINT#2 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : DINT; END_VAR", "FOR i := 10 TO 0 BY SINT#2 DO ; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -396,7 +396,7 @@
 		public static void Error_NonAddableType()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : BOOL; END_VAR", "FOR i := FALSE TO TRUE BY FALSE DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : BOOL; END_VAR", "FOR i := FALSE TO TRUE BY FALSE DO ; END_FOR")
 				.BindBodies(ErrorOfType<CannotUseTypeAsLoopIndexMessage>());
 		}
 		
@@ -404,7 +404,7 @@
 		public static void Error_BadStep()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 BY LREAL#5 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : INT; END_VAR", "FOR i := 0 TO 10 BY LREAL#5 DO ; END_FOR")
 				.BindBodies(ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 
@@ -412,7 +412,7 @@
 		public static void Error_IndexNotAssignable()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo", "FOR 19 := 0 TO 10 BY 5 DO ; END_FOR")
+				.AddFunction("foo", "", "FOR 19 := 0 TO 10 BY 5 DO ; END_FOR")
 				.BindBodies(ErrorOfType<CannotAssignToSyntaxMessage>());
 		}
 		
@@ -420,7 +420,7 @@
 		public static void ComplexIndex_Deref()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR ptr : POINTER TO INT; END_VAR", "FOR ptr^ := 0 TO 10 BY 5 DO ; END_FOR")
+				.AddFunction("foo", $"VAR ptr : POINTER TO INT; END_VAR", "FOR ptr^ := 0 TO 10 BY 5 DO ; END_FOR")
 				.BindBodies();
 		}
 		
@@ -428,22 +428,22 @@
 		public static void ComplexIndex_PointerIndex()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR ptr : POINTER TO INT; END_VAR", "FOR ptr[2] := 0 TO 10 BY 5 DO ; END_FOR")
+				.AddFunction("foo", $"VAR ptr : POINTER TO INT; END_VAR", "FOR ptr[2] := 0 TO 10 BY 5 DO ; END_FOR")
 				.BindBodies();
 		}
 		[Fact]
 		public static void ComplexIndex_ArrayElem()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR arr : ARRAY[0..10] OF INT; END_VAR", "FOR arr[1] := 0 TO 10 BY 5 DO ; END_FOR")
+				.AddFunction("foo", $"VAR arr : ARRAY[0..10] OF INT; END_VAR", "FOR arr[1] := 0 TO 10 BY 5 DO ; END_FOR")
 				.BindBodies();
 		}
 		[Fact]
 		public static void ComplexIndex_Field()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT field : INT; END_STRUCT; END_TYPE")
-				.AddPou($"FUNCTION foo VAR dut : myDut; END_VAR", "FOR dut.field := 0 TO 10 BY 5 DO ; END_FOR")
+				.AddDut("myDut", "STRUCT field : INT; END_STRUCT")
+				.AddFunction("foo", $"VAR dut : myDut; END_VAR", "FOR dut.field := 0 TO 10 BY 5 DO ; END_FOR")
 				.BindBodies();
 		}
 		
@@ -451,7 +451,7 @@
 		public static void CastedInitial()
 		{
 			BindHelper.NewProject
-				.AddPou($"FUNCTION foo VAR i : DINT; END_VAR", "FOR i := INT#5 TO 10 DO ; END_FOR")
+				.AddFunction("foo", $"VAR i : DINT; END_VAR", "FOR i := INT#5 TO 10 DO ; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -464,7 +464,7 @@
 		public static void WithContinue()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO CONTINUE; END_FOR")
+				.AddFunction("foo", "VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO CONTINUE; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{
@@ -477,7 +477,7 @@
 		public static void WithExit()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO EXIT; END_FOR")
+				.AddFunction("foo", "VAR i : INT; END_VAR", "FOR i := 0 TO 10 DO EXIT; END_FOR")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{

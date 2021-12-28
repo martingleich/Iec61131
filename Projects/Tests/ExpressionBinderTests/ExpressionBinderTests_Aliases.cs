@@ -10,7 +10,7 @@ namespace Tests.ExpressionBinderTests
 		public static void LiteralAsAlias_SInt()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : SINT; END_TYPE")
+				.AddDut("myalias", "SINT")
 				.BindGlobalExpression("5", "myalias");
 			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
 			Assert.IsType<LiteralBoundExpression>(cast.Value);
@@ -20,7 +20,7 @@ namespace Tests.ExpressionBinderTests
 		public static void LiteralAsAlias_REAL()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : REAL; END_TYPE")
+				.AddDut("myalias", "REAL")
 				.BindGlobalExpression("3.14", "myalias");
 			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
 			Assert.IsType<LiteralBoundExpression>(cast.Value);
@@ -31,7 +31,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Addition_Int_AliasToInt()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : INT; END_TYPE")
+				.AddDut("myalias", "INT")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("1 + x", null);
 			var op = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
@@ -42,7 +42,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Addition_AliasToInt_AliasToInt_Same()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : INT; END_TYPE")
+				.AddDut("myalias", "INT")
 				.WithGlobalVar("x", "myalias")
 				.WithGlobalVar("y", "myalias")
 				.BindGlobalExpression("x + y", null);
@@ -52,8 +52,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Addition_AliasToInt_AliasToInt_Diffrent()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias1 : INT; END_TYPE")
-				.AddDut("TYPE myalias2 : INT; END_TYPE")
+				.AddDut("myalias1", "INT")
+				.AddDut("myalias2", "INT")
 				.WithGlobalVar("x", "myalias1")
 				.WithGlobalVar("y", "myalias2")
 				.BindGlobalExpression("x + y", null);
@@ -63,7 +63,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Addition_AliasToPointerOffset()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.AddDut("myalias", "POINTER TO INT")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("x + 5", null);
 			Assert.Equal("myalias", boundExpression.Type.Code);
@@ -72,7 +72,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Addition_AliasToPointerOffset2()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.AddDut("myalias", "POINTER TO INT")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("5 + x", null);
 			Assert.Equal("myalias", boundExpression.Type.Code);
@@ -81,8 +81,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Subtraction_DiffrentPointerAliases()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myalias1 : POINTER TO INT; END_TYPE")
-				.AddDut("TYPE myalias2 : POINTER TO INT; END_TYPE")
+				.AddDut("myalias1", "POINTER TO INT")
+				.AddDut("myalias2", "POINTER TO INT")
 				.WithGlobalVar("x", "myalias1")
 				.WithGlobalVar("y", "myalias2")
 				.BindGlobalExpression("x - y", null);
@@ -91,7 +91,7 @@ namespace Tests.ExpressionBinderTests
 		public static void ZeroAsAliasToPointer()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.AddDut("myalias", "POINTER TO INT")
 				.BindGlobalExpression("0", "myAlias");
 			Assert.Equal("myalias", boundExpression.Type.Code);
 		}
@@ -99,7 +99,7 @@ namespace Tests.ExpressionBinderTests
 		public static void UnaryOperator_On_Alias_Not()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : BOOL; END_TYPE")
+				.AddDut("myalias", "BOOL")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("NOT x", null);
 			Assert.Equal("myalias", boundExpression.Type.Code);
@@ -108,7 +108,7 @@ namespace Tests.ExpressionBinderTests
 		public static void DerefAliasPointer()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myalias : POINTER TO LINT; END_TYPE")
+				.AddDut("myalias", "POINTER TO LINT")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("x^", null);
 		}
@@ -116,7 +116,7 @@ namespace Tests.ExpressionBinderTests
 		public static void SizeofAlias()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myalias : LINT; END_TYPE")
+				.AddDut("myalias", "LINT")
 				.BindGlobalExpression("SIZEOF(myalias)", null);
 			Assert.IsType<SizeOfTypeBoundExpression>(boundExpression);
 			AssertEx.HasConstantValue(boundExpression, SystemScope, value =>
@@ -126,8 +126,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Casting_AliasToBase()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
-				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.AddDut("mydut", "STRUCT field1 : INT; END_STRUCT")
+				.AddDut("myalias", "mydut")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("x", "mydut");
 			Assert.IsType<ImplicitAliasToBaseTypeCastBoundExpression>(boundExpression);
@@ -137,8 +137,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Casting_BaseToAlias()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
-				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.AddDut("mydut", "STRUCT field1 : INT; END_STRUCT")
+				.AddDut("myalias", "mydut")
 				.WithGlobalVar("x", "mydut")
 				.BindGlobalExpression("x", "myalias");
 			Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
@@ -148,9 +148,9 @@ namespace Tests.ExpressionBinderTests
 		public static void Casting_AliasToAlias_Diffrent()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
-				.AddDut("TYPE myalias1 : mydut; END_TYPE")
-				.AddDut("TYPE myalias2 : mydut; END_TYPE")
+				.AddDut("mydut", "STRUCT field1 : INT; END_STRUCT")
+				.AddDut("myalias1", "mydut")
+				.AddDut("myalias2", "mydut")
 				.WithGlobalVar("x", "myalias1")
 				.BindGlobalExpression("x", "myalias2");
 			var cast1 = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
@@ -162,8 +162,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Casting_AliasToAlias_Same()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE mydut : STRUCT field1 : INT; END_STRUCT; END_TYPE")
-				.AddDut("TYPE myalias : mydut; END_TYPE")
+				.AddDut("mydut", "STRUCT field1 : INT; END_STRUCT")
+				.AddDut("myalias", "mydut")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("x", "myalias");
 			var variable = Assert.IsType<VariableBoundExpression>(boundExpression);

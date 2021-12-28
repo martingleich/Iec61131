@@ -13,7 +13,7 @@ namespace Tests
 		public void Empty()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFb", "")
+				.AddFunctionBlock("MyFb", "", "")
 				.BindInterfaces();
 			var myFb = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFb"]);
 			Assert.Empty(myFb.Parameters);
@@ -24,7 +24,7 @@ namespace Tests
 		public void Function_WithInput()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_INPUT myInput : INT; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT myInput : INT; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -35,7 +35,7 @@ namespace Tests
 		public void Function_WithOutput()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_OUTPUT myOutput : BOOL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_OUTPUT myOutput : BOOL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -45,7 +45,7 @@ namespace Tests
 		public void Function_WithInOut()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_IN_OUT myInOut : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_IN_OUT myInOut : REAL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -55,7 +55,7 @@ namespace Tests
 		public void Function_TempIsIgnored()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_TEMP myTemp : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_TEMP myTemp : REAL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Empty(myFunction.Parameters);
@@ -64,7 +64,7 @@ namespace Tests
 		public void Function_VarIsIgnored()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR myTemp : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR myTemp : REAL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Empty(myFunction.Parameters);
@@ -73,7 +73,7 @@ namespace Tests
 		public void Function_InputsInSameBlock()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_INPUT input1 : REAL; input2 : INT; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT input1 : REAL; input2 : INT; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -84,7 +84,7 @@ namespace Tests
 		public void Function_InputsInDiffrentBlock()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_INPUT input1 : REAL; END_VAR VAR_INPUT input2 : INT; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT input1 : REAL; END_VAR VAR_INPUT input2 : INT; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -95,7 +95,7 @@ namespace Tests
 		public void Function_ReturnAsOutput()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction : REAL VAR_OUTPUT firstOutput : BOOL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", ": REAL VAR_OUTPUT firstOutput : BOOL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -106,7 +106,7 @@ namespace Tests
 		public void Function_ExplicitReturnOutput()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_OUTPUT MyFunction : BOOL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_OUTPUT MyFunction : BOOL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(myFunction.Parameters,
@@ -116,8 +116,8 @@ namespace Tests
 		public void Function_ComplexTypeArg()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First := 1, Second := First); END_TYPE")
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_OUTPUT MyFunction : MyEnum; END_VAR", "")
+				.AddDut("MyEnum", "(First := 1, Second := First)")
+				.AddFunctionBlock("MyFunction", "VAR_OUTPUT MyFunction : MyEnum; END_VAR", "")
 				.BindInterfaces();
 			var myEnum = boundInterface.Types["MyEnum"];
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
@@ -128,29 +128,29 @@ namespace Tests
 		public void Function_Error_DuplicateFunction()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction", "")
-				.AddPou("FUNCTION_BLOCK MyFunction", "")
+				.AddFunctionBlock("MyFunction", "", "")
+				.AddFunctionBlock("MyFunction", "", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyFunction", err.Name.Original)));
 		}
 		[Fact]
 		public void Function_Error_DuplicateArg_SameKind()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_INPUT a : INT; a : INT; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT a : INT; a : INT; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("a", err.Name.Original)));
 		}
 		[Fact]
 		public void Function_Error_DuplicateArg_DiffrentKind()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_OUTPUT a : INT; END_VAR VAR_INPUT a : INT; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_OUTPUT a : INT; END_VAR VAR_INPUT a : INT; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("a", err.Name.Original)));
 		}
 		[Fact]
 		public void Function_Error_Duplicate_ImplicitReturnVariable()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction : REAL VAR_OUTPUT MyFunction : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", ": REAL VAR_OUTPUT MyFunction : REAL; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("MyFunction", err.Name.Original)));
 		}
 		#endregion
@@ -158,7 +158,7 @@ namespace Tests
 		public void MemberVariable()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR field : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR field : REAL; END_VAR", "")
 				.BindInterfaces();
 			var fb = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(fb.Fields,
@@ -168,7 +168,7 @@ namespace Tests
 		public void Error_MemberVariable_CollideParameter()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddPou("FUNCTION_BLOCK MyFunction VAR_INPUT field : INT; END_VAR VAR field : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT field : INT; END_VAR VAR field : REAL; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("field", err.Name.Original)));
 		}
 	}

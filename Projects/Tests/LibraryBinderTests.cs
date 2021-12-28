@@ -13,7 +13,7 @@ namespace Tests
 		public static void CallLibraryFunction()
 		{
 			var boundLibrary = BindHelper.NewNamedProject("MyLib")
-				.AddPou("FUNCTION foo VAR_INPUT arg : INT; END_VAR", "")
+				.AddFunction("foo", "VAR_INPUT arg : INT; END_VAR", "")
 				.BindInterfaces();
 			var boundCall = BindHelper.NewProject
 				.AddLibrary(boundLibrary)
@@ -39,11 +39,11 @@ namespace Tests
 		public static void TypeFromLibrary()
 		{
 			var boundLibrary = BindHelper.NewNamedProject("MyLib")
-				.AddDut("TYPE MyDut : STRUCT field : INT; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : INT; END_STRUCT")
 				.BindInterfaces();
 			var boundInterfaces = BindHelper.NewProject
 				.AddLibrary(boundLibrary)
-				.AddDut("TYPE MyDut : STRUCT otherField : MyLib::MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT otherField : MyLib::MyDut; END_STRUCT")
 				.BindInterfaces();
 			var myDutType = Assert.IsType<StructuredTypeSymbol>(boundInterfaces.Types["MyDut"]);
 			var fieldType = Assert.IsAssignableFrom<ITypeSymbol>(myDutType.Fields["otherField"].Type);
@@ -54,8 +54,8 @@ namespace Tests
 		public static void Error_AccessViaOwnNamespace()
 		{
 			BindHelper.NewNamedProject("MyApp")
-				.AddDut("TYPE MyDut1 : STRUCT field : INT; END_STRUCT; END_TYPE")
-				.AddDut("TYPE MyDut2 : STRUCT field : MyApp::MyDut1; END_STRUCT; END_TYPE")
+				.AddDut("MyDut1", "STRUCT field : INT; END_STRUCT")
+				.AddDut("MyDut2", "STRUCT field : MyApp::MyDut1; END_STRUCT")
 				.BindInterfaces(ErrorOfType<ScopeNotFoundMessage>(msg => Assert.Equal("MyApp".ToCaseInsensitive(), msg.Identifier)));
 		}
 
@@ -75,14 +75,14 @@ namespace Tests
 		public static void Error_NoAccessToSubLibrary()
 		{
 			var subLib = BindHelper.NewNamedProject("SubLib")
-				.AddDutFast("MyType", "STRUCT END_STRUCT")
+				.AddDut("MyType", "STRUCT END_STRUCT")
 				.BindInterfaces();
 			var topLib = BindHelper.NewNamedProject("TopLib")
 				.AddLibrary(subLib)
 				.BindInterfaces();
 			BindHelper.NewProject
 				.AddLibrary(topLib)
-				.AddDutFast("TesterType", "STRUCT field : TopLib::SubLib::MyType; END_STRUCT") 
+				.AddDut("TesterType", "STRUCT field : TopLib::SubLib::MyType; END_STRUCT") 
 				.BindInterfaces(ErrorOfType<ScopeNotFoundMessage>(msg => Assert.Equal("SubLib".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
@@ -107,14 +107,14 @@ namespace Tests
 				.BindInterfaces();
 			BindHelper.NewProject
 				.AddLibrary(boundLibrary)
-				.AddDut("TYPE MyDut : STRUCT otherField : MyLib::MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT otherField : MyLib::MyDut; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MyDut".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public static void Error_TypeFromMissingLibrary()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT otherField : MyLib::MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT otherField : MyLib::MyDut; END_STRUCT")
 				.BindInterfaces(ErrorOfType<ScopeNotFoundMessage>(msg => Assert.Equal("MyLib".ToCaseInsensitive(), msg.Identifier)));
 		}
 	}

@@ -302,7 +302,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_NegateOnDUT()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT END_STRUCT")
 				.WithGlobalVar("x", "MyDut")
 				.BindGlobalExpression("-x", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
 		}
@@ -313,7 +313,7 @@ namespace Tests.ExpressionBinderTests
 		public static void BinaryArithemtic_Enums(string expr, string op)
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First, Second); END_TYPE")
+				.AddDut("MyEnum", "(First, Second)")
 				.WithGlobalVar("enumValue", "MyEnum")
 				.BindGlobalExpression(expr, null);
 			var binaryExpression = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
@@ -342,7 +342,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_BinaryArithemtic_UnsupportedTypes_NoArithmetic_Dut()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyType : STRUCT END_STRUCT; END_TYPE")
+				.AddDut("MyType", "STRUCT END_STRUCT")
 				.WithGlobalVar("dutVar", "MyType")
 				.BindGlobalExpression("INT#0 + dutVar", null, ErrorOfType<CannotPerformArithmeticOnTypesMessage>());
 		}

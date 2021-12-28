@@ -12,8 +12,8 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_FunctionNotAssignable()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo", "")
-				.AddPou("FUNCTION tester", "foo := foo;")
+				.AddFunction("foo", "", "")
+				.AddFunction("tester", "", "foo := foo;")
 				.BindBodies(ErrorOfType<CannotAssignToVariableMessage>());
 		}
 
@@ -21,21 +21,21 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_InputVariableNotAssignable()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_INPUT x : INT; END_VAR", "x := 5;")
+				.AddFunction("foo", "VAR_INPUT x : INT; END_VAR", "x := 5;")
 				.BindBodies(ErrorOfType<CannotAssignToVariableMessage>());
 		}
 		[Fact]
 		public static void OutVariableAssignable()
 		{
 			BindHelper.NewProject
-				.AddPou("FUNCTION foo VAR_OUTPUT x : INT; END_VAR", "x := 5;")
+				.AddFunction("foo", "VAR_OUTPUT x : INT; END_VAR", "x := 5;")
 				.BindBodies();
 		}
 		[Fact]
 		public static void Error_FunctionCallNotAssignable()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddPou("FUNCTION bar : INT", "bar := 0;")
+				.AddFunction("bar", ": INT", "bar := 0;")
 				.BindGlobalExpression("bar()", null);
 			Assert.True(IsLValueChecker.IsLValue(boundExpression).HasErrors);
 		}

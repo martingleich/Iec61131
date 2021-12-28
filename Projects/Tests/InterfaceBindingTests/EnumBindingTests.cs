@@ -14,7 +14,7 @@ namespace Tests
 		public void EmptyEnum()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (); END_TYPE")
+				.AddDut("MyEnum", "()")
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
@@ -26,7 +26,7 @@ namespace Tests
 		public void FullyInitialisedEnum()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First := 1, Second := 2); END_TYPE")
+				.AddDut("MyEnum", "(First := 1, Second := 2)")
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
@@ -41,7 +41,7 @@ namespace Tests
 		public void AutoInitialisedEnum()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First, Second); END_TYPE")
+				.AddDut("MyEnum", "(First, Second)")
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
@@ -56,7 +56,7 @@ namespace Tests
 		public void ReferenceOtherEnumValues()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First := 1, Second := First); END_TYPE")
+				.AddDut("MyEnum", "(First := 1, Second := First)")
 				.BindInterfaces();
 
 			var myEnum = Assert.IsType<EnumTypeSymbol>(boundInterface.Types["MyEnum"]);
@@ -71,7 +71,7 @@ namespace Tests
 		public void Error_RecursiveEnumDeclaration()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyEnum : (First := Second, Second := First); END_TYPE")
+				.AddDut("MyEnum", "(First := Second, Second := First)")
 				.BindInterfaces(ErrorOfType<RecursiveConstantDeclarationMessage>());
 		}
 	}

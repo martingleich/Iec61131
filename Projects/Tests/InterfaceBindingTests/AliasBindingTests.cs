@@ -14,7 +14,7 @@ namespace Tests
 		public void AliasToBuiltIn()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE myAlias : INT; END_TYPE")
+				.AddDut("myAlias", "INT")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			AssertEx.EqualType(boundInterface.SystemScope.Int, myAlias.AliasedType);
@@ -25,7 +25,7 @@ namespace Tests
 		public void AliasToArray()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE myAlias : ARRAY[0..10] OF INT; END_TYPE")
+				.AddDut("myAlias", "ARRAY[0..10] OF INT")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			var arrayType = new ArrayType(boundInterface.SystemScope.Int, ImmutableArray.Create(new ArrayType.Range(0, 10)));
@@ -36,8 +36,8 @@ namespace Tests
 		public void AliasToStructure()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE myStruct : STRUCT field : BOOL; END_STRUCT; END_TYPE")
-				.AddDut("TYPE myAlias : myStruct; END_TYPE")
+				.AddDut("myStruct", "STRUCT field : BOOL; END_STRUCT")
+				.AddDut("myAlias", "myStruct")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			var structType = boundInterface.Types["myStruct"];
@@ -48,8 +48,8 @@ namespace Tests
 		public void AliasToAlias()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE myAlias1 : INT; END_TYPE")
-				.AddDut("TYPE myAlias2 : myAlias1; END_TYPE")
+				.AddDut("myAlias1", "INT")
+				.AddDut("myAlias2", "myAlias1")
 				.BindInterfaces();
 			var myAlias2 = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias2"]);
 			var myAlias1 = boundInterface.Types["myAlias1"];
@@ -61,7 +61,7 @@ namespace Tests
 		public void Error_RecursiveAlias()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE myAlias : myAlias; END_TYPE")
+				.AddDut("myAlias", "myAlias")
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
 			AssertEx.EqualType(myAlias, myAlias.AliasedType);

@@ -60,7 +60,7 @@ namespace Tests.ExpressionBinderTests
 		public static void IndexAccessDut()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT field : REAL; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT field : REAL; END_STRUCT")
 				.WithGlobalVar("arr", "ARRAY[0..10] OF myDut")
 				.BindGlobalExpression("arr[1]", null);
 			AssertEx.EqualType("myDut", boundExpression.Type);
@@ -79,7 +79,7 @@ namespace Tests.ExpressionBinderTests
 		public static void IndexAccess_ToAliasOfArray()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myalias : ARRAY[0..10] OF INT; END_TYPE")
+				.AddDut("myalias", "ARRAY[0..10] OF INT")
 				.WithGlobalVar("arr", "myalias")
 				.BindGlobalExpression("arr[0]", null);
 		}
@@ -87,7 +87,7 @@ namespace Tests.ExpressionBinderTests
 		public static void IndexAccess_ToAliasOfPointer()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myalias : POINTER TO INT; END_TYPE")
+				.AddDut("myalias", "POINTER TO INT")
 				.WithGlobalVar("arr", "myalias")
 				.BindGlobalExpression("arr[0]", null);
 		}
@@ -95,7 +95,7 @@ namespace Tests.ExpressionBinderTests
 		public static void IndexAccess_WithAliasToInt()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myalias : INT; END_TYPE")
+				.AddDut("myalias", "INT")
 				.WithGlobalVar("arr", "ARRAY[0..5] OF BYTE")
 				.WithGlobalVar("x", "myalias")
 				.BindGlobalExpression("arr[x]", null);

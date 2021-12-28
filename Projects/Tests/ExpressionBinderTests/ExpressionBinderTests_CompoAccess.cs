@@ -19,7 +19,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_StructuredType_DoesNotContainField()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
 				.WithGlobalVar("value", "myDut")
 				.BindGlobalExpression("value.abc", null, ErrorOfType<FieldNotFoundMessage>());
 		}
@@ -33,7 +33,7 @@ namespace Tests.ExpressionBinderTests
 		public static void FieldOnVariable()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
 				.WithGlobalVar("value", "myDut")
 				.BindGlobalExpression("value.myField", null);
 			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
@@ -43,7 +43,7 @@ namespace Tests.ExpressionBinderTests
 		public static void FieldOnIndex()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
 				.WithGlobalVar("values", "ARRAY[0..10] OF myDut")
 				.BindGlobalExpression("values[1].myField", null);
 			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
@@ -53,7 +53,7 @@ namespace Tests.ExpressionBinderTests
 		public static void FieldCastedResult()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
 				.WithGlobalVar("value", "myDut")
 				.BindGlobalExpression("value.myField", "DINT");
 			Assert.IsType<ImplicitCastBoundExpression>(boundExpression);
@@ -63,14 +63,14 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_TypeNoStatic()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myDut : STRUCT myField : USINT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
 				.BindGlobalExpression("myDut.myField", null, ErrorOfType<VariableNotFoundMessage>());
 		}
 		[Fact]
 		public static void EnumTypeValue()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
+				.AddDut("myEnum", "(elem1, elem2)")
 				.BindGlobalExpression<VariableBoundExpression>("myEnum::elem2", null);
 			var value = Assert.IsType<EnumVariableSymbol>(boundExpression.Variable);
 			var innerValue = Assert.IsType<IntLiteralValue>(value.Value.InnerValue);
@@ -80,8 +80,8 @@ namespace Tests.ExpressionBinderTests
 		public static void EnumTypeValue_ViaAlias()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
-				.AddDut("TYPE myAlias : myEnum; END_TYPE")
+				.AddDut("myEnum", "(elem1, elem2)")
+				.AddDut("myAlias", "myEnum")
 				.BindGlobalExpression<ImplicitAliasFromBaseTypeCastBoundExpression>("myAlias::elem2", null);
 			var boundVariable = Assert.IsType<VariableBoundExpression>(boundExpression.Value);
 			var enumVariable = Assert.IsType<EnumVariableSymbol>(boundVariable.Variable);
@@ -92,7 +92,7 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_EnumTypeValue_Missing()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE myEnum : (elem1, elem2); END_TYPE")
+				.AddDut("myEnum", "(elem1, elem2)")
 				.BindGlobalExpression("myEnum::elem3", null, ErrorOfType<EnumValueNotFoundMessage>());
 		}
 		[Fact]
@@ -124,7 +124,7 @@ namespace Tests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL myVar : INT; END_VAR")
-				.AddDut("TYPE myDut : STRUCT myVar : INT; END_STRUCT; END_TYPE")
+				.AddDut("myDut", "STRUCT myVar : INT; END_STRUCT")
 				.WithGlobalVar("MyGvl", "myDut")
 				.BindGlobalExpression("MyGVL::myVar", null);
 			Assert.IsType<VariableBoundExpression>(boundExpression);
@@ -140,7 +140,7 @@ namespace Tests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.AddGVL("MyGVL", "VAR_GLOBAL myVar : MyDut; END_VAR")
-				.AddDut("TYPE MyDut : STRUCT myField : INT; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT myField : INT; END_STRUCT")
 				.BindGlobalExpression("MyGVL::myVar.myField", null);
 			var fieldAccess = Assert.IsType<FieldAccessBoundExpression>(boundExpression);
 			Assert.IsType<VariableBoundExpression>(fieldAccess.BaseExpression);

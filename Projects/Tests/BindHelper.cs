@@ -27,12 +27,14 @@ namespace Tests
 				MyProject = myProject ?? throw new ArgumentNullException(nameof(myProject));
 			}
 
-			public TestProject AddDutFast(string name, string source)
-				=> new(IdCounter + 1, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{name}", $"TYPE {name} : {source}; END_TYPE")));
-			public TestProject AddDut(string source)
-				=> new(IdCounter + 1, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{IdCounter}", source)));
+			public TestProject AddDut(string name, string source)
+				=> new(IdCounter, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{name}", $"TYPE {name} : {source}; END_TYPE")));
 			public TestProject AddPou(string itf, string body)
 				=> new(IdCounter + 1, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{IdCounter}", itf, body)));
+			public TestProject AddFunction(string name, string itf, string body)
+				=> new(IdCounter, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{name}", $"FUNCTION {name} {itf}", body)));
+			public TestProject AddFunctionBlock(string name, string itf, string body)
+				=> new(IdCounter, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{name}", $"FUNCTION_BLOCK {name} {itf}", body)));
 			public TestProject AddGVL(string name, string source)
 				=> new(IdCounter, MyProject.Add(new GlobalVariableListLanguageSource($"{MyProject.Name}/{name}", name.ToCaseInsensitive(), source)));
 			public TestProject AddLibrary(BoundModuleInterface @interface)

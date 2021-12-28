@@ -21,7 +21,7 @@ namespace Tests
 		public void EmptyStructure()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyType : STRUCT END_STRUCT; END_TYPE")
+				.AddDut("MyType", "STRUCT END_STRUCT")
 				.BindInterfaces();
 
 			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
@@ -33,7 +33,7 @@ namespace Tests
 		public void Structure_SimpleFields()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : STRUCT a : INT; b : REAL; END_STRUCT; END_TYPE")
+				.AddDut("MySimpleType", "STRUCT a : INT; b : REAL; END_STRUCT")
 				.BindInterfaces();
 
 			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
@@ -48,7 +48,7 @@ namespace Tests
 		public void Union_SimpleFields()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : UNION a : INT; b : REAL; END_UNION; END_TYPE")
+				.AddDut("MySimpleType", "UNION a : INT; b : REAL; END_UNION")
 				.BindInterfaces();
 
 			var myType = Assert.IsType<StructuredTypeSymbol>(Assert.Single(boundInterface.Types));
@@ -62,8 +62,8 @@ namespace Tests
 		public void FieldOfUserdefinedType()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : REAL; END_STRUCT; END_TYPE")
-				.AddDut("TYPE MySimpleType : STRUCT field : MyDut; otherField : REAL; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : REAL; END_STRUCT")
+				.AddDut("MySimpleType", "STRUCT field : MyDut; otherField : REAL; END_STRUCT")
 				.BindInterfaces();
 
 			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.Types["MySimpleType"]).Fields["field"];
@@ -73,7 +73,7 @@ namespace Tests
 		public void FieldOfIncompleteSelf()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : POINTER TO MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : POINTER TO MyDut; END_STRUCT")
 				.BindInterfaces();
 
 			var field = Assert.IsType<StructuredTypeSymbol>(boundInterface.Types["MyDut"]).Fields["field"];
@@ -85,8 +85,8 @@ namespace Tests
 		public void Error_DuplicateType()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : UNION a : INT; b : REAL; END_UNION; END_TYPE")
-				.AddDut("TYPE MySimpleType : STRUCT xyz : BOOL; END_STRUCT; END_TYPE")
+				.AddDut("MySimpleType", "UNION a : INT; b : REAL; END_UNION")
+				.AddDut("MySimpleType", "STRUCT xyz : BOOL; END_STRUCT")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(msg => Assert.Equal("MySimpleType".ToCaseInsensitive(), msg.Name)));
 		}
 
@@ -94,28 +94,28 @@ namespace Tests
 		public void Error_DuplicateField()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : STRUCT field : INT; field : REAL; END_STRUCT; END_TYPE")
+				.AddDut("MySimpleType", "STRUCT field : INT; field : REAL; END_STRUCT")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(msg => Assert.Equal("field".ToCaseInsensitive(), msg.Name)));
 		}
 		[Fact]
 		public void Error_FieldOfMissingType()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : STRUCT field : MissingType; END_STRUCT; END_TYPE")
+				.AddDut("MySimpleType", "STRUCT field : MissingType; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public void Error_FieldOfMissingIncompletType()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MySimpleType : STRUCT field : POINTER TO MissingType; END_STRUCT; END_TYPE")
+				.AddDut("MySimpleType", "STRUCT field : POINTER TO MissingType; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotFoundMessage>(msg => Assert.Equal("MissingType".ToCaseInsensitive(), msg.Identifier)));
 		}
 		[Fact]
 		public void Error_FieldOfIncompleteSelf()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : MyDut; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 		}
 
@@ -123,22 +123,22 @@ namespace Tests
 		public void Error_ArrayOfIncompleteSelf()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : ARRAY[0..1] OF MyDut2; END_STRUCT; END_TYPE")
-				.AddDut("TYPE MyDut2 : STRUCT field : MyDut; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : ARRAY[0..1] OF MyDut2; END_STRUCT")
+				.AddDut("MyDut2", "STRUCT field : MyDut; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 		}
 		[Fact]
 		public void Error_ArrayOfSizeOfIncompleteSelf()
 		{
 			BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : ARRAY[0..SIZEOF(MyDut)] OF INT; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : ARRAY[0..SIZEOF(MyDut)] OF INT; END_STRUCT")
 				.BindInterfaces(ErrorOfType<TypeNotCompleteMessage>());
 		}
 		[Fact]
 		public void PointerToArrayOfSizeOfIncompleteSelf()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddDut("TYPE MyDut : STRUCT field : POINTER TO ARRAY[0..SIZEOF(MyDut)] OF INT; END_STRUCT; END_TYPE")
+				.AddDut("MyDut", "STRUCT field : POINTER TO ARRAY[0..SIZEOF(MyDut)] OF INT; END_STRUCT")
 				.BindInterfaces();
 
 			var dutType = boundInterface.Types["MyDut"];
@@ -154,7 +154,7 @@ namespace Tests
 		public void Error_DutFieldCannotHaveInitalValue(string dutKind)
 		{
 			BindHelper.NewProject
-				.AddDutFast("DUT", $"{dutKind} field : INT := 0; END_{dutKind}")
+				.AddDut("DUT", $"{dutKind} field : INT := 0; END_{dutKind}")
 				.BindInterfaces(ErrorOfType<VariableCannotHaveInitialValueMessage>());
 		}
 	}

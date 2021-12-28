@@ -95,7 +95,7 @@ namespace Tests.ExpressionBinderTests
 		public static void AliasToArray()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDutFast("MyAlias", "ARRAY[0..0] OF INT")
+				.AddDut("MyAlias", "ARRAY[0..0] OF INT")
 				.BindGlobalExpression("{[0] := 1}", "MyAlias");
 			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
 			var init = Assert.IsType<InitializerBoundExpression>(cast.Value);
