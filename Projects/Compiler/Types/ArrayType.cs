@@ -43,10 +43,28 @@ namespace Compiler.Types
 		public ImmutableArray<Range> Ranges { get; private set; }
 		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }
 		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
-		public int ElementCount => Ranges.Aggregate(1, (x, r) => x * r.Size);
+		public int ElementCount
+		{
+			get
+			{
+				int size = 1;
+				foreach (var r in Ranges)
+					size *= r.Size;
+				return size;
+			}
+		}
 		public string Code => $"ARRAY[{string.Join(", ", Ranges)}] OF {BaseType.Code}";
 
-		public bool IsEmpty => Ranges.Any(r => r.Size == 0);
+		public bool IsEmpty
+		{
+			get
+			{
+				foreach (var r in Ranges)
+					if (r.Size == 0)
+						return true;
+				return false;
+			}
+		}
 
 		public ArrayType(IType baseType, ImmutableArray<Range> ranges)
 		{

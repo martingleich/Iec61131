@@ -8,15 +8,16 @@ namespace Compiler
 {
 	public sealed class FlowAnalyzer : IBoundStatement.IVisitor<FlowAnalyzer.FlowState, FlowAnalyzer.FlowState>
 	{
-		private readonly MessageBag _messages = new();
+		private readonly MessageBag _messages;
 
 		private readonly Reader _reader;
 		private readonly AddressTaker _writeAddressTaker;
 		private readonly AddressTaker _readWriteAddressTaker;
 		private readonly ImmutableDictionary<IVariableSymbol, int> _variableTable;
 
-		private FlowAnalyzer(ImmutableDictionary<IVariableSymbol, int> variableTable)
+		private FlowAnalyzer(ImmutableDictionary<IVariableSymbol, int> variableTable, MessageBag messages)
 		{
+			_messages = messages ?? throw new ArgumentNullException(nameof(messages));
 			_reader = new Reader(this);
 			_writeAddressTaker = AddressTaker.CreateWrite(this);
 			_readWriteAddressTaker = AddressTaker.CreateReadWrite(this);
@@ -47,7 +48,7 @@ namespace Compiler
 			MessageBag messages)
 		{
 			var variableTable = CreateVariableTable(trackedVariables);
-			var analyzer = new FlowAnalyzer(variableTable);
+			var analyzer = new FlowAnalyzer(variableTable, messages);
 			analyzer.Analyze(initialExpressions, statement, messages, trackedVariables);
 		}
 
@@ -57,7 +58,6 @@ namespace Compiler
 			foreach (var initial in initialExpressions)
 				state = initial.Accept(_reader, state);
 			var result = statement.Accept(this, state);
-			messages.AddRange(_messages);
 			foreach (var (variable, kind) in trackedVariables)
 			{
 				if (kind == VariableKind.Required && !result.CanRead(_variableTable, variable))

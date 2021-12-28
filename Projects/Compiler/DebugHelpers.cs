@@ -17,28 +17,33 @@ namespace Compiler
 			if (input is null)
 				throw new ArgumentNullException(nameof(input));
 #if DEBUG
-			return input.Shuffle(new Random(9));
+			return input.BiasedShuffle(465346542);
 #else
 			return input;
 #endif
 		}
 
-		private static IEnumerable<T> Shuffle<T>(this IEnumerable<T> input, Random rnd)
+		// Biased sampling is faster and good enough for this use case.
+		private static uint XorShift_Next(uint state)
+		{
+			state ^= state << 13;
+			state ^= state >> 13;
+			state ^= state << 5;
+			return state;
+		}
+		private static int BiasedIntInRange(uint state, int maxValue) => (int)(state % maxValue);
+		private static IEnumerable<T> BiasedShuffle<T>(this IEnumerable<T> input, uint seed)
 		{
 			// Fisher-Yates shuffle
 			var list = input.ToArray();
-			for (int i = list.Length - 1; i >= 0; --i)
+			uint state = seed;
+			for (int i = 0; i < list.Length; ++i)
 			{
-				int j = rnd.Next(i);
+				state = XorShift_Next(state);
+				int j = i + BiasedIntInRange(state, list.Length - i);
 				yield return list[j];
-				Swap(ref list[i], ref list[j]);
+				list[j] = list[i];
 			}
-		}
-		private static void Swap<T>(ref T a, ref T b)
-		{
-			T tmp = a;
-			a = b;
-			b = tmp;
 		}
 	}
 }

@@ -11,105 +11,106 @@ namespace Compiler
 		private IToken CurToken;
 		private readonly Scanner Scanner;
 		private readonly Messages.MessageBag Messages;
-		private readonly CommaSeperatedParser<RangeSyntax, BracketCloseToken> CommaSeperatedRangeParser;
-		private readonly CommaSeperatedParser<IExpressionSyntax, BracketCloseToken> CommaSeperatedIndexParser;
-		private readonly CommaSeperatedParser<CallArgumentSyntax, ParenthesisCloseToken> CommaSeperatedCallArgumentParser;
-		private readonly CommaSeperatedParser<EnumValueDeclarationSyntax, ParenthesisCloseToken> CommaSeperatedEnumValueDeclarationParser;
-		private readonly CommaSeperatedParser<IInitializerElementSyntax, BraceCloseToken> CommaSeperatedInitializerElementParser;
+
+		private static readonly CommaSeperatedParser<RangeSyntax, BracketCloseToken> CommaSeperatedRangeParser =
+			MakeCommaSeperatedParser(p => p.ParseRange(), IsExpressionStartToken, BracketCloseToken.Synthesize);
+		private static readonly CommaSeperatedParser<IExpressionSyntax, BracketCloseToken> CommaSeperatedIndexParser =
+			MakeCommaSeperatedParser(p => p.ParseExpression(), IsExpressionStartToken, BracketCloseToken.Synthesize);
+		private static readonly CommaSeperatedParser<CallArgumentSyntax, ParenthesisCloseToken> CommaSeperatedCallArgumentParser =
+			MakeCommaSeperatedParser(p => p.ParseCallArgument(), IsExpressionStartToken, ParenthesisCloseToken.Synthesize);
+		private static readonly CommaSeperatedParser<EnumValueDeclarationSyntax, ParenthesisCloseToken> CommaSeperatedEnumValueDeclarationParser =
+			MakeCommaSeperatedParser(p => p.ParseEnumValueDeclaration(), t => t is IdentifierToken, ParenthesisCloseToken.Synthesize);
+		private static readonly CommaSeperatedParser<IInitializerElementSyntax, BraceCloseToken> CommaSeperatedInitializerElementParser =
+			MakeCommaSeperatedParser(p => p.ParseInitializerElement(), IsInitializerElementStartToken, BraceCloseToken.Synthesize);
 
 		private Parser(string file, string text, Messages.MessageBag messages)
 		{
 			Scanner = new Scanner(file, text, messages);
 			CurToken = Scanner.Next(null);
 			Messages = messages ?? throw new ArgumentNullException(nameof(messages));
-			CommaSeperatedRangeParser = MakeCommaSeperatedParser(ParseRange, IsExpressionStartToken, BracketCloseToken.Synthesize);
-			CommaSeperatedIndexParser = MakeCommaSeperatedParser(ParseExpression, IsExpressionStartToken, BracketCloseToken.Synthesize);
-			CommaSeperatedCallArgumentParser = MakeCommaSeperatedParser(ParseCallArgument, IsExpressionStartToken, ParenthesisCloseToken.Synthesize);
-			CommaSeperatedEnumValueDeclarationParser = MakeCommaSeperatedParser(ParseEnumValueDeclaration, t => t is IdentifierToken, ParenthesisCloseToken.Synthesize);
-			CommaSeperatedInitializerElementParser = MakeCommaSeperatedParser(ParseInitializerElement, IsInitializerElementStartToken, BraceCloseToken.Synthesize);
 
-			CallArgumentSyntax ParseCallArgument()
-			{
-				var explicitParameter = TryParseExplicitCallParameterSyntax();
-				var value = ParseExpression();
-				return new CallArgumentSyntax(explicitParameter, value);
+		}
+		CallArgumentSyntax ParseCallArgument()
+		{
+			var explicitParameter = TryParseExplicitCallParameterSyntax();
+			var value = ParseExpression();
+			return new CallArgumentSyntax(explicitParameter, value);
 
-				ExplicitCallParameterSyntax? TryParseExplicitCallParameterSyntax()
-				{
-					if (TryMatch<IdentifierToken>(out var tokenIdentifier))
-					{
-						if (TryMatch<IParameterKindToken>(out var tokenParameterKind))
-						{
-							return new(tokenIdentifier, tokenParameterKind);
-						}
-						else
-						{
-							PutBack(tokenIdentifier);
-						}
-					}
-					return null;
-				}
-			}
-			EnumValueDeclarationSyntax ParseEnumValueDeclaration()
+			ExplicitCallParameterSyntax? TryParseExplicitCallParameterSyntax()
 			{
-				var tokenIdentifier = Match(IdentifierToken.Synthesize);
-				var value = TryParseVarInit();
-				return new(tokenIdentifier, value);
-			}
-			IInitializerElementSyntax ParseInitializerElement()
-			{
-				if (TryParseElement() is IElementSyntax element)
+				if (TryMatch<IdentifierToken>(out var tokenIdentifier))
 				{
-					var tokenAssign = Match(AssignToken.Synthesize);
-					var value = ParseExpression();
-					return new ExplicitInitializerElementSyntax(element, tokenAssign, value);
-				}
-				else
-				{
-					var value = ParseExpression();
-					return new ImplicitInitializerElementSyntax(value);
-				}
-				IElementSyntax? TryParseElement()
-				{
-					if (TryMatch<DotToken>(out var tokenDot))
+					if (TryMatch<IParameterKindToken>(out var tokenParameterKind))
 					{
-						var tokenName = Match(IdentifierToken.Synthesize);
-						return new FieldElementSyntax(tokenDot, tokenName);
-					}
-					else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
-					{
-						if (TryMatch<DotsToken>(out var tokenDots))
-						{
-							var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-							return new AllIndicesElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose);
-						}
-						else
-						{
-							var index = ParseExpression();
-							var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-							return new IndexElementSyntax(tokenBracketOpen, index, tokenBracketClose);
-						}
+						return new(tokenIdentifier, tokenParameterKind);
 					}
 					else
 					{
-						return null;
+						PutBack(tokenIdentifier);
 					}
 				}
+				return null;
 			}
-
-			static bool IsInitializerElementStartToken(IToken token)
-				=> IsExpressionStartToken(token) || token is DotToken || token is BracketOpenToken;
-			static bool IsExpressionStartToken(IToken token) =>
-				token is IBuiltInTypeToken ||
-				token is SizeOfToken ||
-				token is AdrToken ||
-				token is ILiteralToken ||
-				token is IdentifierToken ||
-				token is ParenthesisOpenToken ||
-				token is IUnaryOperatorToken ||
-				token is IdentifierToken ||
-				token is BraceOpenToken;
 		}
+		EnumValueDeclarationSyntax ParseEnumValueDeclaration()
+		{
+			var tokenIdentifier = Match(IdentifierToken.Synthesize);
+			var value = TryParseVarInit();
+			return new(tokenIdentifier, value);
+		}
+		IInitializerElementSyntax ParseInitializerElement()
+		{
+			if (TryParseElement() is IElementSyntax element)
+			{
+				var tokenAssign = Match(AssignToken.Synthesize);
+				var value = ParseExpression();
+				return new ExplicitInitializerElementSyntax(element, tokenAssign, value);
+			}
+			else
+			{
+				var value = ParseExpression();
+				return new ImplicitInitializerElementSyntax(value);
+			}
+			IElementSyntax? TryParseElement()
+			{
+				if (TryMatch<DotToken>(out var tokenDot))
+				{
+					var tokenName = Match(IdentifierToken.Synthesize);
+					return new FieldElementSyntax(tokenDot, tokenName);
+				}
+				else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
+				{
+					if (TryMatch<DotsToken>(out var tokenDots))
+					{
+						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+						return new AllIndicesElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose);
+					}
+					else
+					{
+						var index = ParseExpression();
+						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+						return new IndexElementSyntax(tokenBracketOpen, index, tokenBracketClose);
+					}
+				}
+				else
+				{
+					return null;
+				}
+			}
+		}
+
+		static bool IsInitializerElementStartToken(IToken token)
+			=> IsExpressionStartToken(token) || token is DotToken || token is BracketOpenToken;
+		static bool IsExpressionStartToken(IToken token) =>
+			token is IBuiltInTypeToken ||
+			token is SizeOfToken ||
+			token is AdrToken ||
+			token is ILiteralToken ||
+			token is IdentifierToken ||
+			token is ParenthesisOpenToken ||
+			token is IUnaryOperatorToken ||
+			token is IdentifierToken ||
+			token is BraceOpenToken;
 
 		public static PouInterfaceSyntax ParsePouInterface(string file, string input, Messages.MessageBag messages)
 		{
@@ -403,7 +404,7 @@ namespace Compiler
 			else if (TryMatch<ArrayToken>(out var tokenArray))
 			{
 				var tokenBracketOpen = Match(BracketOpenToken.Synthesize);
-				var ranges = CommaSeperatedRangeParser.Parse(out var tokenBracketClose);
+				var ranges = CommaSeperatedRangeParser.Parse(this, out var tokenBracketClose);
 				var tokenOf = Match(OfToken.Synthesize);
 				var baseType = ParseType();
 				return new ArrayTypeSyntax(tokenArray, tokenBracketOpen, ranges, tokenBracketClose, tokenOf, baseType);
@@ -544,7 +545,7 @@ namespace Compiler
 			{
 				if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
 				{
-					var indices = CommaSeperatedIndexParser.Parse(out var tokenBracketClose);
+					var indices = CommaSeperatedIndexParser.Parse(this, out var tokenBracketClose);
 					var expr = new IndexAccessExpressionSyntax(leftExpression, tokenBracketOpen, indices, tokenBracketClose);
 					return ParsePostfixOperatorInternal(expr);
 				}
@@ -555,7 +556,7 @@ namespace Compiler
 				}
 				else if (TryMatch<ParenthesisOpenToken>(out var tokenParenOpen))
 				{
-					var arguments = CommaSeperatedCallArgumentParser.Parse(out var tokenParenClose);
+					var arguments = CommaSeperatedCallArgumentParser.Parse(this, out var tokenParenClose);
 					var expr = new CallExpressionSyntax(leftExpression, tokenParenOpen, arguments, tokenParenClose);
 					return ParsePostfixOperatorInternal(expr);
 				}
@@ -574,7 +575,7 @@ namespace Compiler
 			IExpressionSyntax ParseTypedInitializationExpressionSyntax(ITypeSyntax type, HashToken tokenHash)
 			{
 				var tokenBraceOpen = Match(BraceOpenToken.Synthesize);
-				var elements = CommaSeperatedInitializerElementParser.Parse(out var tokenBraceClose);
+				var elements = CommaSeperatedInitializerElementParser.Parse(this, out var tokenBraceClose);
 				var initializer = new InitializationExpressionSyntax(tokenBraceOpen, elements, tokenBraceClose);
 				return new TypedInitializationExpressionSyntax(type, tokenHash, initializer);
 			}
@@ -622,7 +623,7 @@ namespace Compiler
 				}
 				else if (TryMatch<BraceOpenToken>(out var tokenBraceOpen))
 				{
-					var elements = CommaSeperatedInitializerElementParser.Parse(out var tokenBraceClose);
+					var elements = CommaSeperatedInitializerElementParser.Parse(this, out var tokenBraceClose);
 					return new InitializationExpressionSyntax(tokenBraceOpen, elements, tokenBraceClose);
 				}
 				else
@@ -694,7 +695,7 @@ namespace Compiler
 
 				EnumTypeDeclarationBodySyntax ParseEnum(ITypeSyntax? baseType, ParenthesisOpenToken tokenParenthesisOpen)
 				{
-					var values = CommaSeperatedEnumValueDeclarationParser.Parse(out var tokenParenthesisClose);
+					var values = CommaSeperatedEnumValueDeclarationParser.Parse(this, out var tokenParenthesisClose);
 					var initial = TryParseVarInit();
 					return new(baseType, tokenParenthesisOpen, values, tokenParenthesisClose, initial);
 				}
@@ -712,72 +713,70 @@ namespace Compiler
 	{
 		private class CommaSeperatedParser<TElement, TEnd> where TElement : ISyntax where TEnd : class, IToken
 		{
-			private readonly Parser Parser;
-			private readonly Func<TElement> ParseElement;
+			private readonly Func<Parser, TElement> ParseElement;
 			private readonly Func<IToken, bool> IsValid;
 			private readonly Func<SourcePoint, TEnd> MakeEnd;
 
-			public CommaSeperatedParser(Parser parser, Func<TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
+			public CommaSeperatedParser(Func<Parser, TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
 			{
-				Parser = parser;
-				ParseElement = parseElement;
-				IsValid = isValid;
-				MakeEnd = makeEnd;
+				ParseElement = parseElement ?? throw new ArgumentNullException(nameof(parseElement));
+				IsValid = isValid ?? throw new ArgumentNullException(nameof(isValid));
+				MakeEnd = makeEnd ?? throw new ArgumentNullException(nameof(makeEnd));
 			}
 
-			public SyntaxCommaSeparated<TElement> Parse(out TEnd endToken)
+			public SyntaxCommaSeparated<TElement> Parse(Parser parser, out TEnd endToken)
 			{
-				var start = Parser.CurToken.SourceSpan.End;
-				var firstParameter = ParseHead(out endToken);
+				var start = parser.CurToken.SourceSpan.End;
+				var firstParameter = ParseHead(parser, out endToken);
 				return new SyntaxCommaSeparated<TElement>(firstParameter, SourceSpan.FromStartLength(start, 0));
 			}
 
-			private SyntaxCommaSeparated<TElement>.HeadSyntax? ParseHead(out TEnd TEnd)
+			private SyntaxCommaSeparated<TElement>.HeadSyntax? ParseHead(Parser parser, out TEnd TEnd)
 			{
-				if (Parser.TryMatch<TEnd>(out var maybeEndToken))
+				if (parser.TryMatch<TEnd>(out var maybeEndToken))
 				{
 					TEnd = maybeEndToken;
 					return null;
 				}
-				else if (IsValid(Parser.CurToken))
+				else if (IsValid(parser.CurToken))
 				{
-					var element = ParseElement();
-					var tail = TryParseTail(out TEnd);
+					var element = ParseElement(parser);
+					var tail = TryParseTail(parser, out TEnd);
 					return new SyntaxCommaSeparated<TElement>.HeadSyntax(element, tail);
 				}
 				else
 				{
-					TEnd = Parser.Match(MakeEnd);
+					TEnd = parser.Match(MakeEnd);
 					return null;
 				}
 			}
 
-			private SyntaxCommaSeparated<TElement>.TailSyntax? TryParseTail(out TEnd end)
+			private SyntaxCommaSeparated<TElement>.TailSyntax? TryParseTail(Parser parser, out TEnd end)
 			{
-				if (Parser.TryMatch<CommaToken>(out var commaToken))
+				if (parser.TryMatch<CommaToken>(out var commaToken))
 				{
-					var element = ParseElement();
-					var tail = TryParseTail(out end);
+					var element = ParseElement(parser);
+					var tail = TryParseTail(parser, out end);
 					return new SyntaxCommaSeparated<TElement>.TailSyntax(commaToken, element, tail);
 				}
-				else if (Parser.TryMatch<TEnd>(out var x))
+				else if (parser.TryMatch<TEnd>(out var x))
 				{
 					end = x;
 					return null;
 				}
 				else
 				{
-					Parser.AddUnexpectedTokenMessage(typeof(CommaToken), typeof(TEnd));
-					end = MakeEnd(Parser.CurToken.StartPosition);
+					parser.AddUnexpectedTokenMessage(typeof(CommaToken), typeof(TEnd));
+					end = MakeEnd(parser.CurToken.StartPosition);
 					return null;
 				}
 			}
 		}
 
-		private CommaSeperatedParser<TElement, TEnd> MakeCommaSeperatedParser<TElement, TEnd>(Func<TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
+		private static CommaSeperatedParser<TElement, TEnd> MakeCommaSeperatedParser<TElement, TEnd>(Func<Parser, TElement> parseElement, Func<IToken, bool> isValid, Func<SourcePoint, TEnd> makeEnd)
 			where TElement : ISyntax where TEnd : class, IToken
 		{
-			return new CommaSeperatedParser<TElement, TEnd>(this, parseElement, isValid, makeEnd);
+			return new CommaSeperatedParser<TElement, TEnd>(parseElement, isValid, makeEnd);
 		}
 
 		private void AddUnexpectedTokenMessage(params Type[] expected)

@@ -9,8 +9,6 @@ using System.Linq;
 
 namespace Compiler
 {
-
-
 	[DebuggerDisplay("Count = {Count}")]
 	public readonly struct SymbolSet<T> : IEnumerable<T> where T : ISymbol
 	{
@@ -48,6 +46,10 @@ namespace Compiler
 			=> CreateWithDuplicatesInternal(symbols, null);
 		public static SymbolSet<T> CreateWithDuplicates(IEnumerable<T> symbols, MessageBag messages)
 			=> CreateWithDuplicatesInternal(symbols, messages);
+		public static SymbolSet<T> Create<TSource>(IEnumerable<TSource> symbols, Func<TSource, T> map)
+			=> CreateWithDuplicatesInternal(symbols, map, null);
+		public static SymbolSet<T> CreateWithDuplicates<TSource>(IEnumerable<TSource> symbols, Func<TSource, T> map, MessageBag messages)
+			=> CreateWithDuplicatesInternal(symbols, map, messages);
 		private static SymbolSet<T> CreateWithDuplicatesInternal(IEnumerable<T> symbols, MessageBag? messages)
 		{
 			var builder = ImmutableDictionary.CreateBuilder<CaseInsensitiveString, T>();
@@ -63,6 +65,22 @@ namespace Compiler
 			}
 			return new (builder.ToImmutable());
 		}
+		private static SymbolSet<T> CreateWithDuplicatesInternal<TSource>(IEnumerable<TSource> source, Func<TSource, T> map, MessageBag? messages)
+		{
+			var builder = ImmutableDictionary.CreateBuilder<CaseInsensitiveString, T>();
+			foreach (var x in source)
+			{
+				var sym = map(x);
+				if (!builder.TryAdd(sym.Name, sym))
+				{
+					if(messages != null)
+						messages.Add(new SymbolAlreadyExistsMessage(sym.Name, builder[sym.Name].DeclaringSpan, sym.DeclaringSpan));
+					else
+						throw new ArgumentException($"The symbol {x} already exists.", nameof(source));
+				}
+			}
+			return new (builder.ToImmutable());
+		}
 	}
 
 	public static class SymbolSet
@@ -73,10 +91,10 @@ namespace Compiler
 		public static SymbolSet<T> ToSymbolSet<T>(this IEnumerable<T> allSymbols) where T : ISymbol
 			=> SymbolSet<T>.Create(allSymbols);
 		public static SymbolSet<TSymbol> ToSymbolSet<T, TSymbol>(this IEnumerable<T> allValues, Func<T, TSymbol> map) where TSymbol : ISymbol
-			=> allValues.Select(map).ToSymbolSet();
+			=> SymbolSet<TSymbol>.Create(allValues, map);
 		public static SymbolSet<T> ToSymbolSetWithDuplicates<T>(this IEnumerable<T> allSymbols, MessageBag messageBag) where T : ISymbol
 			=> SymbolSet<T>.CreateWithDuplicates(allSymbols, messageBag);
 		public static SymbolSet<TSymbol> ToSymbolSetWithDuplicates<T, TSymbol>(this IEnumerable<T> allValues, MessageBag messageBag, Func<T, TSymbol> map) where TSymbol : ISymbol
-			=> allValues.Select(map).ToSymbolSetWithDuplicates(messageBag);
+			=> SymbolSet<TSymbol>.CreateWithDuplicates(allValues, map, messageBag);
 	}
 }

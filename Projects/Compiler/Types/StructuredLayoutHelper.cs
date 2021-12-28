@@ -61,19 +61,29 @@ namespace Compiler.Types
 				{
 					bool isUndefined = false;
 					Inside_GetLayoutInfo = true;
-					var fieldLayouts = new List<LayoutInfo>();
+					var fieldLayouts = new LayoutInfo[fields.Count];
+					int i = 0;
 					foreach (var field in fields)
 					{
 						var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringSpan);
 						if (undefinedLayoutInfo.TryGet(out var layoutInfo))
-							fieldLayouts.Add(layoutInfo);
+						{
+							fieldLayouts[i] = layoutInfo;
+							++i;
+						}
 						else
 							isUndefined = true;
 					}
 					Inside_GetLayoutInfo = false;
-					MaybeLayoutInfo = isUnion ? LayoutInfo.Union(fieldLayouts) : LayoutInfo.Struct(fieldLayouts);
-					if(isUndefined == true)
+					if (isUndefined)
+					{
 						messageBag.Add(new TypeNotCompleteMessage(span));
+						MaybeLayoutInfo = LayoutInfo.Zero;
+					}
+					else
+					{
+						MaybeLayoutInfo = isUnion ? LayoutInfo.Union(fieldLayouts) : LayoutInfo.Struct(fieldLayouts);
+					}
 				}
 			}
 			return MaybeLayoutInfo.Value;

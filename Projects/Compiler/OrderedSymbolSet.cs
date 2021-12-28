@@ -20,8 +20,9 @@ namespace Compiler
 		public T this[CaseInsensitiveString name] => GetValue(name);
 		public T this[string name] => GetValue(name.ToCaseInsensitive());
 		public T this[int index] => Values[index];
-		public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)Values).GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+		public ImmutableArray<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
+		IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)Values).GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)Values).GetEnumerator();
 
 		public bool TryGetValue(CaseInsensitiveString key, [MaybeNullWhen(false)] out T value)
 		{

@@ -132,9 +132,10 @@ namespace Compiler
 
 		public int Count => Values.Length;
 		public T this[int index] => Values[index];
-		public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)Values).GetEnumerator();
+		public ImmutableArray<T>.Enumerator GetEnumerator() => Values.GetEnumerator();
+		IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)Values).GetEnumerator();
 		[ExcludeFromCodeCoverage]
-		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)Values).GetEnumerator();
 
 		public IEnumerable<INode> GetChildren() => Values.CastArray<INode>();
 	}
