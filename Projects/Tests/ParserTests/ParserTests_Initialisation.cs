@@ -12,14 +12,14 @@ namespace Tests
 		public void ParseEmpty()
 		{
 			var expr = ParseExpression("{}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>())(expr);
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>())(expr);
 		}
 
 		[Fact]
 		public void SingleExpressionValue()
 		{
 			var expr = ParseExpression("{x+y}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 					VariableExpressionSyntax("x"),
 					PlusToken,
@@ -29,7 +29,7 @@ namespace Tests
 		public void TwoExpressionValues()
 		{
 			var expr = ParseExpression("{x+y, 8}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 					VariableExpressionSyntax("x"),
 					PlusToken,
@@ -40,9 +40,9 @@ namespace Tests
 		public void RecursiveExpressionValue()
 		{
 			var expr = ParseExpression("{{x+y}, 8}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ImplicitInitializerElementSyntax(
-				InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+				InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 					ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 						VariableExpressionSyntax("x"),
 						PlusToken,
@@ -54,7 +54,7 @@ namespace Tests
 		public void SingleArrayIndexAssignExpression()
 		{
 			var expr = ParseExpression("{[1 - 2] := z}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ExplicitInitializerElementSyntax(
 					IndexElementSyntax(
 						BinaryOperatorExpressionSyntax(
@@ -67,7 +67,7 @@ namespace Tests
 		public void FieldAssignExpression()
 		{
 			var expr = ParseExpression("{.field := z}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ExplicitInitializerElementSyntax(
 					FieldElementSyntax(
 						"field".ToCaseInsensitive()),
@@ -77,10 +77,39 @@ namespace Tests
 		public void AllAssignExpression()
 		{
 			var expr = ParseExpression("{[..] := z}");
-			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
+			InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
 				ExplicitInitializerElementSyntax(
 					AllIndicesElementSyntax(),
 					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
+		}
+		[Fact]
+		public void TypedExpressionSyntax_Userdef()
+		{
+			var expr = ParseExpression("MyType#{x}");
+			TypedInitializationExpressionSyntax(
+				IdentifierTypeSyntax(IdentifierToken("MyType")),
+					InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>(
+						ImplicitInitializerElementSyntax(VariableExpressionSyntax(IdentifierToken("x"))))))(expr);
+		}
+		[Fact]
+		public void TypedExpressionSyntax_Userdef_Qualified()
+		{
+			var expr = ParseExpression("Qualifier::MyType#{}");
+			TypedInitializationExpressionSyntax(
+				ScopedIdentifierTypeSyntax(ScopeQualifierSyntax(NullSyntax, "Qualifier".ToCaseInsensitive()), "MyType".ToCaseInsensitive()),
+				InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>()))(expr);
+		}
+		[Fact]
+		public void TypedExpressionSyntax_Array()
+		{
+			var expr = ParseExpression("ARRAY[0..10] OF INT#{}");
+			TypedInitializationExpressionSyntax(
+				ArrayTypeSyntax(
+					SyntaxCommaSeparated<RangeSyntax>(RangeSyntax(
+						LiteralExpressionSyntax(IntegerLiteralToken(0)),
+						LiteralExpressionSyntax(IntegerLiteralToken(10)))),
+					BuiltInTypeSyntax(IntToken)),
+				InitializationExpressionSyntax(SyntaxCommaSeparated<IInitializerElementSyntax>()))(expr);
 		}
 	}
 }

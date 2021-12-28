@@ -309,11 +309,11 @@ namespace Tests
 				IfToken);
 		}
 		[Fact]
-		public void Error_BadBooleanLiteral_EndOfFile()
+		public void BadBooleanLiteral_EndOfFile()
 		{
-			AssertAllTokens_WithError("BOOL#",
-				ExactlyMessages(ErrorOfType<InvalidBooleanLiteralMessage>()),
-				TypedLiteralToken(type => { }, token => { }));
+			AssertAllTokens("BOOL#",
+				BoolToken,
+				HashToken);
 		}
 	}
 	public class ScannerTests_Duration

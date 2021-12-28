@@ -370,7 +370,8 @@ namespace Compiler
 			{
 				if (token is IBuiltInTypeToken builtInTypeToken)
 				{
-					if (Cursor < Text.Length && Text[Cursor] == '#')
+					if (Cursor < Text.Length - 1 && Text[Cursor] == '#' &&
+						Text[Cursor + 1] != '{') // Not a initializer expression
 					{
 						++Cursor;
 						// Type qualified literal => Parse the literal depending on the builtInType

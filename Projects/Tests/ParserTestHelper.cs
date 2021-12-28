@@ -28,7 +28,7 @@ namespace Tests
 		{
 			Assert.Collection(arr.Values, checks);
 		};
-		public static Action<SyntaxCommaSeparated<T>> SyntaxCommaSeperated<T>(params Action<T>[] checks) where T : ISyntax => arr =>
+		public static Action<SyntaxCommaSeparated<T>> SyntaxCommaSeparated<T>(params Action<T>[] checks) where T : ISyntax => arr =>
 		{
 			Assert.Collection(arr.Values, checks);
 		};

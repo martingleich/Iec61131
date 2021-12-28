@@ -56,32 +56,6 @@ namespace Compiler
 				var value = TryParseVarInit();
 				return new(tokenIdentifier, value);
 			}
-			IElementSyntax? TryParseElement()
-			{
-				if (TryMatch<DotToken>(out var tokenDot))
-				{
-					var tokenName = Match(IdentifierToken.Synthesize);
-					return new FieldElementSyntax(tokenDot, tokenName);
-				}
-				else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
-				{
-					if (TryMatch<DotsToken>(out var tokenDots))
-					{
-						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-						return new AllIndicesElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose);
-					}
-					else
-					{
-						var index = ParseExpression();
-						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-						return new IndexElementSyntax(tokenBracketOpen, index, tokenBracketClose);
-					}
-				}
-				else
-				{
-					return null;
-				}
-			}
 			IInitializerElementSyntax ParseInitializerElement()
 			{
 				if (TryParseElement() is IElementSyntax element)
@@ -94,6 +68,32 @@ namespace Compiler
 				{
 					var value = ParseExpression();
 					return new ImplicitInitializerElementSyntax(value);
+				}
+				IElementSyntax? TryParseElement()
+				{
+					if (TryMatch<DotToken>(out var tokenDot))
+					{
+						var tokenName = Match(IdentifierToken.Synthesize);
+						return new FieldElementSyntax(tokenDot, tokenName);
+					}
+					else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
+					{
+						if (TryMatch<DotsToken>(out var tokenDots))
+						{
+							var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+							return new AllIndicesElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose);
+						}
+						else
+						{
+							var index = ParseExpression();
+							var tokenBracketClose = Match(BracketCloseToken.Synthesize);
+							return new IndexElementSyntax(tokenBracketOpen, index, tokenBracketClose);
+						}
+					}
+					else
+					{
+						return null;
+					}
 				}
 			}
 
@@ -387,7 +387,7 @@ namespace Compiler
 			}
 		}
 
-		private ITypeSyntax ParseType()
+		private ITypeSyntax? TryParseBuiltInType()
 		{
 			if (TryMatch<IBuiltInTypeToken>(out var tokenBuiltInType))
 			{
@@ -399,14 +399,6 @@ namespace Compiler
 					return new SubrangeTypeSyntax(type, tokenParenOpen, range, tokenParenClose);
 				}
 				return type;
-			}
-			else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
-			{
-				var scope = TryParseScopeQualifier(ref tokenIdentifier);
-				if (scope != null)
-					return new ScopedIdentifierTypeSyntax(scope, tokenIdentifier);
-				else
-					return new IdentifierTypeSyntax(tokenIdentifier);
 			}
 			else if (TryMatch<ArrayToken>(out var tokenArray))
 			{
@@ -429,12 +421,8 @@ namespace Compiler
 			}
 			else
 			{
-				Messages.Add(new Messages.TypeExpectedMessage(CurToken));
-				SkipUntil<SemicolonToken>();
-				return new BuiltInTypeSyntax(Synthesize(IntToken.Synthesize));
+				return null;
 			}
-
-
 			StringSizeSyntax? TryParseStringSize()
 			{
 				if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
@@ -447,6 +435,27 @@ namespace Compiler
 				{
 					return null;
 				}
+			}
+		}
+		private ITypeSyntax ParseType()
+		{
+			if (TryParseBuiltInType() is ITypeSyntax builtInType)
+			{
+				return builtInType;
+			}
+			else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
+			{
+				var scope = TryParseScopeQualifier(ref tokenIdentifier);
+				if (scope != null)
+					return new ScopedIdentifierTypeSyntax(scope, tokenIdentifier);
+				else
+					return new IdentifierTypeSyntax(tokenIdentifier);
+			}
+			else
+			{
+				Messages.Add(new Messages.TypeExpectedMessage(CurToken));
+				SkipUntil<SemicolonToken>();
+				return new BuiltInTypeSyntax(Synthesize(IntToken.Synthesize));
 			}
 		}
 		private RangeSyntax ParseRange()
@@ -561,19 +570,42 @@ namespace Compiler
 					return leftExpression;
 				}
 			}
+
+			IExpressionSyntax ParseTypedInitializationExpressionSyntax(ITypeSyntax type, HashToken tokenHash)
+			{
+				var tokenBraceOpen = Match(BraceOpenToken.Synthesize);
+				var elements = CommaSeperatedInitializerElementParser.Parse(out var tokenBraceClose);
+				var initializer = new InitializationExpressionSyntax(tokenBraceOpen, elements, tokenBraceClose);
+				return new TypedInitializationExpressionSyntax(type, tokenHash, initializer);
+			}
 			IExpressionSyntax ParsePrimaryExpression()
 			{
 				if (TryMatch<ILiteralToken>(out var tokenLiteral))
 				{
 					return new LiteralExpressionSyntax(tokenLiteral);
 				}
+				else if (TryParseBuiltInType() is ITypeSyntax builtInType)
+				{
+					var tokenHash = Match(HashToken.Synthesize);
+					return ParseTypedInitializationExpressionSyntax(builtInType, tokenHash);
+				}
 				else if (TryMatch<IdentifierToken>(out var tokenIdentifier))
 				{
 					var scope = TryParseScopeQualifier(ref tokenIdentifier);
-					if (scope != null)
-						return new ScopedVariableExpressionSyntax(scope, tokenIdentifier);
+					if (TryMatch<HashToken>(out var tokenHash))
+					{
+						ITypeSyntax type = scope != null
+							? new ScopedIdentifierTypeSyntax(scope, tokenIdentifier)
+							: new IdentifierTypeSyntax(tokenIdentifier);
+						return ParseTypedInitializationExpressionSyntax(type, tokenHash);
+					}
 					else
-						return new VariableExpressionSyntax(tokenIdentifier);
+					{
+						if (scope != null)
+							return new ScopedVariableExpressionSyntax(scope, tokenIdentifier);
+						else
+							return new VariableExpressionSyntax(tokenIdentifier);
+					}
 				}
 				else if (TryMatch<ParenthesisOpenToken>(out var tokenParenOpen))
 				{
@@ -801,3 +833,4 @@ namespace Compiler
 		}
 	}
 }
+

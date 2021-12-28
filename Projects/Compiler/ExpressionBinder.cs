@@ -440,5 +440,10 @@ namespace Compiler
 			}
 			return ImplicitCast(boundExpression, context);
 		}
+
+		public IBoundExpression Visit(TypedInitializationExpressionSyntax typedInitializationExpressionSyntax, IType? context)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

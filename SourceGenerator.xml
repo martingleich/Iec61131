@@ -1051,6 +1051,22 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>TypedInitializationExpressionSyntax</Name>
+      <Interface>IExpressionSyntax</Interface>
+      <Element>
+        <Name>Type</Name>
+        <Type>ITypeSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenHash</Name>
+        <Type>HashToken</Type>
+      </Element>
+      <Element>
+        <Name>Initializer</Name>
+        <Type>InitializationExpressionSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>ExplicitInitializerElementSyntax</Name>
       <Interface>IInitializerElementSyntax</Interface>
       <Element>
