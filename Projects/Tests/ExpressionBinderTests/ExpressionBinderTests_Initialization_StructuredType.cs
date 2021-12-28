@@ -28,6 +28,17 @@ namespace Tests.ExpressionBinderTests
 				FieldElement("field2", BoundBoolLiteral(true)));
 		}
 		[Fact]
+		public void Fields_ExplicitType()
+		{
+			var boundExpression = NewProject
+				.AddDutFast("MyType", "STRUCT field1 : INT; field2 : BOOL; END_STRUCT")
+				.BindGlobalExpression<InitializerBoundExpression>("MyType#{.field1 := 7, .field2 := TRUE}", null);
+			Assert.Equal("MyType", boundExpression.Type.Code);
+			Assert.Collection(boundExpression.Elements,
+				FieldElement("field1", BoundIntLiteral(7)),
+				FieldElement("field2", BoundBoolLiteral(true)));
+		}
+		[Fact]
 		public void Fields_Unordered()
 		{
 			var boundExpression = NewProject

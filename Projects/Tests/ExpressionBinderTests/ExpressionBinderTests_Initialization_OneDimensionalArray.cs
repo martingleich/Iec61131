@@ -30,6 +30,18 @@ namespace Tests.ExpressionBinderTests
 				ArrayElement(2, BoundIntLiteral(3)));
 		}
 		[Fact]
+		public static void InitIndices_ExplicitType()
+		{
+			var boundExpression = BindHelper.NewProject
+				.BindGlobalExpression("ARRAY[0..2] OF INT#{[0] := 1, [1] := 2, [2] := 3}", null);
+			Assert.Equal("ARRAY[0..2] OF Int", boundExpression.Type.Code);
+			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			Assert.Collection(init.Elements,
+				ArrayElement(0, BoundIntLiteral(1)),
+				ArrayElement(1, BoundIntLiteral(2)),
+				ArrayElement(2, BoundIntLiteral(3)));
+		}
+		[Fact]
 		public static void InitIndices_Unordered()
 		{
 			var boundExpression = BindHelper.NewProject

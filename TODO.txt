@@ -1,6 +1,11 @@
 Add find expression at source span
 Add find bound expression at source span
 
+Add CASE statement
+Add Exception System
+Add safe ENUMs
+Add simple x64 codegenerator
+
 Simple incremental compile
 Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.
 LateLanguageUpdates

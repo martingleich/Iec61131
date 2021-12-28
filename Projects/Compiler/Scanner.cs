@@ -212,8 +212,6 @@ namespace Compiler
 			#endregion
 		}
 
-
-
 		private ILiteralToken ScanDuration(IToken? leadingToken)
 		{
 			DurationUnit? ScanUnit()

@@ -443,7 +443,9 @@ namespace Compiler
 
 		public IBoundExpression Visit(TypedInitializationExpressionSyntax typedInitializationExpressionSyntax, IType? context)
 		{
-			throw new NotImplementedException();
+			var targetType = TypeCompiler.MapComplete(Scope, typedInitializationExpressionSyntax.Type, MessageBag);
+			var boundExpression = Visit(typedInitializationExpressionSyntax.Initializer, targetType);
+			return ImplicitCast(boundExpression, context);
 		}
 	}
 }
