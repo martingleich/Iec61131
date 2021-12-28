@@ -579,6 +579,9 @@
     <SyntaxInterface>
       <Name>IInitializerElementSyntax</Name>
     </SyntaxInterface>
+    <SyntaxInterface>
+      <Name>IElementSyntax</Name>
+    </SyntaxInterface>
   </SyntaxInterfaces>
   <SyntaxClasses>
     <SyntaxClass>
@@ -1044,15 +1047,11 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>FieldInitializerElementSyntax</Name>
+      <Name>ExplicitInitializerElementSyntax</Name>
       <Interface>IInitializerElementSyntax</Interface>
       <Element>
-        <Name>TokenDot</Name>
-        <Type>DotToken</Type>
-      </Element>
-      <Element>
-        <Name>TokenName</Name>
-        <Type>IdentifierToken</Type>
+        <Name>Element</Name>
+        <Type>IElementSyntax</Type>
       </Element>
       <Element>
         <Name>TokenAssign</Name>
@@ -1064,8 +1063,20 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>IndexInitializerElementSyntax</Name>
-      <Interface>IInitializerElementSyntax</Interface>
+      <Name>FieldElementSyntax</Name>
+      <Interface>IElementSyntax</Interface>
+      <Element>
+        <Name>TokenDot</Name>
+        <Type>DotToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenName</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>IndexElementSyntax</Name>
+      <Interface>IElementSyntax</Interface>
       <Element>
         <Name>TokenBracketOpen</Name>
         <Type>BracketOpenToken</Type>
@@ -1078,18 +1089,10 @@
         <Name>TokenBracketClose</Name>
         <Type>BracketCloseToken</Type>
       </Element>
-      <Element>
-        <Name>TokenAssign</Name>
-        <Type>AssignToken</Type>
-      </Element>
-      <Element>
-        <Name>Value</Name>
-        <Type>IExpressionSyntax</Type>
-      </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>AllIndicesInitializerElementSyntax</Name>
-      <Interface>IInitializerElementSyntax</Interface>
+      <Name>AllIndicesElementSyntax</Name>
+      <Interface>IElementSyntax</Interface>
       <Element>
         <Name>TokenBracketOpen</Name>
         <Type>BracketOpenToken</Type>
@@ -1102,17 +1105,9 @@
         <Name>TokenBracketClose</Name>
         <Type>BracketCloseToken</Type>
       </Element>
-      <Element>
-        <Name>TokenAssign</Name>
-        <Type>AssignToken</Type>
-      </Element>
-      <Element>
-        <Name>Value</Name>
-        <Type>IExpressionSyntax</Type>
-      </Element>
     </SyntaxClass>
     <SyntaxClass>
-      <Name>ExpressionElementSyntax</Name>
+      <Name>ImplicitInitializerElementSyntax</Name>
       <Interface>IInitializerElementSyntax</Interface>
       <Element>
         <Name>Value</Name>

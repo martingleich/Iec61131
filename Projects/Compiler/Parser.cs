@@ -56,39 +56,47 @@ namespace Compiler
 				var value = TryParseVarInit();
 				return new(tokenIdentifier, value);
 			}
-			IInitializerElementSyntax ParseInitializerElement()
+			IElementSyntax? TryParseElement()
 			{
 				if (TryMatch<DotToken>(out var tokenDot))
 				{
 					var tokenName = Match(IdentifierToken.Synthesize);
-					var tokenAssign = Match(AssignToken.Synthesize);
-					var value = ParseExpression();
-					return new FieldInitializerElementSyntax(tokenDot, tokenName, tokenAssign, value);
+					return new FieldElementSyntax(tokenDot, tokenName);
 				}
 				else if (TryMatch<BracketOpenToken>(out var tokenBracketOpen))
 				{
 					if (TryMatch<DotsToken>(out var tokenDots))
 					{
 						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-						var tokenAssign = Match(AssignToken.Synthesize);
-						var value = ParseExpression();
-						return new AllIndicesInitializerElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose, tokenAssign, value);
+						return new AllIndicesElementSyntax(tokenBracketOpen, tokenDots, tokenBracketClose);
 					}
 					else
 					{
 						var index = ParseExpression();
 						var tokenBracketClose = Match(BracketCloseToken.Synthesize);
-						var tokenAssign = Match(AssignToken.Synthesize);
-						var value = ParseExpression();
-						return new IndexInitializerElementSyntax(tokenBracketOpen, index, tokenBracketClose, tokenAssign, value);
+						return new IndexElementSyntax(tokenBracketOpen, index, tokenBracketClose);
 					}
 				}
 				else
 				{
-					var value = ParseExpression();
-					return new ExpressionElementSyntax(value);
+					return null;
 				}
 			}
+			IInitializerElementSyntax ParseInitializerElement()
+			{
+				if (TryParseElement() is IElementSyntax element)
+				{
+					var tokenAssign = Match(AssignToken.Synthesize);
+					var value = ParseExpression();
+					return new ExplicitInitializerElementSyntax(element, tokenAssign, value);
+				}
+				else
+				{
+					var value = ParseExpression();
+					return new ImplicitInitializerElementSyntax(value);
+				}
+			}
+
 			static bool IsInitializerElementStartToken(IToken token)
 				=> IsExpressionStartToken(token) || token is DotToken || token is BracketOpenToken;
 			static bool IsExpressionStartToken(IToken token) =>

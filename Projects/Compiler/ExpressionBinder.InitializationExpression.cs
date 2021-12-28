@@ -56,7 +56,7 @@ namespace Compiler
 				else
 					return MultiDimensionalArrayInitializer.Bind(type, binder, syntax);
 			}
-			class OneDimensionalArrayInitializer : IInitializerElementSyntax.IVisitor
+			class OneDimensionalArrayInitializer : IInitializerElementSyntax.IVisitor, IElementSyntax.IVisitor<bool, IExpressionSyntax>
 			{
 				private readonly ArrayType.Range _range;
 				private readonly IType _elementType;
@@ -64,7 +64,7 @@ namespace Compiler
 				private readonly ExpressionBinder _expressionBinder;
 
 				private int _implicitCursor;
-				private bool _inPositionalPart = true;
+				private bool _inImplicitPart = true;
 				private bool _reportedImplicitError;
 
 				private readonly Dictionary<int, SourceSpan> _setIndicies = new();
@@ -76,49 +76,6 @@ namespace Compiler
 					_range = range;
 					_implicitCursor = _range.LowerBound;
 					_expressionBinder = binder ?? throw new ArgumentNullException(nameof(binder));
-				}
-
-				void IInitializerElementSyntax.IVisitor.Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
-				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourceSpan));
-				}
-				void IInitializerElementSyntax.IVisitor.Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
-				{
-					_inPositionalPart = false;
-					var boundIndex = indexInitializerElementSyntax.Index.Accept(_expressionBinder, _expressionBinder.SystemScope.DInt);
-					var indexValue = (DIntLiteralValue?)ConstantExpressionEvaluator.EvaluateConstant(_expressionBinder.SystemScope, boundIndex, Messages);
-					if (indexValue != null)
-					{
-						var index = new BoundConstantIntegerValue(boundIndex, indexValue.Value);
-						AddElement(indexInitializerElementSyntax.Index.SourceSpan, index, indexInitializerElementSyntax.Value);
-					}
-				}
-				void IInitializerElementSyntax.IVisitor.Visit(ExpressionElementSyntax expressionElementSyntax)
-				{
-					if (!_inPositionalPart)
-					{
-						if (!_reportedImplicitError)
-						{
-							Messages.Add(new CannotUsePositionalElementAfterExplicitMessage(expressionElementSyntax.SourceSpan));
-							_reportedImplicitError = true;
-						}
-					}
-					else
-					{
-						var index = new BoundConstantIntegerValue(null, _implicitCursor);
-						++_implicitCursor;
-						AddElement(expressionElementSyntax.SourceSpan, index, expressionElementSyntax.Value);
-					}
-				}
-				void IInitializerElementSyntax.IVisitor.Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
-				{
-					_inPositionalPart = false;
-					var boundValue = allIndicesInitializerElementSyntax.Value.Accept(_expressionBinder, _elementType);
-					foreach (var i in _range.Values)
-						MarkIndexUsed(i, allIndicesInitializerElementSyntax.TokenDots.SourceSpan);
-
-					var element = new InitializerBoundExpression.ABoundElement.AllElements(boundValue);
-					_elements.Add(element);
 				}
 
 				private bool MarkIndexUsed(int index, SourceSpan indexPosition)
@@ -167,8 +124,63 @@ namespace Compiler
 						element.Accept(initializer);
 					return initializer.GetBound(syntax, type);
 				}
+
+				void IInitializerElementSyntax.IVisitor.Visit(ExplicitInitializerElementSyntax explicitInitializerElementSyntax)
+				{
+					explicitInitializerElementSyntax.Element.Accept(this, explicitInitializerElementSyntax.Value);
+				}
+
+				void IInitializerElementSyntax.IVisitor.Visit(ImplicitInitializerElementSyntax implicitInitializerElementSyntax)
+				{
+					if (!_inImplicitPart)
+					{
+						if (!_reportedImplicitError)
+						{
+							Messages.Add(new CannotUsePositionalElementAfterExplicitMessage(implicitInitializerElementSyntax.SourceSpan));
+							_reportedImplicitError = true;
+						}
+					}
+					else
+					{
+						var index = new BoundConstantIntegerValue(null, _implicitCursor);
+						++_implicitCursor;
+						AddElement(implicitInitializerElementSyntax.SourceSpan, index, implicitInitializerElementSyntax.Value);
+					}
+				}
+
+				bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(FieldElementSyntax fieldElementSyntax, IExpressionSyntax context)
+				{
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldElementSyntax.SourceSpan));
+					return default;
+				}
+
+				bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(IndexElementSyntax indexElementSyntax, IExpressionSyntax context)
+				{
+					_inImplicitPart = false;
+					var boundIndex = indexElementSyntax.Index.Accept(_expressionBinder, _expressionBinder.SystemScope.DInt);
+					var indexValue = (DIntLiteralValue?)ConstantExpressionEvaluator.EvaluateConstant(_expressionBinder.SystemScope, boundIndex, Messages);
+					if (indexValue != null)
+					{
+						var index = new BoundConstantIntegerValue(boundIndex, indexValue.Value);
+						AddElement(indexElementSyntax.SourceSpan, index, context);
+					}
+					return default;
+				}
+
+				bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(AllIndicesElementSyntax allIndicesElementSyntax, IExpressionSyntax context)
+				{
+					_inImplicitPart = false;
+					var boundValue = context.Accept(_expressionBinder, _elementType);
+					foreach (var i in _range.Values)
+						MarkIndexUsed(i, allIndicesElementSyntax.SourceSpan);
+
+					var element = new InitializerBoundExpression.ABoundElement.AllElements(boundValue);
+					_elements.Add(element);
+					return default;
+				}
 			}
-			class MultiDimensionalArrayInitializer : IInitializerElementSyntax.IVisitor
+
+			class MultiDimensionalArrayInitializer : IInitializerElementSyntax.IVisitor, IElementSyntax.IVisitor<bool, IExpressionSyntax>
 			{
 				private readonly IType _elementType;
 				private MessageBag Messages => _expressionBinder.MessageBag;
@@ -182,30 +194,7 @@ namespace Compiler
 					_expressionBinder = expressionBinder ?? throw new ArgumentNullException(nameof(expressionBinder));
 				}
 
-				public void Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
-				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldInitializerElementSyntax.TokenName.SourceSpan));
-				}
 
-				public void Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
-				{
-					Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourceSpan));
-				}
-
-				public void Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
-				{
-					if (_elements.Count != 0)
-						Messages.Add(new DuplicateInitializerElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourceSpan, _originalBound));
-
-					var boundValue = allIndicesInitializerElementSyntax.Value.Accept(_expressionBinder, _elementType);
-					_elements.Add(new InitializerBoundExpression.ABoundElement.AllElements(boundValue));
-					_originalBound = allIndicesInitializerElementSyntax.TokenDots.SourceSpan;
-				}
-
-				public void Visit(ExpressionElementSyntax expressionElementSyntax)
-				{
-					Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourceSpan));
-				}
 				private InitializerBoundExpression GetBound(INode originalNode, IType type, bool isEmpty)
 				{
 					if (_elements.Count == 0 && !isEmpty)
@@ -220,10 +209,43 @@ namespace Compiler
 						element.Accept(initializer);
 					return initializer.GetBound(syntax, type, type.IsEmpty);
 				}
+
+				void IInitializerElementSyntax.IVisitor.Visit(ExplicitInitializerElementSyntax explicitInitializerElementSyntax)
+				{
+					explicitInitializerElementSyntax.Element.Accept(this, explicitInitializerElementSyntax.Value);
+				}
+
+				void IInitializerElementSyntax.IVisitor.Visit(ImplicitInitializerElementSyntax implicitInitializerElementSyntax)
+				{
+					Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(implicitInitializerElementSyntax.SourceSpan));
+				}
+
+				public bool Visit(FieldElementSyntax fieldElementSyntax, IExpressionSyntax context)
+				{
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(fieldElementSyntax.SourceSpan));
+					return default;
+				}
+
+				public bool Visit(IndexElementSyntax indexElementSyntax, IExpressionSyntax context)
+				{
+					Messages.Add(new TypeDoesNotHaveThisElementMessage(indexElementSyntax.SourceSpan));
+					return default;
+				}
+
+				public bool Visit(AllIndicesElementSyntax allIndicesElementSyntax, IExpressionSyntax context)
+				{
+					if (_elements.Count != 0)
+						Messages.Add(new DuplicateInitializerElementMessage(allIndicesElementSyntax.SourceSpan, _originalBound));
+
+					var boundValue = context.Accept(_expressionBinder, _elementType);
+					_elements.Add(new InitializerBoundExpression.ABoundElement.AllElements(boundValue));
+					_originalBound = allIndicesElementSyntax.SourceSpan;
+					return default;
+				}
 			}
 		}
 
-		private class StructuredTypeInitializer : IInitializerElementSyntax.IVisitor
+		private class StructuredTypeInitializer : IInitializerElementSyntax.IVisitor, IElementSyntax.IVisitor<bool, IExpressionSyntax>
 		{
 			private readonly IType _type;
 			private readonly SymbolSet<FieldVariableSymbol> _fields;
@@ -247,35 +269,6 @@ namespace Compiler
 					Messages.Add(new DuplicateInitializerElementMessage(span, original));
 				}
 			}
-			void IInitializerElementSyntax.IVisitor.Visit(FieldInitializerElementSyntax fieldInitializerElementSyntax)
-			{
-				InitializerBoundExpression.ABoundElement element;
-				if (_fields.TryGetValue(fieldInitializerElementSyntax.Name, out var field))
-				{
-					MarkUsed(field, fieldInitializerElementSyntax.TokenName.SourceSpan);
-					var boundValue = fieldInitializerElementSyntax.Value.Accept(_binder, field.Type);
-					element = new InitializerBoundExpression.ABoundElement.FieldElement(field, boundValue);
-				}
-				else
-				{
-					Messages.Add(new FieldNotFoundMessage(_type, fieldInitializerElementSyntax.Name, fieldInitializerElementSyntax.TokenName.SourceSpan));
-					var boundValue = fieldInitializerElementSyntax.Value.Accept(_binder, null);
-					element = new InitializerBoundExpression.ABoundElement.UnknownElement(boundValue);
-				}
-				_elements.Add(element);
-			}
-			void IInitializerElementSyntax.IVisitor.Visit(IndexInitializerElementSyntax indexInitializerElementSyntax)
-			{
-				Messages.Add(new TypeDoesNotHaveThisElementMessage(indexInitializerElementSyntax.Index.SourceSpan));
-			}
-			void IInitializerElementSyntax.IVisitor.Visit(AllIndicesInitializerElementSyntax allIndicesInitializerElementSyntax)
-			{
-				Messages.Add(new TypeDoesNotHaveThisElementMessage(allIndicesInitializerElementSyntax.TokenDots.SourceSpan));
-			}
-			void IInitializerElementSyntax.IVisitor.Visit(ExpressionElementSyntax expressionElementSyntax)
-			{
-				Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(expressionElementSyntax.SourceSpan));
-			}
 
 			private IBoundExpression Bind(INode originalNode)
 			{
@@ -292,6 +285,47 @@ namespace Compiler
 				foreach (var element in syntax.Elements)
 					element.Accept(initializer);
 				return initializer.Bind(syntax);
+			}
+
+			void IInitializerElementSyntax.IVisitor.Visit(ExplicitInitializerElementSyntax explicitInitializerElementSyntax)
+			{
+				explicitInitializerElementSyntax.Element.Accept(this, explicitInitializerElementSyntax.Value);
+			}
+
+			void IInitializerElementSyntax.IVisitor.Visit(ImplicitInitializerElementSyntax implicitInitializerElementSyntax)
+			{
+				Messages.Add(new CannotUseImplicitInitializerForThisTypeMessage(implicitInitializerElementSyntax.SourceSpan));
+			}
+
+			bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(FieldElementSyntax fieldElementSyntax, IExpressionSyntax context)
+			{
+				InitializerBoundExpression.ABoundElement element;
+				if (_fields.TryGetValue(fieldElementSyntax.Name, out var field))
+				{
+					MarkUsed(field, fieldElementSyntax.TokenName.SourceSpan);
+					var boundValue = context.Accept(_binder, field.Type);
+					element = new InitializerBoundExpression.ABoundElement.FieldElement(field, boundValue);
+				}
+				else
+				{
+					Messages.Add(new FieldNotFoundMessage(_type, fieldElementSyntax.Name, fieldElementSyntax.TokenName.SourceSpan));
+					var boundValue = context.Accept(_binder, null);
+					element = new InitializerBoundExpression.ABoundElement.UnknownElement(boundValue);
+				}
+				_elements.Add(element);
+				return default;
+			}
+
+			bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(IndexElementSyntax indexElementSyntax, IExpressionSyntax context)
+			{
+				Messages.Add(new TypeDoesNotHaveThisElementMessage(indexElementSyntax.SourceSpan));
+				return default;
+			}
+
+			bool IElementSyntax.IVisitor<bool, IExpressionSyntax>.Visit(AllIndicesElementSyntax allIndicesElementSyntax, IExpressionSyntax context)
+			{
+				Messages.Add(new TypeDoesNotHaveThisElementMessage(allIndicesElementSyntax.SourceSpan));
+				return default;
 			}
 		}
 	}

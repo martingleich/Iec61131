@@ -20,7 +20,7 @@ namespace Tests
 		{
 			var expr = ParseExpression("{x+y}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				ExpressionElementSyntax(BinaryOperatorExpressionSyntax(
+				ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 					VariableExpressionSyntax("x"),
 					PlusToken,
 					VariableExpressionSyntax("y")))))(expr);
@@ -30,24 +30,24 @@ namespace Tests
 		{
 			var expr = ParseExpression("{x+y, 8}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				ExpressionElementSyntax(BinaryOperatorExpressionSyntax(
+				ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 					VariableExpressionSyntax("x"),
 					PlusToken,
 					VariableExpressionSyntax("y"))),
-				ExpressionElementSyntax(LiteralExpressionSyntax(IntegerLiteralToken(8)))))(expr);
+				ImplicitInitializerElementSyntax(LiteralExpressionSyntax(IntegerLiteralToken(8)))))(expr);
 		}
 		[Fact]
 		public void RecursiveExpressionValue()
 		{
 			var expr = ParseExpression("{{x+y}, 8}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				ExpressionElementSyntax(
+				ImplicitInitializerElementSyntax(
 				InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-					ExpressionElementSyntax(BinaryOperatorExpressionSyntax(
+					ImplicitInitializerElementSyntax(BinaryOperatorExpressionSyntax(
 						VariableExpressionSyntax("x"),
 						PlusToken,
 						VariableExpressionSyntax("y")))))),
-				ExpressionElementSyntax(LiteralExpressionSyntax(IntegerLiteralToken(8)))))(expr);
+				ImplicitInitializerElementSyntax(LiteralExpressionSyntax(IntegerLiteralToken(8)))))(expr);
 		}
 
 		[Fact]
@@ -55,11 +55,12 @@ namespace Tests
 		{
 			var expr = ParseExpression("{[1 - 2] := z}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				IndexInitializerElementSyntax(
-					BinaryOperatorExpressionSyntax(
-						LiteralExpressionSyntax(IntegerLiteralToken(1)),
-						MinusToken,
-						LiteralExpressionSyntax(IntegerLiteralToken(2))),
+				ExplicitInitializerElementSyntax(
+					IndexElementSyntax(
+						BinaryOperatorExpressionSyntax(
+							LiteralExpressionSyntax(IntegerLiteralToken(1)),
+							MinusToken,
+							LiteralExpressionSyntax(IntegerLiteralToken(2)))),
 					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
 		}
 		[Fact]
@@ -67,8 +68,9 @@ namespace Tests
 		{
 			var expr = ParseExpression("{.field := z}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				FieldInitializerElementSyntax(
-					"field".ToCaseInsensitive(),
+				ExplicitInitializerElementSyntax(
+					FieldElementSyntax(
+						"field".ToCaseInsensitive()),
 					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
 		}
 		[Fact]
@@ -76,7 +78,8 @@ namespace Tests
 		{
 			var expr = ParseExpression("{[..] := z}");
 			InitializationExpressionSyntax(SyntaxCommaSeperated<IInitializerElementSyntax>(
-				AllIndicesInitializerElementSyntax(
+				ExplicitInitializerElementSyntax(
+					AllIndicesElementSyntax(),
 					VariableExpressionSyntax(IdentifierToken("z")))))(expr);
 		}
 	}
