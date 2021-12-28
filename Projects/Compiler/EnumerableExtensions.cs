@@ -107,10 +107,4 @@ namespace Compiler
 			self.RemoveRange(count, self.Count - count);
 		}
 	}
-
-	public static class LazyExtensions
-	{
-		public static Lazy<T> Create<T>(Func<T> func) => new (func);
-		public static Lazy<TResult> Select<T, TResult>(this Lazy<T> lazy, Func<T, TResult> map) => new (() => map(lazy.Value));
-	}
 }

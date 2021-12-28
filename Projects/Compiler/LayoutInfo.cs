@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StandardLibraryExtensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -29,7 +30,7 @@ namespace Compiler
 		public static LayoutInfo Union(IEnumerable<LayoutInfo> layouts) => layouts.Aggregate(Union);
 		public static LayoutInfo Union(LayoutInfo a, LayoutInfo b) => new (
 				Math.Max(a.Size, b.Size),
-				MathEx.Lcm(a.Alignment, b.Alignment));
+				MathExtensions.Lcm(a.Alignment, b.Alignment));
 		public static LayoutInfo Array(LayoutInfo element, int count) => new(element.Size * count, element.Alignment);
 		public static LayoutInfo Struct(IEnumerable<LayoutInfo> fieldLayouts)
 		{
@@ -39,7 +40,7 @@ namespace Compiler
 			{
 				if (cursor % f.Alignment != 0)
 					cursor = ((cursor / f.Alignment) + 1) * f.Alignment;
-				alignment = MathEx.Lcm(alignment, f.Alignment);
+				alignment = MathExtensions.Lcm(alignment, f.Alignment);
 				cursor += f.Size;
 			}
 

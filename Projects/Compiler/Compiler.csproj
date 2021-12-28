@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StandardLibraryExtensions" Version="1.5.0" />
+    <PackageReference Include="StandardLibraryExtensions" Version="1.6.0" />
     <PackageReference Include="System.Collections.Specialized" Version="4.3.0" />
   </ItemGroup>
   
