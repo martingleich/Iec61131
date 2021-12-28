@@ -24,7 +24,7 @@ namespace Compiler
 
 			public IBoundExpression Visit(TypedLiteralToken typedLiteralToken, IType? context)
 			{
-				var type = ExpressionBinder.SystemScope.MapTokenToType(typedLiteralToken.Value.Type);
+				var type = ExpressionBinder.SystemScope.BuiltInTypeTable.MapTokenToType(typedLiteralToken.Value.Type);
 				var boundValue = typedLiteralToken.Value.LiteralToken.Accept(this, type);
 				return ExpressionBinder.ImplicitCast(boundValue, context);
 			}

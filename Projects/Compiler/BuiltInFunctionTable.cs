@@ -46,116 +46,116 @@ namespace Compiler
 		private static CaseInsensitiveString CastFunctionName(BuiltInType from, BuiltInType to)
 			=> $"{from.Name}_TO_{to.Name}".ToCaseInsensitive();
 
-		public BuiltInFunctionTable(SystemScope systemScope)
+		public BuiltInFunctionTable(BuiltInTypeTable builtInTypeTable)
 		{
 			var builder = ImmutableDictionary.CreateBuilder<FunctionVariableSymbol, Func<IType, ILiteralValue[], ILiteralValue>?>(SymbolByNameComparer<FunctionVariableSymbol>.Instance);
 
-			builder.Add(BinaryOperator("ADD", systemScope.SInt), AddSINT);
-			builder.Add(BinaryOperator("SUB", systemScope.SInt), SubSINT);
-			builder.Add(BinaryOperator("MUL", systemScope.SInt), MulSINT);
-			builder.Add(BinaryOperator("DIV", systemScope.SInt), DivSINT);
-			builder.Add(BinaryOperator("MOD", systemScope.SInt), ModSINT);
-			builder.Add(UnaryOperator("NEG", systemScope.SInt), NegSINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.SInt), AddSINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.SInt), SubSINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.SInt), MulSINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.SInt), DivSINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.SInt), ModSINT);
+			builder.Add(UnaryOperator("NEG", builtInTypeTable.SInt), NegSINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.USInt), AddUSINT);
-			builder.Add(BinaryOperator("SUB", systemScope.USInt), SubUSINT);
-			builder.Add(BinaryOperator("MUL", systemScope.USInt), MulUSINT);
-			builder.Add(BinaryOperator("DIV", systemScope.USInt), DivUSINT);
-			builder.Add(BinaryOperator("MOD", systemScope.USInt), ModUSINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.USInt), AddUSINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.USInt), SubUSINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.USInt), MulUSINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.USInt), DivUSINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.USInt), ModUSINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.Int), AddINT);
-			builder.Add(BinaryOperator("SUB", systemScope.Int), SubINT);
-			builder.Add(BinaryOperator("MUL", systemScope.Int), MulINT);
-			builder.Add(BinaryOperator("DIV", systemScope.Int), DivINT);
-			builder.Add(BinaryOperator("MOD", systemScope.Int), ModINT);
-			builder.Add(UnaryOperator("NEG", systemScope.Int), NegINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.Int), AddINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.Int), SubINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.Int), MulINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.Int), DivINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.Int), ModINT);
+			builder.Add(UnaryOperator("NEG", builtInTypeTable.Int), NegINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.UInt), AddUINT);
-			builder.Add(BinaryOperator("SUB", systemScope.UInt), SubUINT);
-			builder.Add(BinaryOperator("MUL", systemScope.UInt), MulUINT);
-			builder.Add(BinaryOperator("DIV", systemScope.UInt), DivUINT);
-			builder.Add(BinaryOperator("MOD", systemScope.UInt), ModUINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.UInt), AddUINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.UInt), SubUINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.UInt), MulUINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.UInt), DivUINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.UInt), ModUINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.DInt), AddDINT);
-			builder.Add(BinaryOperator("SUB", systemScope.DInt), SubDINT);
-			builder.Add(BinaryOperator("MUL", systemScope.DInt), MulDINT);
-			builder.Add(BinaryOperator("DIV", systemScope.DInt), DivDINT);
-			builder.Add(BinaryOperator("MOD", systemScope.DInt), ModDINT);
-			builder.Add(UnaryOperator("NEG", systemScope.DInt), NegDINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.DInt), AddDINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.DInt), SubDINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.DInt), MulDINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.DInt), DivDINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.DInt), ModDINT);
+			builder.Add(UnaryOperator("NEG", builtInTypeTable.DInt), NegDINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.UDInt), AddUDINT);
-			builder.Add(BinaryOperator("SUB", systemScope.UDInt), SubUDINT);
-			builder.Add(BinaryOperator("MUL", systemScope.UDInt), MulUDINT);
-			builder.Add(BinaryOperator("DIV", systemScope.UDInt), DivUDINT);
-			builder.Add(BinaryOperator("MOD", systemScope.UDInt), ModUDINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.UDInt), AddUDINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.UDInt), SubUDINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.UDInt), MulUDINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.UDInt), DivUDINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.UDInt), ModUDINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.LInt), AddLINT);
-			builder.Add(BinaryOperator("SUB", systemScope.LInt), SubLINT);
-			builder.Add(BinaryOperator("MUL", systemScope.LInt), MulLINT);
-			builder.Add(BinaryOperator("DIV", systemScope.LInt), DivLINT);
-			builder.Add(BinaryOperator("MOD", systemScope.LInt), ModLINT);
-			builder.Add(UnaryOperator("NEG", systemScope.LInt), NegLINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.LInt), AddLINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.LInt), SubLINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.LInt), MulLINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.LInt), DivLINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.LInt), ModLINT);
+			builder.Add(UnaryOperator("NEG", builtInTypeTable.LInt), NegLINT);
 
-			builder.Add(BinaryOperator("MOD", systemScope.ULInt), ModULINT);
-			builder.Add(BinaryOperator("ADD", systemScope.ULInt), AddULINT);
-			builder.Add(BinaryOperator("SUB", systemScope.ULInt), SubULINT);
-			builder.Add(BinaryOperator("MUL", systemScope.ULInt), MulULINT);
-			builder.Add(BinaryOperator("DIV", systemScope.ULInt), DivULINT);
-			builder.Add(BinaryOperator("MOD", systemScope.ULInt), ModULINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.ULInt), ModULINT);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.ULInt), AddULINT);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.ULInt), SubULINT);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.ULInt), MulULINT);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.ULInt), DivULINT);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.ULInt), ModULINT);
 
-			builder.Add(BinaryOperator("ADD", systemScope.LTime), AddLTIME);
-			builder.Add(BinaryOperator("SUB", systemScope.LTime), SubLTIME);
-			builder.Add(BinaryOperator("NEG", systemScope.LTime), NegLTIME);
-			builder.Add(BinaryOperator("MOD", systemScope.LTime), ModLTIME);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.LTime), AddLTIME);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.LTime), SubLTIME);
+			builder.Add(BinaryOperator("NEG", builtInTypeTable.LTime), NegLTIME);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.LTime), ModLTIME);
 
-			builder.Add(BinaryOperator("ADD", systemScope.Time), AddTIME);
-			builder.Add(BinaryOperator("SUB", systemScope.Time), SubTIME);
-			builder.Add(BinaryOperator("NEG", systemScope.Time), NegTIME);
-			builder.Add(BinaryOperator("MOD", systemScope.Time), ModTIME);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.Time), AddTIME);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.Time), SubTIME);
+			builder.Add(BinaryOperator("NEG", builtInTypeTable.Time), NegTIME);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.Time), ModTIME);
 
-			builder.Add(BinaryOperator("ADD", systemScope.Real), null);
-			builder.Add(BinaryOperator("SUB", systemScope.Real), null);
-			builder.Add(BinaryOperator("MUL", systemScope.Real), null);
-			builder.Add(BinaryOperator("DIV", systemScope.Real), null);
-			builder.Add(BinaryOperator("MOD", systemScope.Real), null);
-			builder.Add(BinaryOperator("NEG", systemScope.Real), null);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.Real), null);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.Real), null);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.Real), null);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.Real), null);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.Real), null);
+			builder.Add(BinaryOperator("NEG", builtInTypeTable.Real), null);
 
-			builder.Add(BinaryOperator("ADD", systemScope.LReal), null);
-			builder.Add(BinaryOperator("SUB", systemScope.LReal), null);
-			builder.Add(BinaryOperator("MUL", systemScope.LReal), null);
-			builder.Add(BinaryOperator("DIV", systemScope.LReal), null);
-			builder.Add(BinaryOperator("MOD", systemScope.LReal), null);
-			builder.Add(BinaryOperator("NEG", systemScope.LReal), null);
+			builder.Add(BinaryOperator("ADD", builtInTypeTable.LReal), null);
+			builder.Add(BinaryOperator("SUB", builtInTypeTable.LReal), null);
+			builder.Add(BinaryOperator("MUL", builtInTypeTable.LReal), null);
+			builder.Add(BinaryOperator("DIV", builtInTypeTable.LReal), null);
+			builder.Add(BinaryOperator("MOD", builtInTypeTable.LReal), null);
+			builder.Add(BinaryOperator("NEG", builtInTypeTable.LReal), null);
 
-			AddComparisons(builder, systemScope.SInt, systemScope.Bool, (x, y) => ((SIntLiteralValue)x).Value <= ((SIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.USInt, systemScope.Bool, (x, y) => ((USIntLiteralValue)x).Value <= ((USIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.Int, systemScope.Bool, (x, y) => ((IntLiteralValue)x).Value <= ((IntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.UInt, systemScope.Bool, (x, y) => ((UIntLiteralValue)x).Value <= ((UIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.DInt, systemScope.Bool, (x, y) => ((DIntLiteralValue)x).Value <= ((DIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.UDInt, systemScope.Bool, (x, y) => ((UDIntLiteralValue)x).Value <= ((UDIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.LInt, systemScope.Bool, (x, y) => ((LIntLiteralValue)x).Value <= ((LIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.ULInt, systemScope.Bool, (x, y) => ((ULIntLiteralValue)x).Value <= ((ULIntLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.Time, systemScope.Bool, (x, y) => ((TimeLiteralValue)x).Value <= ((TimeLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.LTime, systemScope.Bool, (x, y) => ((LTimeLiteralValue)x).Value <= ((LTimeLiteralValue)y).Value);
-			AddComparisons(builder, systemScope.Real, systemScope.Bool);
-			AddComparisons(builder, systemScope.LReal, systemScope.Bool);
+			AddComparisons(builder, builtInTypeTable.SInt, builtInTypeTable.Bool, (x, y) => ((SIntLiteralValue)x).Value <= ((SIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.USInt, builtInTypeTable.Bool, (x, y) => ((USIntLiteralValue)x).Value <= ((USIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.Int, builtInTypeTable.Bool, (x, y) => ((IntLiteralValue)x).Value <= ((IntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.UInt, builtInTypeTable.Bool, (x, y) => ((UIntLiteralValue)x).Value <= ((UIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.DInt, builtInTypeTable.Bool, (x, y) => ((DIntLiteralValue)x).Value <= ((DIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.UDInt, builtInTypeTable.Bool, (x, y) => ((UDIntLiteralValue)x).Value <= ((UDIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.LInt, builtInTypeTable.Bool, (x, y) => ((LIntLiteralValue)x).Value <= ((LIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.ULInt, builtInTypeTable.Bool, (x, y) => ((ULIntLiteralValue)x).Value <= ((ULIntLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.Time, builtInTypeTable.Bool, (x, y) => ((TimeLiteralValue)x).Value <= ((TimeLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.LTime, builtInTypeTable.Bool, (x, y) => ((LTimeLiteralValue)x).Value <= ((LTimeLiteralValue)y).Value);
+			AddComparisons(builder, builtInTypeTable.Real, builtInTypeTable.Bool);
+			AddComparisons(builder, builtInTypeTable.LReal, builtInTypeTable.Bool);
 
-			AddEquality(builder, systemScope.Bool, systemScope.Bool, (x, y) => ((BooleanLiteralValue)x).Value == ((BooleanLiteralValue)y).Value);
-			builder.Add(BinaryOperator("AND", systemScope.Bool), AndBool);
-			builder.Add(BinaryOperator("OR", systemScope.Bool), OrBool);
-			builder.Add(BinaryOperator("XOR", systemScope.Bool), XorBool);
-			builder.Add(UnaryOperator("NOT", systemScope.Bool), NotBool);
+			AddEquality(builder, builtInTypeTable.Bool, builtInTypeTable.Bool, (x, y) => ((BooleanLiteralValue)x).Value == ((BooleanLiteralValue)y).Value);
+			builder.Add(BinaryOperator("AND", builtInTypeTable.Bool), AndBool);
+			builder.Add(BinaryOperator("OR", builtInTypeTable.Bool), OrBool);
+			builder.Add(BinaryOperator("XOR", builtInTypeTable.Bool), XorBool);
+			builder.Add(UnaryOperator("NOT", builtInTypeTable.Bool), NotBool);
 
-			foreach (var fromType in systemScope.AllBuiltInTypes)
+			foreach (var fromType in builtInTypeTable.AllBuiltInTypes)
 			{
-				foreach (var toType in systemScope.AllBuiltInTypes)
+				foreach (var toType in builtInTypeTable.AllBuiltInTypes)
 				{
 					if (!fromType.Equals(toType) && IsAllowedArithmeticImplicitCast(fromType, toType))
 					{
 						Func<IType, ILiteralValue[], ILiteralValue>? func;
 						if (fromType.IsInt)
-							func = (result, args) => ArithmeticCast_FromInt((IAnyIntLiteralValue)args[0], result, systemScope);
-						else if (TypeRelations.IsIdentical(fromType, systemScope.Real) && TypeRelations.IsIdentical(toType, systemScope.LReal))
+							func = (result, args) => ArithmeticCast_FromInt((IAnyIntLiteralValue)args[0], result, builtInTypeTable);
+						else if (TypeRelations.IsIdentical(fromType, builtInTypeTable.Real) && TypeRelations.IsIdentical(toType, builtInTypeTable.LReal))
 							func = Real_To_LReal;
 						else
 							func = null;
@@ -295,9 +295,9 @@ namespace Compiler
 		private static ILiteralValue NegTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedNeg(), result);
 		private static ILiteralValue ModTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedMod(((TimeLiteralValue)args[1]).Value), result);
 
-		private static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, SystemScope systemScope)
+		private static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, BuiltInTypeTable builtInTypeTable)
 		{
-			var resultValue = systemScope.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
+			var resultValue = builtInTypeTable.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
 			if (resultValue == null)
 				throw new OverflowException();
 			else

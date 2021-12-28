@@ -29,7 +29,7 @@ namespace Compiler
 			=> Scope.LookupType(identifierTypeSyntax.Identifier, identifierTypeSyntax.SourceSpan).Extract(MessageBag);
 
 		public IType Visit(BuiltInTypeSyntax builtInTypeSyntax) =>
-			Scope.SystemScope.MapTokenToType(builtInTypeSyntax.TokenType);
+			Scope.SystemScope.BuiltInTypeTable.MapTokenToType(builtInTypeSyntax.TokenType);
 
 		public IType Visit(ArrayTypeSyntax arrayTypeSyntax)
 		{
