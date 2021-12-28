@@ -118,7 +118,7 @@ namespace Compiler
 		private static bool IsUnitChar(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsStartIdentifier(char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		private static bool IsMidIdentifier(char c) => IsStartIdentifier(c) || IsDigit(c) || c == '_';
-		private static bool IsSymbol(char c) => c == '_' || c == '^' || c == '*' || c == ';' || c == '.' || c == ':' || c == '>' || c == '<' || c == '=' || c == '(' || c == ')' || c == '{' || c == '}' || c == '+' || c == '-' || c == '*' || c == '/' || c == ',';
+		private static bool IsSymbol(char c) => c == '_' || c == '^' || c == '*' || c == ';' || c == '.' || c == ':' || c == '>' || c == '<' || c == '=' || c == '(' || c == ')' || c == '{' || c == '}' || c == '+' || c == '-' || c == '*' || c == '/' || c == ',' || c == '#';
 		private static bool IsUnknown(char c) => !(char.IsWhiteSpace(c) || IsStartIdentifier(c) || IsSymbol(c) || IsDigit(c));
 
 		private sealed class LiteralScannerT : IBuiltInTypeToken.IVisitor<IToken>
@@ -425,6 +425,8 @@ namespace Compiler
 				return new PlusToken(startPoint, leadingToken);
 			else if (cur == '-')
 				return new MinusToken(startPoint, leadingToken);
+			else if (cur == '#')
+				return new HashToken(startPoint, leadingToken);
 			else if (cur == '*')
 			{
 				if (Cursor < Text.Length && Text[Cursor] == '*')

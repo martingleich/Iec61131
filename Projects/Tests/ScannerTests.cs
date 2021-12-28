@@ -201,6 +201,7 @@ namespace Tests
 		[InlineData("::", typeof(Compiler.DoubleColonToken))]
 		[InlineData("{", typeof(Compiler.BraceOpenToken))]
 		[InlineData("}", typeof(Compiler.BraceCloseToken))]
+		[InlineData("#", typeof(Compiler.HashToken))]
 		public void Symbols(string generating, Type tokenType)
 		{
 			AssertAllTokens(generating, tok => Assert.IsType(tokenType, tok));
@@ -286,6 +287,7 @@ namespace Tests
 		[InlineData("::")]
 		[InlineData("{")]
 		[InlineData("}")]
+		[InlineData("#")]
 		public void UnknownToken_AnyEnd(string end)
 		{
 			AssertAllTokens("$|" + end,

@@ -136,6 +136,10 @@
       <Generating>::</Generating>
     </TokenWithoutValueClass>
     <TokenWithoutValueClass>
+      <Name>HashToken</Name>
+      <Generating>#</Generating>
+    </TokenWithoutValueClass>
+    <TokenWithoutValueClass>
       <Name>EndToken</Name>
       <Generating></Generating>
     </TokenWithoutValueClass>
