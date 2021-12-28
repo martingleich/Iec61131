@@ -54,7 +54,7 @@ namespace Compiler.Messages
 			Expected = expected ?? throw new ArgumentNullException(nameof(expected));
 		}
 
-		public override string Text => $"Could not find the string '{Expected}' terminating the multiline comment.";
+		public override string Text => $"Could not find the '{Expected}' terminating the multiline comment.";
 	}
 	public sealed class MissingEndOfAttributeMessage : ACriticalMessage
 	{
@@ -62,7 +62,7 @@ namespace Compiler.Messages
 		{
 		}
 
-		public override string Text => "Could not find the string '}' terminating the attribute.";
+		public override string Text => "Could not find the '}' terminating the attribute.";
 	}
 	public sealed class UnexpectedTokenMessage : ACriticalMessage
 	{
@@ -74,9 +74,31 @@ namespace Compiler.Messages
 		}
 		public IToken ReceivedToken { get; }
 		public ImmutableArray<Type> ExpectedTokenTypes { get; }
-		public override string Text => ExpectedTokenTypes.TryGetSingle(out var single)
-					? $"Expected a {single.Name} but received '{ReceivedToken.Generating}'."
-					: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(x => x.Name))} but received '{ReceivedToken.Generating}'.";
+		private static string GetTokenDesc(Type tokenType)
+		{
+			string? generating;
+			try
+			{
+				var field = tokenType.GetField("DefaultGenerating", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+				generating = (string?)field?.GetValue(null);
+			} catch
+			{
+				generating = null;
+			}
+			if (generating != null)
+				return $"{tokenType.Name} '{generating}'";
+			else
+				return tokenType.Name;
+		}
+		public override string Text
+		{
+			get
+			{
+				return ExpectedTokenTypes.TryGetSingle(out var single)
+						? $"Expected a {GetTokenDesc(single)} but received '{ReceivedToken.Generating}'."
+						: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))} but received '{ReceivedToken.Generating}'.";
+			}
+		}
 	}
 	public sealed class ExpectedExpressionMessage : ACriticalMessage
 	{
