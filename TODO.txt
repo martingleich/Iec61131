@@ -2,6 +2,7 @@ Add find expression at source span
 Add find bound expression at source span
 
 Add CASE statement
+Inline VAR declarations
 Add Exception System
 Add safe ENUMs
 Add simple x64 codegenerator
