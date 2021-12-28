@@ -76,15 +76,7 @@ namespace Compiler.Messages
 		public ImmutableArray<Type> ExpectedTokenTypes { get; }
 		private static string GetTokenDesc(Type tokenType)
 		{
-			string? generating;
-			try
-			{
-				var field = tokenType.GetField("DefaultGenerating", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
-				generating = (string?)field?.GetValue(null);
-			} catch
-			{
-				generating = null;
-			}
+			var generating = ScannerKeywordTable.GetDefaultGenerating(tokenType);
 			if (generating != null)
 				return $"{tokenType.Name} '{generating}'";
 			else

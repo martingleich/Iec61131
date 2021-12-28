@@ -21,6 +21,7 @@ namespace SourceGenerator
 			foreach (var keyword in keywords)
 				cw.WriteLine($"[{keyword.Name}.DefaultGenerating] = {keyword.Name}.Create,");
 			cw.EndBlock(";");
+
 			cw.WriteLine("public static IToken? TryMap(string potentialKeyword, SourcePoint startPosition, IToken? leadingNonSyntax)");
 			cw.StartBlock();
 			cw.WriteLine("if (Table.TryGetValue(potentialKeyword, out var creator))");
@@ -29,6 +30,22 @@ namespace SourceGenerator
 			cw.EndBlock();
 			cw.WriteLine("return null;");
 			cw.EndBlock();
+
+			cw.WriteLine($"private static readonly System.Collections.Generic.Dictionary<System.Type, string> DefaultGeneratingTable = new()");
+			cw.StartBlock();
+			foreach (var keyword in keywords)
+				cw.WriteLine($"[typeof({keyword.Name})] = {keyword.Name}.DefaultGenerating,");
+			cw.EndBlock(";");
+
+			cw.WriteLine("public static string? GetDefaultGenerating(Type type)");
+			cw.StartBlock();
+			cw.WriteLine("if (DefaultGeneratingTable.TryGetValue(type, out var defaultGenerating))");
+			cw.StartBlock();
+			cw.WriteLine("return defaultGenerating;");
+			cw.EndBlock();
+			cw.WriteLine("return null;");
+			cw.EndBlock();
+
 			cw.EndBlock();
 			return cw.ToCode();
 		}
