@@ -20,6 +20,20 @@ namespace Compiler
 		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
+	public sealed class TopLevelPouLanguageSource : ILanguageSource
+	{
+		public string File { get; }
+		public readonly string Code;
+
+		public TopLevelPouLanguageSource(string file, string code)
+		{
+			File = file ?? throw new ArgumentNullException(nameof(file));
+			Code = code;
+		}
+
+		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
+	}
+
 	public sealed class GlobalVariableListLanguageSource : ILanguageSource
 	{
 		public string File { get; }
@@ -66,12 +80,12 @@ namespace Compiler
 
 	public readonly struct ParsedTopLevelInterfaceAndBodyPouLanguageSource
 	{
-		public readonly TopLevelInterfaceAndBodyPouLanguageSource Original;
+		public readonly ILanguageSource Original;
 		public readonly PouInterfaceSyntax Interface;
 		public readonly StatementListSyntax Body;
 		public readonly ImmutableArray<IMessage> Messages;
 
-		public ParsedTopLevelInterfaceAndBodyPouLanguageSource(TopLevelInterfaceAndBodyPouLanguageSource original, PouInterfaceSyntax @interface, StatementListSyntax body, ImmutableArray<IMessage> messages)
+		public ParsedTopLevelInterfaceAndBodyPouLanguageSource(ILanguageSource original, PouInterfaceSyntax @interface, StatementListSyntax body, ImmutableArray<IMessage> messages)
 		{
 			Original = original ?? throw new ArgumentNullException(nameof(original));
 			Interface = @interface ?? throw new ArgumentNullException(nameof(@interface));

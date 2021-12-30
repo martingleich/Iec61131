@@ -112,10 +112,18 @@ namespace Compiler
 			token is IdentifierToken ||
 			token is BraceOpenToken;
 
+		public static (PouInterfaceSyntax Interface, StatementListSyntax Body) ParsePou(string file, string input, Messages.MessageBag messages)
+		{
+			var parser = new Parser(file, input, messages);
+			var result = parser.ParsePou();
+			parser.ExpectEnd();
+			return result;
+		}
+
 		public static PouInterfaceSyntax ParsePouInterface(string file, string input, Messages.MessageBag messages)
 		{
 			var parser = new Parser(file, input, messages);
-			var result = parser.ParsePouInterface();
+			var result = parser.ParsePouInterface(forceComplete: true);
 			parser.ExpectEnd();
 			return result;
 		}
@@ -158,7 +166,7 @@ namespace Compiler
 		private GlobalVarListSyntax ParseGlobalVarListSyntax()
 		{
 			var attributes = ParseAttributes();
-			var varDeclBlocks = ParseVariableDeclBlocks();
+			var varDeclBlocks = ParseVariableDeclBlocks(forceComplete: true);
 			return new GlobalVarListSyntax(attributes, varDeclBlocks);
 		}
 
@@ -302,13 +310,20 @@ namespace Compiler
 				attributes.Add(new AttributeSyntax(tokenAttribute));
 			return attributes.ToSyntaxArray(defaultPosition);
 		}
-		private PouInterfaceSyntax ParsePouInterface()
+		private (PouInterfaceSyntax Interface, StatementListSyntax Body) ParsePou()
+		{
+			var @interface = ParsePouInterface(forceComplete: false);
+			var body = ParsePouBody();
+			return (@interface, body);
+		}
+
+		private PouInterfaceSyntax ParsePouInterface(bool forceComplete)
 		{
 			var attributes = ParseAttributes();
 			var tokenPouKind = Match<IPouKindToken>(FunctionToken.Synthesize);
 			var tokenName = Match(IdentifierToken.Synthesize);
 			var returnDeclaration = TryParseReturnDeclaration();
-			var variableDeclBlocks = ParseVariableDeclBlocks();
+			var variableDeclBlocks = ParseVariableDeclBlocks(forceComplete);
 			return new PouInterfaceSyntax(attributes, tokenPouKind, tokenName, returnDeclaration, variableDeclBlocks);
 
 			ReturnDeclSyntax? TryParseReturnDeclaration()
@@ -325,7 +340,7 @@ namespace Compiler
 			}
 		}
 
-		private SyntaxArray<VarDeclBlockSyntax> ParseVariableDeclBlocks()
+		private SyntaxArray<VarDeclBlockSyntax> ParseVariableDeclBlocks(bool forceComplete)
 		{
 			var defaultStart = CurToken.SourceSpan;
 			var list = ImmutableArray.CreateBuilder<VarDeclBlockSyntax>();
@@ -338,8 +353,15 @@ namespace Compiler
 				}
 				else
 				{
-					AddUnexpectedTokenMessage(typeof(VarToken), typeof(VarInputToken), typeof(VarOutToken), typeof(VarInOutToken), typeof(VarTempToken));
-					SkipUntil<IVarDeclKindToken>();
+					if (forceComplete)
+					{
+						AddUnexpectedTokenMessage(typeof(VarToken), typeof(VarInputToken), typeof(VarOutToken), typeof(VarInOutToken), typeof(VarTempToken));
+						SkipUntil<IVarDeclKindToken>();
+					}
+					else
+					{
+						break;
+					}
 				}
 			}
 			return list.ToSyntaxArray(defaultStart);

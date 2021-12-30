@@ -64,6 +64,14 @@ namespace Compiler
 			var body = Parser.ParsePouBody(source.File + "/impl", source.Body, msg);
 			return Add(new ParsedTopLevelInterfaceAndBodyPouLanguageSource(source, itf, body, msg.ToImmutable()));
 		}
+		public Project Add(TopLevelPouLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var (itf, body) = Parser.ParsePou(source.File, source.Code, msg);
+			return Add(new ParsedTopLevelInterfaceAndBodyPouLanguageSource(source, itf, body, msg.ToImmutable()));
+		}
 		public Project Add(GlobalVariableListLanguageSource source)
 		{
 			if (source is null)

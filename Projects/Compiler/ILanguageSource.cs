@@ -8,6 +8,7 @@
 			void Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource);
 			void Visit(GlobalVariableListLanguageSource globalVariableLanguageSource);
 			void Visit(DutLanguageSource dutLanguageSource);
+			void Visit(TopLevelPouLanguageSource topLevelPouLanguageSource);
 		}
 		void Accept(IVisitor visitor);
 	}
