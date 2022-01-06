@@ -46,6 +46,8 @@ namespace SourceGenerator
 			cw.WriteLine("return null;");
 			cw.EndBlock();
 
+			cw.WriteLine("public static System.Collections.Immutable.ImmutableArray<string> AllKeywords = System.Collections.Immutable.ImmutableArray.CreateRange(Table.Keys);");
+
 			cw.EndBlock();
 			return cw.ToCode();
 		}
