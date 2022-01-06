@@ -11,7 +11,7 @@ namespace Compiler
 	{
 		SourcePoint StartPosition { get; }
 		int Length { get; }
-		string Generating { get; }
+		string? Generating { get; }
 		IToken? LeadingNonSyntax { get; }
 		IToken? TrailingNonSyntax { get; set; }
 	}

@@ -90,16 +90,16 @@ namespace SourceGenerator
 		}
 
 		public SourcePoint StartPosition { get; }
-		public abstract string Generating { get; }
+		public abstract string? Generating { get; }
 		public IToken? LeadingNonSyntax { get; }
 		public IToken? TrailingNonSyntax { get; set; }
-		public int Length => Generating.Length;
+		public int Length => Generating != null ? Generating.Length : 0;
 		public SourceSpan SourceSpan => SourceSpan.FromStartLength(StartPosition, Length);
 	}
 
 	public abstract class DefaultTokenWithValueImplementation<T> : DefaultTokenImplementation, ITokenWithValue<T>
 	{
-		protected DefaultTokenWithValueImplementation(T value, string generating, SourcePoint startPosition, IToken? leadingNonSyntax) :
+		protected DefaultTokenWithValueImplementation(T value, string? generating, SourcePoint startPosition, IToken? leadingNonSyntax) :
 			base(startPosition, leadingNonSyntax)
 		{
 			Value = value;
@@ -107,7 +107,7 @@ namespace SourceGenerator
 		}
 
 		public T Value { get; }
-		public override string Generating { get; }
+		public override string? Generating { get; }
 	}");
 			foreach (var tokenClass in TokenClasses.All)
 			{

@@ -57,7 +57,7 @@ namespace Compiler
 				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromRealValue(realLiteralToken.Value, context);
 				if (value == null)
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(realLiteralToken.Generating, context, realLiteralToken.SourceSpan));
+					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(realLiteralToken.Generating ?? realLiteralToken.Value.ToString(), context, realLiteralToken.SourceSpan));
 					value = new UnknownLiteralValue(context);
 				}
 				return new LiteralBoundExpression(realLiteralToken, value);
@@ -81,7 +81,7 @@ namespace Compiler
 				var value = ExpressionBinder.SystemScope.TryCreateLiteralFromDurationValue(durationLiteralToken.Value, context);
 				if (value == null)
 				{
-					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(durationLiteralToken.Generating, context, durationLiteralToken.SourceSpan));
+					MessageBag.Add(new ConstantDoesNotFitIntoTypeMessage(durationLiteralToken.Generating ?? durationLiteralToken.Value.ToString(), context, durationLiteralToken.SourceSpan));
 					value = new UnknownLiteralValue(context);
 				}
 				return new LiteralBoundExpression(durationLiteralToken, value);

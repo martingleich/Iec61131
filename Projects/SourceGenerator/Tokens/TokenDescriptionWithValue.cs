@@ -17,10 +17,10 @@ namespace SourceGenerator
 			cw.WriteLine("[ExcludeFromCodeCoverage]");
 			cw.WriteLine($"public sealed partial class {Name} : {Interfaces.Prepend($"DefaultTokenWithValueImplementation<{ValueType}>").DelimitWith(", ")}");
 			cw.StartBlock();
-			cw.WriteLine($"public {Name}({ValueType} value, string generating, SourcePoint startPosition, IToken? leadingNonSyntax) : base(value, generating, startPosition, leadingNonSyntax) {{ }}");
+			cw.WriteLine($"public {Name}({ValueType} value, string? generating, SourcePoint startPosition, IToken? leadingNonSyntax) : base(value, generating, startPosition, leadingNonSyntax) {{ }}");
 			if(DefaultValue != null)
 				cw.WriteLine($"public readonly static Func<SourcePoint, {Name}> Synthesize = startPosition => SynthesizeEx(startPosition, {DefaultValue});");
-			cw.WriteLine($"public static {Name} SynthesizeEx(SourcePoint startPosition, {ValueType} value) => new {Name}(value, \"\", startPosition, null);");
+			cw.WriteLine($"public static {Name} SynthesizeEx(SourcePoint startPosition, {ValueType} value) => new {Name}(value, null, startPosition, null);");
 			cw.WriteLine($"public override string ToString() => \"{Name}(\" + Value.ToString() + \")\";");
 			cw.WriteCode(GetInterfaceImplCode());
 			cw.EndBlock();

@@ -15,10 +15,12 @@ namespace SourceGenerator
 			cw.WriteLine("[ExcludeFromCodeCoverage]");
 			cw.WriteLine($"public sealed partial class {Name} : {Interfaces.Prepend("DefaultTokenImplementation").DelimitWith(", ")}");
 			cw.StartBlock();
-			cw.WriteLine($"public {Name}(SourcePoint startPosition, IToken? leadingNonSyntax) : base(startPosition, leadingNonSyntax) {{ }}");
+			cw.WriteLine($"public {Name}(SourcePoint startPosition, IToken? leadingNonSyntax) : this(startPosition, leadingNonSyntax, false) {{ }}");
+			cw.WriteLine($"private {Name}(SourcePoint startPosition, IToken? leadingNonSyntax, bool isError) : base(startPosition, leadingNonSyntax) {{ IsError = isError;}}");
 			cw.WriteLine($"public static readonly string DefaultGenerating = {LanguageUtils.ToCSharpString(Generating)};");
-			cw.WriteLine($"public override string Generating => {LanguageUtils.ToCSharpString(Generating)};");
-			cw.WriteLine($"public static readonly Func<SourcePoint, {Name}> Synthesize = startPosition => new {Name}(startPosition, null);");
+			cw.WriteLine($"public readonly bool IsError;");
+			cw.WriteLine($"public override string? Generating => IsError ? null : DefaultGenerating;");
+			cw.WriteLine($"public static readonly Func<SourcePoint, {Name}> Synthesize = startPosition => new {Name}(startPosition, null, true);");
 			cw.WriteLine($"public override string ToString() => nameof({Name});");
 			cw.WriteCode(GetInterfaceImplCode());
 			cw.EndBlock();
