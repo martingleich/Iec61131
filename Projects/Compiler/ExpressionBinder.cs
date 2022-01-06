@@ -4,6 +4,7 @@ using System.Linq;
 using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
+using StandardLibraryExtensions;
 
 namespace Compiler
 {
