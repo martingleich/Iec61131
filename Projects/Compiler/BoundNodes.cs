@@ -65,6 +65,7 @@ namespace Compiler
 
 	public interface IBoundStatement : IBoundNode
 	{
+		void Accept(IVisitor visitor);
 		T Accept<T>(IVisitor<T> visitor);
 		T Accept<T, TContext>(IVisitor<T, TContext> visitor, TContext context);
 		interface IVisitor<T>
@@ -78,6 +79,18 @@ namespace Compiler
 			T Visit(ContinueBoundStatement continueBoundStatement);
 			T Visit(ReturnBoundStatement returnBoundStatement);
 			T Visit(ForLoopBoundStatement forLoopBoundStatement);
+		}
+		interface IVisitor
+		{
+			void Visit(SequenceBoundStatement sequenceBoundStatement);
+			void Visit(ExpressionBoundStatement expressionBoundStatement);
+			void Visit(AssignBoundStatement assignToExpressionBoundStatement);
+			void Visit(IfBoundStatement ifBoundStatement);
+			void Visit(WhileBoundStatement whileBoundStatement);
+			void Visit(ExitBoundStatement exitBoundStatement);
+			void Visit(ContinueBoundStatement continueBoundStatement);
+			void Visit(ReturnBoundStatement returnBoundStatement);
+			void Visit(ForLoopBoundStatement forLoopBoundStatement);
 		}
 		interface IVisitor<T, TContext>
 		{
@@ -513,6 +526,7 @@ namespace Compiler
 			Statements = statements;
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -528,6 +542,7 @@ namespace Compiler
 			Expression = expression ?? throw new ArgumentNullException(nameof(expression));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -545,6 +560,7 @@ namespace Compiler
 			RightSide = rightSide ?? throw new ArgumentNullException(nameof(rightSide));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -571,6 +587,7 @@ namespace Compiler
 			Branches = branches;
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -588,6 +605,7 @@ namespace Compiler
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -601,6 +619,7 @@ namespace Compiler
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -613,6 +632,7 @@ namespace Compiler
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -624,6 +644,7 @@ namespace Compiler
 		}
 
 		public INode OriginalNode { get; }
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
@@ -649,6 +670,7 @@ namespace Compiler
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
