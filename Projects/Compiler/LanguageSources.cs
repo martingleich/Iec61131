@@ -70,6 +70,14 @@ namespace Compiler
 		public readonly TypeDeclarationSyntax Syntax;
 		public readonly ImmutableArray<IMessage> Messages;
 
+		public static ParsedDutLanguageSource FromSource(DutLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var parsed = Parser.ParseTypeDeclaration(source.File, source.Source, msg);
+			return new (source, parsed, msg.ToImmutable());
+		}
 		public ParsedDutLanguageSource(DutLanguageSource original, TypeDeclarationSyntax syntax, ImmutableArray<IMessage> messages)
 		{
 			Original = original ?? throw new ArgumentNullException(nameof(original));
@@ -84,6 +92,24 @@ namespace Compiler
 		public readonly PouInterfaceSyntax Interface;
 		public readonly StatementListSyntax Body;
 		public readonly ImmutableArray<IMessage> Messages;
+
+		public static ParsedTopLevelInterfaceAndBodyPouLanguageSource FromSource(TopLevelPouLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var (itf, body) = Parser.ParsePou(source.File, source.Code, msg);
+			return new (source, itf, body, msg.ToImmutable());
+		}
+		public static ParsedTopLevelInterfaceAndBodyPouLanguageSource FromSource(TopLevelInterfaceAndBodyPouLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var itf = Parser.ParsePouInterface(source.File + "/itf", source.Interface, msg);
+			var body = Parser.ParsePouBody(source.File + "/impl", source.Body, msg);
+			return new (source, itf, body, msg.ToImmutable());
+		}
 
 		public ParsedTopLevelInterfaceAndBodyPouLanguageSource(ILanguageSource original, PouInterfaceSyntax @interface, StatementListSyntax body, ImmutableArray<IMessage> messages)
 		{
@@ -101,6 +127,14 @@ namespace Compiler
 		public readonly GlobalVarListSyntax Syntax;
 		public readonly ImmutableArray<IMessage> Messages;
 
+		public static ParsedGVLLanguageSource FromSource(GlobalVariableListLanguageSource source)
+		{
+			if (source is null)
+				throw new ArgumentNullException(nameof(source));
+			var msg = new MessageBag();
+			var body = Parser.ParseGlobalVarList(source.File, source.Body, msg);
+			return new (source, source.Name, body, msg.ToImmutable());
+		}
 		public ParsedGVLLanguageSource(GlobalVariableListLanguageSource original, CaseInsensitiveString name, GlobalVarListSyntax syntax, ImmutableArray<IMessage> messages)
 		{
 			Original = original ?? throw new ArgumentNullException(nameof(original));
