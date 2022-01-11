@@ -76,6 +76,8 @@ namespace Compiler.Messages
 		public ImmutableArray<Type> ExpectedTokenTypes { get; }
 		private static string GetTokenDesc(Type tokenType)
 		{
+			if (tokenType == typeof(IPouKindToken))
+				return $"'FUNCTION' or 'FUNCTION_BLOCK'-token";
 			var generating = ScannerKeywordTable.GetDefaultGenerating(tokenType);
 			if (generating != null)
 				return $"{tokenType.Name} '{generating}'";
@@ -86,9 +88,18 @@ namespace Compiler.Messages
 		{
 			get
 			{
-				return ExpectedTokenTypes.TryGetSingle(out var single)
-						? $"Expected a {GetTokenDesc(single)} but received '{ReceivedToken.Generating}'."
-						: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))} but received '{ReceivedToken.Generating}'.";
+				if (ReceivedToken is EndToken)
+				{
+					return ExpectedTokenTypes.TryGetSingle(out var single)
+							? $"Unexpected end-of-file, expected a {GetTokenDesc(single)}."
+							: $"Unexpected end-of-file, expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))}.";
+				}
+				else
+				{
+					return ExpectedTokenTypes.TryGetSingle(out var single)
+							? $"Expected a {GetTokenDesc(single)} but received '{ReceivedToken.Generating}'."
+							: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))} but received '{ReceivedToken.Generating}'.";
+				}
 			}
 		}
 	}

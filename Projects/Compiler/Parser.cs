@@ -477,7 +477,7 @@ namespace Compiler
 			else
 			{
 				Messages.Add(new Messages.TypeExpectedMessage(CurToken));
-				SkipUntil<SemicolonToken>();
+				//SkipUntil(resyncTokens);
 				return new BuiltInTypeSyntax(Synthesize(IntToken.Synthesize));
 			}
 		}
