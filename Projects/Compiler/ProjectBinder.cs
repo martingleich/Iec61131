@@ -27,6 +27,30 @@ namespace Compiler
 			FunctionPous = functionPous ?? throw new ArgumentNullException(nameof(functionPous));
 			FunctionBlockPous = functionBlockPous ?? throw new ArgumentNullException(nameof(functionBlockPous));
 		}
+
+		public ImmutableArray<IMessage>? _backingBindMessages;
+		public ImmutableArray<IMessage> BindMessages
+		{
+			get
+			{
+				if (!_backingBindMessages.HasValue)
+				{
+					var messages = ImmutableArray.CreateBuilder<IMessage>();
+					foreach (var func in FunctionPous)
+					{
+						messages.AddRange(func.Value.LazyBoundBody.Value.Errors);
+						messages.AddRange(func.Value.LazyFlowAnalyis.Value);
+					}
+					foreach (var fb in FunctionBlockPous)
+					{
+						messages.AddRange(fb.Value.LazyBoundBody.Value.Errors);
+						messages.AddRange(fb.Value.LazyFlowAnalyis.Value);
+					}
+					_backingBindMessages = messages.ToImmutable();
+				}
+				return _backingBindMessages.Value;
+			}
+		}
 	}
 
 	public sealed class BoundModuleInterface

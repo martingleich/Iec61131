@@ -1,5 +1,6 @@
 ﻿using Compiler.Messages;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -13,9 +14,6 @@ namespace Compiler
 		private readonly ImmutableArray<LibraryLanguageSource> Libraries;
 		public readonly CaseInsensitiveString Name;
 
-		public readonly Lazy<BoundModule> LazyBoundModule;
-		public readonly Lazy<ImmutableArray<IMessage>> LazyParseMessages;
-
 		private Project(
 			CaseInsensitiveString name,
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource> pous,
@@ -28,14 +26,32 @@ namespace Compiler
 			Duts = duts;
 			Libraries = libraries;
 			Name = name;
-
-			LazyBoundModule = new Lazy<BoundModule>(() => ProjectBinder.Bind(Name, Pous, Gvls, Duts, Libraries));
-			LazyParseMessages = new Lazy<ImmutableArray<IMessage>>(() =>
-				Enumerable.Concat(
-					Duts.SelectMany(d => d.Messages),
-					Pous.SelectMany(d => d.Messages)).ToImmutableArray());
 		}
 
+		private ImmutableArray<IMessage>? _backingParseMessages;
+		public IEnumerable<IMessage> ParseMessages
+		{
+			get
+			{
+				if (!_backingParseMessages.HasValue)
+				{
+					_backingParseMessages = Enumerable.Concat(
+						Duts.SelectMany(d => d.Messages),
+						Pous.SelectMany(d => d.Messages)).ToImmutableArray();
+				}
+				return _backingParseMessages.Value;
+			}
+		}
+		private BoundModule? _backingBoundModule;
+		public BoundModule BoundModule
+		{
+			get
+			{
+				if (_backingBoundModule == null)
+					_backingBoundModule = ProjectBinder.Bind(Name, Pous, Gvls, Duts, Libraries);
+				return _backingBoundModule;
+			}
+		}
 		public static Project Empty(CaseInsensitiveString name) => new(
 			name,
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource>.Empty,

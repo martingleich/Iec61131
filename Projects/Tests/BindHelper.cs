@@ -44,15 +44,15 @@ namespace Tests
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{
-				ExactlyMessages()(MyProject.LazyParseMessages.Value);
-				ExactlyMessages(checks)(MyProject.LazyBoundModule.Value.InterfaceMessages);
-				return MyProject.LazyBoundModule.Value.Interface;
+				ExactlyMessages()(MyProject.ParseMessages);
+				ExactlyMessages(checks)(MyProject.BoundModule.InterfaceMessages);
+				return MyProject.BoundModule.Interface;
 			}
 
 			public TestBoundBodies BindBodies(params Action<IMessage>[] checks)
 			{
-				ExactlyMessages()(MyProject.LazyParseMessages.Value);
-				var boundModule = MyProject.LazyBoundModule.Value;
+				ExactlyMessages()(MyProject.ParseMessages);
+				var boundModule = MyProject.BoundModule;
 				var boundPous1 = boundModule.FunctionPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous2 = boundModule.FunctionBlockPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous = Enumerable.Concat(boundPous1, boundPous2).ToImmutableDictionary();
@@ -112,9 +112,9 @@ namespace Tests
 				var expressionParseMessages = new MessageBag();
 				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
 				ExactlyMessages()(expressionParseMessages);
-				ExactlyMessages()(Project.MyProject.LazyParseMessages.Value);
-				ExactlyMessages()(Project.MyProject.LazyBoundModule.Value.InterfaceMessages);
-				var boundModuleInterface = Project.MyProject.LazyBoundModule.Value.Interface;
+				ExactlyMessages()(Project.MyProject.ParseMessages);
+				ExactlyMessages()(Project.MyProject.BoundModule.InterfaceMessages);
+				var boundModuleInterface = Project.MyProject.BoundModule.Interface;
 				var moduleScope = new GlobalInternalModuleScope(boundModuleInterface, new RootScope(boundModuleInterface.SystemScope));
 				var variables = Variables.ToSymbolSet(x =>
 				{
