@@ -582,7 +582,7 @@ namespace Compiler.Messages
 			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
 		}
 
-		public override string Text => $"The variable '{Variable.Name}' must be assigned a variable before the end of the function.";
+		public override string Text => $"The variable '{Variable.Name}' must be assigned a value before the end of the function.";
 	}
 	public sealed class UnreachableCodeMessage : AUncriticalMessage
 	{
