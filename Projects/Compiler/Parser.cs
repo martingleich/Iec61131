@@ -175,15 +175,11 @@ namespace Compiler
 		private StatementListSyntax ParseStatementList<TEnd>(Func<SourcePoint, TEnd> endSynthesiszer, out TEnd outEnd) where TEnd : class, IToken
 		{
 			var defaultStart = CurToken.SourceSpan;
-			var list = ImmutableArray.CreateBuilder<IStatementSyntax>();
-			while (CurToken is not TEnd && CurToken is not EndToken)
-			{
-				var statement = ParseStatement();
-				list.Add(statement);
-			}
+			var statements = ParseList(this, StaticParseStatement, x => x is TEnd);
 			outEnd = Match(endSynthesiszer);
-			return new StatementListSyntax(list.ToSyntaxArray(defaultStart));
+			return new StatementListSyntax(statements.ToSyntaxArray(defaultStart));
 		}
+		private static readonly Func<Parser, IStatementSyntax> StaticParseStatement = p => p.ParseStatement();
 		private IStatementSyntax ParseStatement()
 		{
 			if (TryMatch<IfToken>(out var tokenIf))
@@ -266,30 +262,25 @@ namespace Compiler
 
 			IfStatementSyntax ParseIfStatement(IfToken tokenIf)
 			{
-				var statements = ImmutableArray.CreateBuilder<IStatementSyntax>();
 				var elsifBranches = ImmutableArray.CreateBuilder<ElsifBranchSyntax>();
 
 				var condition = ParseExpression();
 				var tokenThen = Match(ThenToken.Synthesize);
-				while (CurToken is not EndToken && CurToken is not ElsifToken && CurToken is not ElseToken && CurToken is not EndIfToken)
-					statements.Add(ParseStatement());
-				var ifBranch = new IfBranchSyntax(tokenIf, condition, tokenThen, statements.ToStatementList(tokenThen.SourceSpan));
-				statements.Clear();
+				var thenStatements = ParseList(this, StaticParseStatement, tok => tok is ElsifToken or ElseToken or EndIfToken);
+				var ifBranch = new IfBranchSyntax(tokenIf, condition, tokenThen, thenStatements.ToStatementList(tokenThen.SourceSpan));
 				while (TryMatch<ElsifToken>(out var tokenElsif))
 				{
 					condition = ParseExpression();
 					tokenThen = Match(ThenToken.Synthesize);
-					while (CurToken is not EndToken && CurToken is not ElsifToken && CurToken is not ElseToken && CurToken is not EndIfToken)
-						statements.Add(ParseStatement());
-					elsifBranches.Add(new ElsifBranchSyntax(tokenElsif, condition, tokenThen, statements.ToStatementList(tokenThen.SourceSpan)));
-					statements.Clear();
+					var elsifStatements = ParseList(this, StaticParseStatement, tok => tok is ElsifToken or ElseToken or EndIfToken);
+					elsifBranches.Add(new ElsifBranchSyntax(tokenElsif, condition, tokenThen, elsifStatements.ToStatementList(tokenThen.SourceSpan)));
+					elsifStatements.Clear();
 				}
 				ElseBranchSyntax? elseBranch;
 				if (TryMatch<ElseToken>(out var tokenElse))
 				{
-					while (CurToken is not EndToken && CurToken is not EndIfToken)
-						statements.Add(ParseStatement());
-					elseBranch = new ElseBranchSyntax(tokenElse, statements.ToStatementList(tokenElse.SourceSpan));
+					var elseStatements = ParseList(this, StaticParseStatement, tok => tok is EndIfToken);
+					elseBranch = new ElseBranchSyntax(tokenElse, elseStatements.ToStatementList(tokenElse.SourceSpan));
 				}
 				else
 				{
@@ -376,27 +367,22 @@ namespace Compiler
 		private SyntaxArray<VarDeclSyntax> ParseVariableDeclarations<TEnd>(Func<SourcePoint, TEnd> synthesizeEnd, out TEnd tokenEndVar) where TEnd : class, IToken
 		{
 			var defaultStart = CurToken.SourceSpan;
-			var list = ImmutableArray.CreateBuilder<VarDeclSyntax>();
-			while (CurToken is not EndToken && CurToken is not TEnd)
-			{
-				var vardecl = ParseVariableDeclaration();
-				list.Add(vardecl);
-			}
+			var declarations = ParseList(this, StaticParserVariableDeclaration, tok => tok is TEnd);
 			tokenEndVar = Match(synthesizeEnd);
-			return list.ToSyntaxArray(defaultStart);
-
-			VarDeclSyntax ParseVariableDeclaration()
-			{
-				var attributes = ParseAttributes();
-				var tokenIdentifier = Match(IdentifierToken.Synthesize);
-				var tokenColon = Match(ColonToken.Synthesize);
-				var type = ParseType();
-				var initial = TryParseVarInit();
-				var tokenSemicolon = Match(SemicolonToken.Synthesize);
-				return new(attributes, tokenIdentifier, tokenColon, type, initial, tokenSemicolon);
-			}
+			return declarations.ToSyntaxArray(defaultStart);
 		}
 
+		private static readonly Func<Parser, VarDeclSyntax> StaticParserVariableDeclaration = p => p.ParseVariableDeclaration();
+		VarDeclSyntax ParseVariableDeclaration()
+		{
+			var attributes = ParseAttributes();
+			var tokenIdentifier = Match(IdentifierToken.Synthesize);
+			var tokenColon = Match(ColonToken.Synthesize);
+			var type = ParseType();
+			var initial = TryParseVarInit();
+			var tokenSemicolon = Match(SemicolonToken.Synthesize);
+			return new(attributes, tokenIdentifier, tokenColon, type, initial, tokenSemicolon);
+		}
 		VarInitSyntax? TryParseVarInit()
 		{
 			if (TryMatch<AssignToken>(out var tokenAssign))
@@ -824,6 +810,21 @@ namespace Compiler
 			while (CurToken is not T && CurToken is not EndToken)
 				Skip();
 		}
+
+		private static ImmutableArray<T> ParseList<T>(Parser parser, Func<Parser, T> parseElem, Func<IToken, bool> isEnd)
+		{
+			var result = ImmutableArray.CreateBuilder<T>();
+			while (parser.CurToken is not EndToken && !isEnd(parser.CurToken))
+			{
+				var initial = parser.CurToken;
+				var x = parseElem(parser);
+				result.Add(x);
+				if (ReferenceEquals(initial, parser.CurToken))
+					break;
+			}
+			return result.ToImmutable();
+		}
+
 		private bool TryMatch<T>([NotNullWhen(true)] out T? result) where T : class, IToken
 		{
 			result = CurToken as T;
