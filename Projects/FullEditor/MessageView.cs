@@ -122,7 +122,10 @@ namespace FullEditor
 					var start = pos.Start;
 					if (start < EditorView.TextBuffer.Snapshot.Length)
 					{
-						EditorView.Selection.Range = (pos.Start, pos.End);
+						if(pos.Length != 0)
+							EditorView.Selection.Range = (pos.Start, pos.End);
+						else
+							EditorView.Caret.Position = pos.Start;
 						EditorView.Focus();
 					}
 				}
