@@ -174,10 +174,9 @@ namespace Compiler
 
 		private StatementListSyntax ParseStatementList<TEnd>(Func<SourcePoint, TEnd> endSynthesiszer, out TEnd outEnd) where TEnd : class, IToken
 		{
-			var defaultStart = CurToken.SourceSpan;
-			var statements = ParseList(this, StaticParseStatement, x => x is TEnd);
+			var statements = ParseSyntaxArray(this, StaticParseStatement, x => x is TEnd);
 			outEnd = Match(endSynthesiszer);
-			return new StatementListSyntax(statements.ToSyntaxArray(defaultStart));
+			return new StatementListSyntax(statements);
 		}
 		private static readonly Func<Parser, IStatementSyntax> StaticParseStatement = p => p.ParseStatement();
 		private IStatementSyntax ParseStatement()
@@ -366,10 +365,9 @@ namespace Compiler
 		}
 		private SyntaxArray<VarDeclSyntax> ParseVariableDeclarations<TEnd>(Func<SourcePoint, TEnd> synthesizeEnd, out TEnd tokenEndVar) where TEnd : class, IToken
 		{
-			var defaultStart = CurToken.SourceSpan;
-			var declarations = ParseList(this, StaticParserVariableDeclaration, tok => tok is TEnd);
+			var declarations = ParseSyntaxArray(this, StaticParserVariableDeclaration, tok => tok is TEnd);
 			tokenEndVar = Match(synthesizeEnd);
-			return declarations.ToSyntaxArray(defaultStart);
+			return declarations;
 		}
 
 		private static readonly Func<Parser, VarDeclSyntax> StaticParserVariableDeclaration = p => p.ParseVariableDeclaration();
@@ -811,6 +809,12 @@ namespace Compiler
 				Skip();
 		}
 
+		private static SyntaxArray<T> ParseSyntaxArray<T>(Parser parser, Func<Parser, T> parseElem, Func<IToken, bool> isEnd) where T : ISyntax
+		{
+			var start = parser.CurToken.SourceSpan;
+			var list = ParseList(parser, parseElem, isEnd);
+			return list.ToSyntaxArray(start);
+		}
 		private static ImmutableArray<T> ParseList<T>(Parser parser, Func<Parser, T> parseElem, Func<IToken, bool> isEnd)
 		{
 			var result = ImmutableArray.CreateBuilder<T>();
