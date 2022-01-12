@@ -10,7 +10,6 @@ Add simple x64 codegenerator
 Simple incremental compile
 Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.
 LateLanguageUpdates
-Parser tests
 Strings
 Durations
 	Add casts:

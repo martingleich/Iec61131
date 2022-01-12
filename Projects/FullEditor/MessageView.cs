@@ -55,7 +55,11 @@ namespace FullEditor
 		private void OnNewMessageSet(ImmutableArray<ProjectMessage> messages)
 		{
 			Items.Clear();
-			Items.AddRange(messages.Select(MessageToItem).ToArray());
+			Items.AddRange(messages
+				.OrderBy(x => x.OriginalMessage.Span.Start)
+				.ThenBy(x => x.OriginalMessage.Span.Length)
+				.Select(MessageToItem)
+				.ToArray());
 			Items.Add(GetFinalItem(messages));
 		}
 		private static ListViewItem GetFinalItem(ImmutableArray<ProjectMessage> messages)
