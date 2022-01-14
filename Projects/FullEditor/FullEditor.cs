@@ -24,7 +24,7 @@ namespace FullEditor
 				Font = new Font(FontFamily.GenericMonospace, 12),
 				Dock = DockStyle.Fill
 			};
-			synEd.TextBuffer.OnNewSnapshot.Subscribe(scheduler.SetNewSnapshot);
+			synEd.TextBuffer.OnNewSnapshot.Throttle(TimeSpan.FromSeconds(0.5)).Subscribe(scheduler.SetNewSnapshot);
 
 			synEd.Options.GetOptionStorageByName<Color>("text-color").Value = Color.FromArgb(220, 220, 220);
 			synEd.Options.GetOptionStorageByName<Color>("background-color").Value = Color.FromArgb(30, 30, 30);

@@ -12,6 +12,7 @@ namespace FullEditor
 	{
 		public readonly string FileName;
 		private (ParsedTopLevelInterfaceAndBodyPouLanguageSource, TextSnapshot)? LastParsed;
+		private readonly object _cacheLock = new();
 
 		public SingleFileCompilerScheduler(string fileName)
 		{
@@ -23,12 +24,15 @@ namespace FullEditor
 
 		public ParsedTopLevelInterfaceAndBodyPouLanguageSource GetParsedPou(TextSnapshot snapshot)
 		{
-			if (!(LastParsed.HasValue && ReferenceEquals(snapshot, LastParsed.Value.Item2)))
+			lock (_cacheLock)
 			{
-				var source = GetPouSource(snapshot);
-				LastParsed = (ParsedTopLevelInterfaceAndBodyPouLanguageSource.FromSource(source), snapshot);
+				if (LastParsed.HasValue && ReferenceEquals(snapshot, LastParsed.Value.Item2))
+					return LastParsed.Value.Item1;
 			}
-			return LastParsed.Value.Item1;
+			var source = GetPouSource(snapshot);
+			var result = (ParsedTopLevelInterfaceAndBodyPouLanguageSource.FromSource(source), snapshot);
+			lock (_cacheLock)
+				return (LastParsed = result).Value.Item1;
 		}
 
 		public void SetNewSnapshot(TextSnapshot snapshot)

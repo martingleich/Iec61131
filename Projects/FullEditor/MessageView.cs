@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Reactive.Linq;
 
 namespace FullEditor
 {
@@ -28,7 +29,7 @@ namespace FullEditor
 			var descriptionHeader = Columns.Add("");
 			descriptionHeader.Width = -2;
 
-			onNewMessageSet.Subscribe(OnNewMessageSet);
+			onNewMessageSet.ObserveOn(this).Subscribe(OnNewMessageSet);
 			OnNewMessageSet(ImmutableArray<ProjectMessage>.Empty);
 		}
 
