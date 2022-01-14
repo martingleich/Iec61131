@@ -62,5 +62,32 @@ namespace Tests
 				LocalVarDeclStatementSyntax("x".ToCaseInsensitive(), NullSyntax, VarInitSyntax(LiteralExpressionSyntax(IntegerLiteralToken(0))))
 				))(parsed);
 		}
+		[Fact]
+		public void ParseVarDeclForStatement_NoType()
+		{
+			var parsed = ParseStatements("FOR VAR x := 0 TO 10 DO END_FOR");
+			StatementListSyntax(SyntaxArray<IStatementSyntax>(
+				ForStatementSyntax(
+					ForStatementDeclareLocalIndexSyntax("x".ToCaseInsensitive(), NullSyntax, VarInitSyntax(LiteralExpressionSyntax(IntegerLiteralToken(0)))),
+					LiteralExpressionSyntax(IntegerLiteralToken(10)),
+					NullSyntax,
+					StatementListSyntax(SyntaxArray<IStatementSyntax>()))
+				))(parsed);
+		}
+		[Fact]
+		public void ParseVarDeclForStatement_Type()
+		{
+			var parsed = ParseStatements("FOR VAR x : INT := 0 TO 10 DO END_FOR");
+			StatementListSyntax(SyntaxArray<IStatementSyntax>(
+				ForStatementSyntax(
+					ForStatementDeclareLocalIndexSyntax(
+						"x".ToCaseInsensitive(),
+						VarTypeSyntax(BuiltInTypeSyntax(IntToken)),
+						VarInitSyntax(LiteralExpressionSyntax(IntegerLiteralToken(0)))),
+					LiteralExpressionSyntax(IntegerLiteralToken(10)),
+					NullSyntax,
+					StatementListSyntax(SyntaxArray<IStatementSyntax>()))
+				))(parsed);
+		}
 	}
 }

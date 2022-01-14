@@ -586,6 +586,9 @@
     <SyntaxInterface>
       <Name>IElementSyntax</Name>
     </SyntaxInterface>
+    <SyntaxInterface>
+      <Name>IForStatementIndexSyntax</Name>
+    </SyntaxInterface>
   </SyntaxInterfaces>
   <SyntaxClasses>
     <SyntaxClass>
@@ -1304,6 +1307,39 @@
       </Element>
     </SyntaxClass>
     <SyntaxClass>
+      <Name>ForStatementExternalIndexSyntax</Name>
+      <Interface>IForStatementIndexSyntax</Interface>
+      <Element>
+        <Name>IndexVariable</Name>
+        <Type>IExpressionSyntax</Type>
+      </Element>
+      <Element>
+        <Name>Initial</Name>
+        <Type>VarInitSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>ForStatementDeclareLocalIndexSyntax</Name>
+      <Interface>IForStatementIndexSyntax</Interface>
+      <Element>
+        <Name>TokenVar</Name>
+        <Type>VarToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenIdentifier</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+      <Element>
+        <Name>Type</Name>
+        <Kind>Nullable</Kind>
+        <Type>VarTypeSyntax</Type>
+      </Element>
+      <Element>
+        <Name>Initial</Name>
+        <Type>VarInitSyntax</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
       <Name>ForStatementSyntax</Name>
       <Interface>IStatementSyntax</Interface>
       <Element>
@@ -1311,16 +1347,8 @@
         <Type>ForToken</Type>
       </Element>
       <Element>
-        <Name>IndexVariable</Name>
-        <Type>IExpressionSyntax</Type>
-      </Element>
-      <Element>
-        <Name>TokenAssign</Name>
-        <Type>AssignToken</Type>
-      </Element>
-      <Element>
-        <Name>InitialValue</Name>
-        <Type>IExpressionSyntax</Type>
+        <Name>Index</Name>
+        <Type>IForStatementIndexSyntax</Type>
       </Element>
       <Element>
         <Name>TokenTo</Name>

@@ -127,9 +127,10 @@ namespace Compiler
 
 		IBoundStatement IStatementSyntax.IVisitor<IBoundStatement>.Visit(ForStatementSyntax forStatementSyntax)
 		{
-			var boundIndex = BindExpression(forStatementSyntax.IndexVariable);
+			var index = (ForStatementExternalIndexSyntax)forStatementSyntax.Index;
+			var boundIndex = BindExpression(index.IndexVariable);
 			IsLValueChecker.IsLValue(boundIndex).Extract(MessageBag);
-			var boundInitial = BindExpressionWithTargetType(forStatementSyntax.InitialValue, boundIndex.Type);
+			var boundInitial = BindExpressionWithTargetType(index.Initial.Value, boundIndex.Type);
 			var boundUpperBound = BindExpressionWithTargetType(forStatementSyntax.UpperBound, boundIndex.Type);
 			IBoundExpression boundStep;
 			if (forStatementSyntax.ByClause is not null)
@@ -147,7 +148,7 @@ namespace Compiler
 			}
 			else
 			{
-				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.IndexVariable.SourceSpan));
+				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, index.IndexVariable.SourceSpan));
 				var errorName = ImplicitName.ErrorBinaryOperator(realIndexType.Code, realIndexType.Code, "ADD");
 				incrementFunctionSymbol = FunctionVariableSymbol.CreateError(forStatementSyntax.SourceSpan, errorName, realIndexType);
 			}

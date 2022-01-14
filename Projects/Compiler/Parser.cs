@@ -229,22 +229,20 @@ namespace Compiler
 			LocalVarDeclStatementSyntax ParseLocalVarDeclStatement(VarToken tokenVar)
 			{
 				var tokenIdentifier = Match(IdentifierToken.Synthesize);
-				var type = TryParseVarTypeSyntax();
+				var type = TryParseVarType();
 				var inital = TryParseVarInit();
 				var tokenSemicolon = Match(SemicolonToken.Synthesize);
 				return new LocalVarDeclStatementSyntax(tokenVar, tokenIdentifier, type, inital, tokenSemicolon);
 			}
 			ForStatementSyntax ParseForStatement(ForToken tokenFor)
 			{
-				var index = ParseExpression();
-				var tokenAssign = Match(AssignToken.Synthesize);
-				var initial = ParseExpression();
+				var index = ParseIndex();
 				var tokenTo = Match(ToToken.Synthesize);
 				var upperBound = ParseExpression();
 				var byClause = TryParseForByClause();
 				var tokenDo = Match(DoToken.Synthesize);
 				var statements = ParseStatementList(EndForToken.Synthesize, out var tokenEndFor);
-				return new ForStatementSyntax(tokenFor, index, tokenAssign, initial, tokenTo, upperBound, byClause, tokenDo, statements, tokenEndFor);
+				return new ForStatementSyntax(tokenFor, index, tokenTo, upperBound, byClause, tokenDo, statements, tokenEndFor);
 
 				ForByClauseSyntax? TryParseForByClause()
 				{
@@ -256,6 +254,22 @@ namespace Compiler
 					else
 					{
 						return null;
+					}
+				}
+				IForStatementIndexSyntax ParseIndex()
+				{
+					if (TryMatch<VarToken>(out var tokenVar))
+					{
+						var index = Match(IdentifierToken.Synthesize);
+						var vartype = TryParseVarType();
+						var varinit = ParseVarInit();
+						return new ForStatementDeclareLocalIndexSyntax(tokenVar, index, vartype, varinit);
+					}
+					else
+					{
+						var index = ParseExpression();
+						var varinit = ParseVarInit();
+						return new ForStatementExternalIndexSyntax(index, varinit);
 					}
 				}
 			}
@@ -337,12 +351,12 @@ namespace Compiler
 			var attributes = ParseAttributes();
 			var tokenPouKind = Match<IPouKindToken>(FunctionToken.Synthesize);
 			var tokenName = Match(IdentifierToken.Synthesize);
-			var returnDeclaration = TryParseVarTypeSyntax();
+			var returnDeclaration = TryParseVarType();
 			var variableDeclBlocks = ParseVariableDeclBlocks(forceComplete);
 			return new PouInterfaceSyntax(attributes, tokenPouKind, tokenName, returnDeclaration, variableDeclBlocks);
 
 		}
-		VarTypeSyntax? TryParseVarTypeSyntax()
+		VarTypeSyntax? TryParseVarType()
 		{
 			if (TryMatch<ColonToken>(out var tokenColon))
 			{
@@ -354,7 +368,7 @@ namespace Compiler
 				return null;
 			}
 		}
-		VarTypeSyntax ParseVarTypeSyntax()
+		VarTypeSyntax ParseVarType()
 		{
 			var tokenColon = Match(ColonToken.Synthesize);
 			var type = ParseType();
@@ -406,7 +420,7 @@ namespace Compiler
 		{
 			var attributes = ParseAttributes();
 			var tokenIdentifier = Match(IdentifierToken.Synthesize);
-			var type = ParseVarTypeSyntax();
+			var type = ParseVarType();
 			var initial = TryParseVarInit();
 			var tokenSemicolon = Match(SemicolonToken.Synthesize);
 			return new(attributes, tokenIdentifier, type, initial, tokenSemicolon);
@@ -422,6 +436,12 @@ namespace Compiler
 			{
 				return null;
 			}
+		}
+		VarInitSyntax ParseVarInit()
+		{
+			var tokenAssign = Match(AssignToken.Synthesize);
+			var value = ParseExpression();
+			return new(tokenAssign, value);
 		}
 
 		private ITypeSyntax? TryParseBuiltInType()
