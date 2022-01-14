@@ -44,7 +44,7 @@ namespace Tests
 		[Fact]
 		public static void Error_MissingScope()
 		{
-			var parsed = ParseExpression("::x", ErrorOfType<ExpectedExpressionMessage>(), ErrorOfType<ExpectedSyntaxMessage>());
+			var parsed = ParseExpression("::x", ErrorOfType<ExpectedSyntaxMessage>(), ErrorOfType<ExpectedSyntaxMessage>());
 			VariableExpressionSyntax("__ERROR__")(parsed);
 		}
 	}

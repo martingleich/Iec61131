@@ -103,7 +103,7 @@ namespace Compiler
 				kind => isLocal(kind) ? Marker : null,
 				(_, scope, bag, syntax) =>
 				{
-					var type = TypeCompiler.MapComplete(scope, syntax.Type, messages);
+					var type = TypeCompiler.MapComplete(scope, syntax.Type.Type, messages);
 					var initialValue = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
 					return new LocalVariableSymbol(
 						syntax.TokenIdentifier.SourceSpan,
@@ -361,7 +361,7 @@ namespace Compiler
 			{
 				if (fieldSyntax.Initial != null)
 					messageBag.Add(new VariableCannotHaveInitialValueMessage(fieldSyntax.Initial.SourceSpan));
-				var typeSymbol = TypeCompiler.MapSymbolic(scope, fieldSyntax.Type, messageBag);
+				var typeSymbol = TypeCompiler.MapSymbolic(scope, fieldSyntax.Type.Type, messageBag);
 				return new FieldVariableSymbol(fieldSyntax.SourceSpan, fieldSyntax.Identifier, typeSymbol);
 			}
 		}
@@ -483,7 +483,7 @@ namespace Compiler
 					{
 						if (syntax.Initial != null)
 							messageBag.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourceSpan));
-						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, bag);
+						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type.Type, bag);
 						return new FieldVariableSymbol(
 							syntax.TokenIdentifier.SourceSpan,
 							syntax.Identifier,
@@ -509,7 +509,7 @@ namespace Compiler
 			}
 			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName, VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
-				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
+				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type.Type, messages);
 				var initial = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
 				return new(
 					syntax.TokenIdentifier.SourceSpan,
@@ -717,14 +717,14 @@ namespace Compiler
 					{
 						if (syntax.Initial != null)
 							messages.Add(new VariableCannotHaveInitialValueMessage(syntax.Initial.SourceSpan));
-						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
+						IType type = TypeCompiler.MapSymbolic(scope, syntax.Type.Type, messages);
 						return new ParameterVariableSymbol(
 							kind,
 							syntax.TokenIdentifier.SourceSpan,
 							syntax.Identifier,
 							type);
 					});
-			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope scope, MessageBag messages, CaseInsensitiveString functionName, ReturnDeclSyntax? syntax)
+			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope scope, MessageBag messages, CaseInsensitiveString functionName, VarTypeSyntax? syntax)
 			{
 				if (syntax != null)
 				{

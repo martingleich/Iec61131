@@ -335,22 +335,28 @@ namespace Compiler
 			var attributes = ParseAttributes();
 			var tokenPouKind = Match<IPouKindToken>(FunctionToken.Synthesize);
 			var tokenName = Match(IdentifierToken.Synthesize);
-			var returnDeclaration = TryParseReturnDeclaration();
+			var returnDeclaration = TryParseVarTypeSyntax();
 			var variableDeclBlocks = ParseVariableDeclBlocks(forceComplete);
 			return new PouInterfaceSyntax(attributes, tokenPouKind, tokenName, returnDeclaration, variableDeclBlocks);
 
-			ReturnDeclSyntax? TryParseReturnDeclaration()
+		}
+		VarTypeSyntax? TryParseVarTypeSyntax()
+		{
+			if (TryMatch<ColonToken>(out var tokenColon))
 			{
-				if (TryMatch<ColonToken>(out var tokenColon))
-				{
-					var type = ParseType();
-					return new ReturnDeclSyntax(tokenColon, type);
-				}
-				else
-				{
-					return null;
-				}
+				var type = ParseType();
+				return new VarTypeSyntax(tokenColon, type);
 			}
+			else
+			{
+				return null;
+			}
+		}
+		VarTypeSyntax ParseVarTypeSyntax()
+		{
+			var tokenColon = Match(ColonToken.Synthesize);
+			var type = ParseType();
+			return new VarTypeSyntax(tokenColon, type);
 		}
 
 		private SyntaxArray<VarDeclBlockSyntax> ParseVariableDeclBlocks(bool forceComplete)
@@ -398,11 +404,10 @@ namespace Compiler
 		{
 			var attributes = ParseAttributes();
 			var tokenIdentifier = Match(IdentifierToken.Synthesize);
-			var tokenColon = Match(ColonToken.Synthesize);
-			var type = ParseType();
+			var type = ParseVarTypeSyntax();
 			var initial = TryParseVarInit();
 			var tokenSemicolon = Match(SemicolonToken.Synthesize);
-			return new(attributes, tokenIdentifier, tokenColon, type, initial, tokenSemicolon);
+			return new(attributes, tokenIdentifier, type, initial, tokenSemicolon);
 		}
 		VarInitSyntax? TryParseVarInit()
 		{

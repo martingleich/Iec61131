@@ -613,23 +613,12 @@
       <Element>
         <Name>ReturnDeclaration</Name>
         <Kind>Nullable</Kind>
-        <Type>ReturnDeclSyntax</Type>
+        <Type>VarTypeSyntax</Type>
       </Element>
       <Element>
         <Name>VariableDeclarations</Name>
         <Kind>Array</Kind>
         <Type>VarDeclBlockSyntax</Type>
-      </Element>
-    </SyntaxClass>
-    <SyntaxClass>
-      <Name>ReturnDeclSyntax</Name>
-      <Element>
-        <Name>TokenColon</Name>
-        <Type>ColonToken</Type>
-      </Element>
-      <Element>
-        <Name>Type</Name>
-        <Type>ITypeSyntax</Type>
       </Element>
     </SyntaxClass>
     <!--VarDecl-->
@@ -666,12 +655,8 @@
         <Type>IdentifierToken</Type>
       </Element>
       <Element>
-        <Name>TokenColon</Name>
-        <Type>ColonToken</Type>
-      </Element>
-      <Element>
         <Name>Type</Name>
-        <Type>ITypeSyntax</Type>
+        <Type>VarTypeSyntax</Type>
       </Element>
       <Element>
         <Name>Initial</Name>
@@ -681,6 +666,17 @@
       <Element>
         <Name>TokenSemicolon</Name>
         <Type>SemicolonToken</Type>
+      </Element>
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>VarTypeSyntax</Name>
+      <Element>
+        <Name>TokenColon</Name>
+        <Type>ColonToken</Type>
+      </Element>
+      <Element>
+        <Name>Type</Name>
+        <Type>ITypeSyntax</Type>
       </Element>
     </SyntaxClass>
     <SyntaxClass>

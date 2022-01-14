@@ -1,8 +1,33 @@
+Inline VAR declarations
+	Syntax as Statement:
+		VAR <identifier>;
+		VAR <identifier> : <Type>;
+		VAR <identifier> := <Expression>;
+		VAR <identifier> : <Type> := <Expression>;
+	Syntax as output:
+		Call(outArg => VAR <identifier>)
+		Call(outArg => VAR <identifier> : <Type>)
+	Syntax as LoopIndex
+		FOR VAR <identifier> := <expr> TO <upper>
+		FOR VAR <identifier> : <Type> := <expr> TO <upper>
+
+	If no type is given, the type is infered from the expression
+	All these variables are temporary variables.
+	All these variables are scoped to the smaller sourounding block
+	Shadowing of other temporary or parameter variables is not allowed.
+	Variables are marked as used at the beginning of the block(seperate path),
+		and are to be typed later(if not type is given in the syntax)
+		initially they have the error type.
+	Using a variable before it will be declared, is a error.
+	A variable will be marked as declared when it is definitly declared, this depends on the kind of declaration:
+		Statement: After statement
+		Call-output: After the call
+		LoopIndex: Before the first statement of the loop, but after the BY-Clause
+
 Add find expression at source span
 Add find bound expression at source span
 
 Add CASE statement
-Inline VAR declarations
 Add Exception System
 Add safe ENUMs
 Add simple x64 codegenerator
