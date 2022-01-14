@@ -24,6 +24,19 @@ Inline VAR declarations
 		Call-output: After the call
 		LoopIndex: Before the first statement of the loop, but after the BY-Clause
 
+	Step1:
+		Parsing
+			Statement
+			Call
+			Loop
+		Binding
+			Allow LocalVariable to be late declared and late typed.
+			When binding a block collect all declared variables inside and return them to the outside for flow analysis.
+			Bind the block
+			...
+			
+
+
 Add find expression at source span
 Add find bound expression at source span
 

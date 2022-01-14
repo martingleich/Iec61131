@@ -167,5 +167,10 @@ namespace Compiler
 
 		IBoundStatement IStatementSyntax.IVisitor<IBoundStatement>.Visit(EmptyStatementSyntax emptyStatementSyntax)
 			=> new SequenceBoundStatement(emptyStatementSyntax, ImmutableArray<IBoundStatement>.Empty);
+
+		IBoundStatement IStatementSyntax.IVisitor<IBoundStatement>.Visit(LocalVarDeclStatementSyntax localVarDeclStatementSyntax)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

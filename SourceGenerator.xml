@@ -373,133 +373,133 @@
       <Name>TrueToken</Name>
       <Generating>TRUE</Generating>
       <Interface>ILiteralToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>FalseToken</Name>
       <Generating>FALSE</Generating>
       <Interface>ILiteralToken</Interface>
-    </TokenKeywordClass> 
-    <!--BuiltInTypes--> 
+    </TokenKeywordClass>
+    <!--BuiltInTypes-->
     <TokenKeywordClass>
       <Name>CharToken</Name>
       <Generating>CHAR</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LRealToken</Name>
       <Generating>LREAL</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>RealToken</Name>
       <Generating>REAL</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LIntToken</Name>
       <Generating>LINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>DIntToken</Name>
       <Generating>DINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>IntToken</Name>
       <Generating>INT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>SIntToken</Name>
       <Generating>SINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>ULIntToken</Name>
       <Generating>ULINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>UDIntToken</Name>
       <Generating>UDINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>UIntToken</Name>
       <Generating>UINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>USIntToken</Name>
       <Generating>USINT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LWordToken</Name>
       <Generating>LWORD</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>DWordToken</Name>
       <Generating>DWORD</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>WordToken</Name>
       <Generating>WORD</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>ByteToken</Name>
       <Generating>BYTE</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>BoolToken</Name>
       <Generating>BOOL</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LTimeToken</Name>
       <Generating>LTIME</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>TimeToken</Name>
       <Generating>TIME</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LDTToken</Name>
       <Generating>LDT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>DTToken</Name>
       <Generating>DT</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LDateToken</Name>
       <Generating>LDATE</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>DateToken</Name>
       <Generating>DATE</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>LTODToken</Name>
       <Generating>LTOD</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>TODToken</Name>
       <Generating>TOD</Generating>
       <Interface>IBuiltInTypeToken</Interface>
-    </TokenKeywordClass> 
+    </TokenKeywordClass>
     <!--Simple token with value-->
     <TokenWithValueClass>
       <Name>IdentifierToken</Name>
@@ -1242,7 +1242,7 @@
         <Name>Statements</Name>
         <Type>StatementListSyntax</Type>
       </Element>
-    </SyntaxClass> 
+    </SyntaxClass>
     <SyntaxClass>
       <Name>ReturnStatementSyntax</Name>
       <Interface>IStatementSyntax</Interface>
@@ -1508,6 +1508,32 @@
         <Kind>Array</Kind>
         <Type>VarDeclBlockSyntax</Type>
       </Element>
-    </SyntaxClass> 
+    </SyntaxClass>
+    <SyntaxClass>
+      <Name>LocalVarDeclStatementSyntax</Name>
+      <Interface>IStatementSyntax</Interface>
+      <Element>
+        <Name>TokenVar</Name>
+        <Type>VarToken</Type>
+      </Element>
+      <Element>
+        <Name>TokenIdentifier</Name>
+        <Type>IdentifierToken</Type>
+      </Element>
+      <Element>
+        <Name>Type</Name>
+        <Kind>Nullable</Kind>
+        <Type>VarTypeSyntax</Type>
+      </Element>
+      <Element>
+        <Name>Initial</Name>
+        <Kind>Nullable</Kind>
+        <Type>VarInitSyntax</Type>
+      </Element>
+      <Element>
+        <Name>TokenSemicolon</Name>
+        <Type>SemicolonToken</Type>
+      </Element>
+    </SyntaxClass>
   </SyntaxClasses>
 </Objects>

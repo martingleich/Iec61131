@@ -205,49 +205,35 @@ namespace Compiler
 		private IStatementSyntax ParseStatement()
 		{
 			if (TryMatch<IfToken>(out var tokenIf))
-			{
 				return ParseIfStatement(tokenIf);
-			}
 			else if (TryMatch<WhileToken>(out var tokenWhile))
-			{
 				return ParseWhileLoop(tokenWhile);
-			}
 			else if (TryMatch<ForToken>(out var tokenFor))
-			{
 				return ParseForStatement(tokenFor);
-			}
 			else if (TryMatch<ReturnToken>(out var tokenReturn))
-			{
 				return new ReturnStatementSyntax(tokenReturn, Match(SemicolonToken.Synthesize));
-			}
 			else if (TryMatch<ExitToken>(out var tokenExit))
-			{
 				return new ExitStatementSyntax(tokenExit, Match(SemicolonToken.Synthesize));
-			}
 			else if (TryMatch<ContinueToken>(out var tokenContinue))
-			{
 				return new ContinueStatementSyntax(tokenContinue, Match(SemicolonToken.Synthesize));
-			}
 			else if (TryMatch<SemicolonToken>(out var tokenSemicolon))
-			{
 				return new EmptyStatementSyntax(tokenSemicolon);
-			}
-			else
-			{
-				var expr = ParseExpression();
-				if (TryMatch<SemicolonToken>(out var tokenSemicolon2))
-				{
-					return new ExpressionStatementSyntax(expr, tokenSemicolon2);
-				}
-				else
-				{
-					var tokenAssign = Match(AssignToken.Synthesize);
-					var rightExpr = ParseExpression();
-					var tokenSemicolon3 = Match(SemicolonToken.Synthesize);
-					return new AssignStatementSyntax(expr, tokenAssign, rightExpr, tokenSemicolon3);
-				}
-			}
+			else if (TryMatch<VarToken>(out var tokenVar))
+				return ParseLocalVarDeclStatement(tokenVar);
+			else if (IsExpressionStartToken(CurToken))
+				return ParseExpressionStatement();
 
+			AddMessage(ExpectedSyntaxMessage.Statement(CurToken));
+			return new EmptyStatementSyntax(Synthesize(SemicolonToken.Synthesize));
+
+			LocalVarDeclStatementSyntax ParseLocalVarDeclStatement(VarToken tokenVar)
+			{
+				var tokenIdentifier = Match(IdentifierToken.Synthesize);
+				var type = TryParseVarTypeSyntax();
+				var inital = TryParseVarInit();
+				var tokenSemicolon = Match(SemicolonToken.Synthesize);
+				return new LocalVarDeclStatementSyntax(tokenVar, tokenIdentifier, type, inital, tokenSemicolon);
+			}
 			ForStatementSyntax ParseForStatement(ForToken tokenFor)
 			{
 				var index = ParseExpression();
@@ -312,6 +298,22 @@ namespace Compiler
 				var tokenEndIf = Match(EndIfToken.Synthesize);
 
 				return new IfStatementSyntax(ifBranch, elsifBranches.ToSyntaxArray(tokenThen.SourceSpan), elseBranch, tokenEndIf);
+			}
+		}
+
+		private IStatementSyntax ParseExpressionStatement()
+		{
+			var expr = ParseExpression();
+			if (TryMatch<SemicolonToken>(out var tokenSemicolon2))
+			{
+				return new ExpressionStatementSyntax(expr, tokenSemicolon2);
+			}
+			else
+			{
+				var tokenAssign = Match(AssignToken.Synthesize);
+				var rightExpr = ParseExpression();
+				var tokenSemicolon3 = Match(SemicolonToken.Synthesize);
+				return new AssignStatementSyntax(expr, tokenAssign, rightExpr, tokenSemicolon3);
 			}
 		}
 

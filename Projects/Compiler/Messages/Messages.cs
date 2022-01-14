@@ -81,6 +81,8 @@ namespace Compiler.Messages
 			=> new(receivedToken, true, "<Expression>");
 		public static ExpectedSyntaxMessage Type(IToken receivedToken)
 			=> new(receivedToken, true, "<Type>");
+		public static ExpectedSyntaxMessage Statement(IToken receivedToken)
+			=> new(receivedToken, true, "<Statement>");
 
 		private IToken ReceivedToken { get; }
 		private string Expected { get; }
@@ -112,7 +114,6 @@ namespace Compiler.Messages
 				return $"Unexpected {received}, expected {expected}.";
 			}
 		}
-
 		public static ExpectedSyntaxMessage? TryConcat(ExpectedSyntaxMessage a, ExpectedSyntaxMessage b)
 		{
 			if (ReferenceEquals(a.ReceivedToken, b.ReceivedToken) && a.Exact && b.Exact)
