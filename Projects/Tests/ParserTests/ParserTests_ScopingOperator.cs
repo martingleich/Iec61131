@@ -36,7 +36,7 @@ namespace Tests
 		[Fact]
 		public static void Error_MissingVariable()
 		{
-			var parsed = ParseExpression("a::", ErrorOfType<UnexpectedTokenMessage>());
+			var parsed = ParseExpression("a::", ErrorOfType<ExpectedSyntaxMessage>());
 			ScopedVariableExpressionSyntax(
 				ScopeQualifierSyntax(NullSyntax, "a".ToCaseInsensitive()),
 				IdentifierToken("__ERROR__"))(parsed);
@@ -44,7 +44,7 @@ namespace Tests
 		[Fact]
 		public static void Error_MissingScope()
 		{
-			var parsed = ParseExpression("::x", ErrorOfType<ExpectedExpressionMessage>(), ErrorOfType<UnexpectedTokenMessage>());
+			var parsed = ParseExpression("::x", ErrorOfType<ExpectedExpressionMessage>(), ErrorOfType<ExpectedSyntaxMessage>());
 			VariableExpressionSyntax("__ERROR__")(parsed);
 		}
 	}

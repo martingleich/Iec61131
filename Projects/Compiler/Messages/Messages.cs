@@ -64,52 +64,62 @@ namespace Compiler.Messages
 
 		public override string Text => "Could not find the '}' terminating the attribute.";
 	}
-	public sealed class UnexpectedTokenMessage : ACriticalMessage
+
+	public sealed class ExpectedSyntaxMessage : ACriticalMessage
 	{
-		public UnexpectedTokenMessage(IToken receivedToken, params Type[] expectedTokenTypes) : base(receivedToken.SourceSpan)
+		private ExpectedSyntaxMessage(IToken receivedToken, bool exact, string expected) : base(receivedToken.SourceSpan)
 		{
-			if (expectedTokenTypes is null) throw new ArgumentNullException(nameof(expectedTokenTypes));
 			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
-			ExpectedTokenTypes = expectedTokenTypes.ToImmutableArray();
+			Expected = expected;
+			Exact = exact;
 		}
-		public IToken ReceivedToken { get; }
-		public ImmutableArray<Type> ExpectedTokenTypes { get; }
+		public static ExpectedSyntaxMessage Token<T>(IToken receivedToken) where T : IToken
+			=> new(receivedToken, true, GetTokenDesc(typeof(T)));
+		public static ExpectedSyntaxMessage CommaOrEnd<TEnd>(IToken receivedToken) where TEnd:IToken
+			=> new(receivedToken, false, $"'{GetTokenDesc(typeof(CommaToken))}' or '{GetTokenDesc(typeof(TEnd))}'");
+		public static ExpectedSyntaxMessage Expression(IToken receivedToken)
+			=> new(receivedToken, true, "<Expression>");
+		public static ExpectedSyntaxMessage Type(IToken receivedToken)
+			=> new(receivedToken, true, "<Type>");
+
+		private IToken ReceivedToken { get; }
+		private string Expected { get; }
+		private bool Exact { get; }
 		private static string GetTokenDesc(Type tokenType)
 		{
 			if (tokenType == typeof(IPouKindToken))
-				return $"'FUNCTION' or 'FUNCTION_BLOCK'-token";
+				return "<PouKind>";
+			if (tokenType == typeof(IVarDeclKindToken))
+				return "<VarKind>";
+			if (tokenType == typeof(IdentifierToken))
+				return "<Identifier>";
 			var generating = ScannerKeywordTable.GetDefaultGenerating(tokenType);
 			if (generating != null)
-				return $"{tokenType.Name} '{generating}'";
+				return $"{generating}";
 			else
-				return tokenType.Name;
+				return $"<{tokenType.Name}>";
 		}
 		public override string Text
 		{
 			get
 			{
-				if (ReceivedToken is EndToken)
-				{
-					return ExpectedTokenTypes.TryGetSingle(out var single)
-							? $"Unexpected end-of-file, expected a {GetTokenDesc(single)}."
-							: $"Unexpected end-of-file, expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))}.";
-				}
-				else
-				{
-					return ExpectedTokenTypes.TryGetSingle(out var single)
-							? $"Expected a {GetTokenDesc(single)} but received '{ReceivedToken.Generating}'."
-							: $"Expected either a {MessageGrammarHelper.OrListing(ExpectedTokenTypes.Select(GetTokenDesc))} but received '{ReceivedToken.Generating}'.";
-				}
+				var received = ReceivedToken is EndToken
+					? "end-of-file"
+					: $"'{ReceivedToken.Generating}'";
+				var expected = Exact
+					? $"'{Expected}'"
+					: Expected;
+				return $"Unexpected {received}, expected {expected}.";
 			}
 		}
-	}
-	public sealed class ExpectedExpressionMessage : ACriticalMessage
-	{
-		public ExpectedExpressionMessage(SourceSpan span) : base(span)
-		{
-		}
 
-		public override string Text => "Expected a expression.";
+		public static ExpectedSyntaxMessage? TryConcat(ExpectedSyntaxMessage a, ExpectedSyntaxMessage b)
+		{
+			if (ReferenceEquals(a.ReceivedToken, b.ReceivedToken) && a.Exact && b.Exact)
+				return new ExpectedSyntaxMessage(a.ReceivedToken, true, a.Expected + " " + b.Expected);
+			else
+				return null;
+		}
 	}
 	public sealed class ConstantDoesNotFitIntoTypeMessage : ACriticalMessage
 	{
@@ -362,16 +372,6 @@ namespace Compiler.Messages
 		public override string Text => $"The enumtype '{EnumType.Code}' does not contain a value named '{Name}'.";
 	}
 
-	public sealed class TypeExpectedMessage : ACriticalMessage
-	{
-		public readonly IToken ReceivedToken;
-		public TypeExpectedMessage(IToken receivedToken) : base(receivedToken.SourceSpan)
-		{
-			ReceivedToken = receivedToken ?? throw new ArgumentNullException(nameof(receivedToken));
-		}
-
-		public override string Text => $"Expected a type but found '{ReceivedToken.Generating}' instead.";
-	}
 	public sealed class CannotCallTypeMessage : ACriticalMessage
 	{
 		public readonly IType CalledType;
@@ -603,5 +603,4 @@ namespace Compiler.Messages
 
 		public override string Text => $"Unreachable code detected.";
 	}
-	
 }

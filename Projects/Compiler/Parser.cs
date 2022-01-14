@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Compiler.Messages;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -28,8 +29,30 @@ namespace Compiler
 			Scanner = new Scanner(file, text, messages);
 			CurToken = Scanner.Next(null);
 			Messages = messages ?? throw new ArgumentNullException(nameof(messages));
-
 		}
+
+		private ExpectedSyntaxMessage? _lastMessage;
+		private void AddMessage(ExpectedSyntaxMessage message)
+		{
+			if (_lastMessage == null)
+			{
+				_lastMessage = message;
+			}
+			else
+			{
+				var combined = ExpectedSyntaxMessage.TryConcat(_lastMessage, message);
+				if (combined == null)
+				{
+					Messages.Add(_lastMessage);
+					_lastMessage = message;
+				}
+				else
+				{
+					_lastMessage = combined;
+				}
+			}
+		}
+
 		CallArgumentSyntax ParseCallArgument()
 		{
 			var explicitParameter = TryParseExplicitCallParameterSyntax();
@@ -345,7 +368,7 @@ namespace Compiler
 				{
 					if (forceComplete)
 					{
-						AddUnexpectedTokenMessage(typeof(VarToken), typeof(VarInputToken), typeof(VarOutToken), typeof(VarInOutToken), typeof(VarTempToken));
+						AddMessage(ExpectedSyntaxMessage.Token<IVarDeclKindToken>(CurToken));
 						SkipUntil<IVarDeclKindToken>();
 					}
 					else
@@ -460,7 +483,7 @@ namespace Compiler
 			}
 			else
 			{
-				Messages.Add(new Messages.TypeExpectedMessage(CurToken));
+				AddMessage(ExpectedSyntaxMessage.Type(CurToken));
 				//SkipUntil(resyncTokens);
 				return new BuiltInTypeSyntax(Synthesize(IntToken.Synthesize));
 			}
@@ -634,7 +657,7 @@ namespace Compiler
 				}
 				else
 				{
-					Messages.Add(new Messages.ExpectedExpressionMessage(CurToken.SourceSpan));
+					AddMessage(ExpectedSyntaxMessage.Expression(CurToken));
 					Skip(); // Skip the bad token.
 					return new VariableExpressionSyntax(Synthesize(IdentifierToken.Synthesize));
 				}
@@ -772,7 +795,7 @@ namespace Compiler
 				}
 				else
 				{
-					parser.AddUnexpectedTokenMessage(typeof(CommaToken), typeof(TEnd));
+					parser.AddMessage(ExpectedSyntaxMessage.CommaOrEnd<TEnd>(parser.CurToken));
 					end = MakeEnd(parser.CurToken.StartPosition);
 					return null;
 				}
@@ -783,11 +806,6 @@ namespace Compiler
 			where TElement : ISyntax where TEnd : class, IToken
 		{
 			return new CommaSeperatedParser<TElement, TEnd>(parseElement, isValid, makeEnd);
-		}
-
-		private void AddUnexpectedTokenMessage(params Type[] expected)
-		{
-			Messages.Add(new Messages.UnexpectedTokenMessage(CurToken, expected));
 		}
 
 		private void PutBack(IToken backed)
@@ -844,18 +862,24 @@ namespace Compiler
 		private T Match<T>(Func<SourcePoint, T> synthesizer) where T : class, IToken
 		{
 			if (!TryMatch<T>(out var result))
-				result = SynthesizeWithError(synthesizer);
-			return result;
+			{
+				AddMessage(ExpectedSyntaxMessage.Token<T>(CurToken));
+				return Synthesize(synthesizer);
+			}
+			else
+			{
+				return result;
+			}
 		}
 		private T Synthesize<T>(Func<SourcePoint, T> synthesizer) => synthesizer(CurToken.StartPosition);
-		private T SynthesizeWithError<T>(Func<SourcePoint, T> synthesizer)
-		{
-			AddUnexpectedTokenMessage(typeof(T));
-			return Synthesize(synthesizer);
-		}
 		private void ExpectEnd()
 		{
 			Match(EndToken.Synthesize);
+			if (_lastMessage != null)
+			{
+				Messages.Add(_lastMessage);
+				_lastMessage = null;
+			}
 		}
 	}
 }
