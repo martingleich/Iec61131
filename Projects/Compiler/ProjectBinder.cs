@@ -38,13 +38,13 @@ namespace Compiler
 					var messages = ImmutableArray.CreateBuilder<IMessage>();
 					foreach (var func in FunctionPous)
 					{
-						messages.AddRange(func.Value.LazyBoundBody.Value.Errors);
-						messages.AddRange(func.Value.LazyFlowAnalyis.Value);
+						messages.AddRange(func.Value.BoundBody.Errors);
+						messages.AddRange(func.Value.FlowAnalysis);
 					}
 					foreach (var fb in FunctionBlockPous)
 					{
-						messages.AddRange(fb.Value.LazyBoundBody.Value.Errors);
-						messages.AddRange(fb.Value.LazyFlowAnalyis.Value);
+						messages.AddRange(fb.Value.BoundBody.Errors);
+						messages.AddRange(fb.Value.FlowAnalysis);
 					}
 					_backingBindMessages = messages.ToImmutable();
 				}
@@ -83,23 +83,41 @@ namespace Compiler
 		}
 	}
 
-	public class BoundPou
+	public abstract class BoundPou
 	{
-		public readonly Lazy<ErrorsAnd<IBoundStatement>> LazyBoundBody;
-		public readonly Lazy<ImmutableArray<IMessage>> LazyFlowAnalyis;
-
-		private BoundPou(
-			Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody,
-			Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis)
+		private readonly ICallableTypeSymbol CallableSymbol;
+		protected abstract (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps { get; }
+		private ImmutableArray<IMessage>? _lazyFlowAnalyis;
+		public ImmutableArray<IMessage> FlowAnalysis
 		{
-			LazyBoundBody = lazyBoundBody ?? throw new ArgumentNullException(nameof(lazyBoundBody));
-			LazyFlowAnalyis = lazyFlowAnalyis ?? throw new ArgumentNullException(nameof(lazyFlowAnalyis));
+			get
+			{
+				if (!_lazyFlowAnalyis.HasValue)
+				{
+					_lazyFlowAnalyis = AnalyzeFlow(CallableSymbol, BoundBodyAndTemps);
+				}
+				return _lazyFlowAnalyis.Value;
+			}
 		}
+		public ErrorsAnd<IBoundStatement> BoundBody => BoundBodyAndTemps.Item1;
+
+
+		private BoundPou(ICallableTypeSymbol callableSymbol)
+		{
+			CallableSymbol = callableSymbol ?? throw new ArgumentNullException(nameof(callableSymbol));
+		}
+
 		private sealed class BoundFunction : BoundPou
 		{
-			public BoundFunction(Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody, Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis) : base(lazyBoundBody, lazyFlowAnalyis)
+			private readonly Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> _lazyBoundBody;
+
+			public BoundFunction(
+				FunctionTypeSymbol symbol,
+				Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBoundBody) : base(symbol)
 			{
+				_lazyBoundBody = lazyBoundBody;
 			}
+			protected override (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps => _lazyBoundBody.Value;
 
 			public static BoundFunction Create(
 				IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
@@ -119,17 +137,22 @@ namespace Compiler
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
-				var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
-				var lazyBoundBody = lazyBound.Select(x => x.Item1);
-				return new BoundFunction(lazyBoundBody, lazyFlowAnalyis);
+				return new BoundFunction(symbol, lazyBound);
 			}
 		}
 		private sealed class BoundFunctionBlock : BoundPou
 		{
-			public BoundFunctionBlock(Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody, Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis) : base(lazyBoundBody, lazyFlowAnalyis)
+			private readonly Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> _lazyBoundBody;
+
+			public BoundFunctionBlock(
+				FunctionBlockSymbol symbol,
+				Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBoundBody) :
+				base(symbol)
 			{
+				_lazyBoundBody = lazyBoundBody;
 			}
 
+			protected override (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps => _lazyBoundBody.Value;
 
 			public static BoundFunctionBlock Create(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionBlockSymbol symbol)
 			{
@@ -150,9 +173,7 @@ namespace Compiler
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
-				var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
-				var lazyBoundBody = lazyBound.Select(x => x.Item1);
-				return new BoundFunctionBlock(lazyBoundBody, lazyFlowAnalyis);
+				return new BoundFunctionBlock(symbol, lazyBound);
 			}
 		}
 
@@ -180,9 +201,9 @@ namespace Compiler
 			var bound = StatementBinder.Bind(body, scope, messageBag);
 			return (messageBag.ToErrorsAnd(bound), scope.LocalVariables);
 		}
-		private static ImmutableArray<IMessage> AnalyzeFlow(ICallableTypeSymbol symbol, Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBound)
+		private static ImmutableArray<IMessage> AnalyzeFlow(ICallableTypeSymbol symbol, (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) bound)
 		{
-			var (boundBody, localVariables) = lazyBound.Value;
+			var (boundBody, localVariables) = bound;
 			var trackedVariables =
 				EnumerableExtensions.Concat(
 					localVariables.Where(v => v.InitialValue == null).Select(v => KeyValuePair.Create((IVariableSymbol)v, FlowAnalyzer.VariableKind.Unrequired)),

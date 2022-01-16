@@ -56,7 +56,7 @@ namespace Tests
 				var boundPous1 = boundModule.FunctionPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous2 = boundModule.FunctionBlockPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous = Enumerable.Concat(boundPous1, boundPous2).ToImmutableDictionary();
-				var bindMessages = boundModule.InterfaceMessages.Concat(boundPous.Values.SelectMany(p => p.LazyBoundBody.Value.Errors));
+				var bindMessages = boundModule.InterfaceMessages.Concat(boundPous.Values.SelectMany(p => p.BoundBody.Errors));
 				ExactlyMessages(checks)(bindMessages);
 				return new(boundModule, boundPous);
 			}
@@ -147,13 +147,13 @@ namespace Tests
 			public TestBoundBodies Inspect(string name, Action<IBoundStatement> check) => Inspect(name.ToCaseInsensitive(), check);
 			public TestBoundBodies Inspect(CaseInsensitiveString name, Action<IBoundStatement> check)
 			{
-				check(this[name].Value.LazyBoundBody.Value.Value);
+				check(this[name].Value.BoundBody.Value);
 				return this;
 			}
 			public TestBoundBodies InspectFlowMessages(string name, params Action<IMessage>[] checks)
 			{
 				var entry = this[name.ToCaseInsensitive()];
-				ExactlyMessages(checks)(entry.Value.LazyFlowAnalyis.Value);
+				ExactlyMessages(checks)(entry.Value.FlowAnalysis);
 				return this;
 			}
 		}
