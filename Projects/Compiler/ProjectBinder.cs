@@ -83,7 +83,7 @@ namespace Compiler
 		}
 	}
 
-	public sealed class BoundPou
+	public class BoundPou
 	{
 		public readonly Lazy<ErrorsAnd<IBoundStatement>> LazyBoundBody;
 		public readonly Lazy<ImmutableArray<IMessage>> LazyFlowAnalyis;
@@ -94,6 +94,66 @@ namespace Compiler
 		{
 			LazyBoundBody = lazyBoundBody ?? throw new ArgumentNullException(nameof(lazyBoundBody));
 			LazyFlowAnalyis = lazyFlowAnalyis ?? throw new ArgumentNullException(nameof(lazyFlowAnalyis));
+		}
+		private sealed class BoundFunction : BoundPou
+		{
+			public BoundFunction(Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody, Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis) : base(lazyBoundBody, lazyFlowAnalyis)
+			{
+			}
+
+			public static BoundFunction Create(
+				IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
+			{
+				(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
+				{
+					var messageBag = new MessageBag();
+					var callableScope = new InsideCallableScope(scope, symbol);
+					var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					foreach (var local in localVariables)
+					{
+						if (symbol.Parameters.TryGetValue(local.Name, out var existing))
+							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringSpan, local.DeclaringSpan));
+					}
+					var innerScope = new TemporaryVariablesScope(callableScope, localVariables);
+					return CreateBoundBody(innerScope, messageBag, body);
+				}
+
+				var lazyBound = LazyExtensions.Create(Bind);
+				var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
+				var lazyBoundBody = lazyBound.Select(x => x.Item1);
+				return new BoundFunction(lazyBoundBody, lazyFlowAnalyis);
+			}
+		}
+		private sealed class BoundFunctionBlock : BoundPou
+		{
+			public BoundFunctionBlock(Lazy<ErrorsAnd<IBoundStatement>> lazyBoundBody, Lazy<ImmutableArray<IMessage>> lazyFlowAnalyis) : base(lazyBoundBody, lazyFlowAnalyis)
+			{
+			}
+
+
+			public static BoundFunctionBlock Create(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionBlockSymbol symbol)
+			{
+				(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
+				{
+					var messageBag = new MessageBag();
+					var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
+					var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					foreach (var local in localVariables)
+					{
+						if (symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
+							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingParameter.DeclaringSpan, local.DeclaringSpan));
+						if (symbol.Fields.TryGetValue(local.Name, out var existingField))
+							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringSpan, local.DeclaringSpan));
+					}
+					var innerScope = new TemporaryVariablesScope(insideFbScope, localVariables);
+					return CreateBoundBody(innerScope, messageBag, body);
+				}
+
+				var lazyBound = LazyExtensions.Create(Bind);
+				var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
+				var lazyBoundBody = lazyBound.Select(x => x.Item1);
+				return new BoundFunctionBlock(lazyBoundBody, lazyFlowAnalyis);
+			}
 		}
 
 		private static readonly object? Marker = new();
@@ -134,54 +194,10 @@ namespace Compiler
 			return messageBag.ToImmutable();
 		}
 		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
-		{
-			(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
-			{
-				var messageBag = new MessageBag();
-				var callableScope = new InsideCallableScope(scope, symbol);
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
-				foreach (var local in localVariables)
-				{
-					if (symbol.Parameters.TryGetValue(local.Name, out var existing))
-						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringSpan, local.DeclaringSpan));
-				}
-				var innerScope = new TemporaryVariablesScope(callableScope, localVariables);
-				return CreateBoundBody(innerScope, messageBag, body);
-			}
-
-			return Create(Bind, symbol);
-
-		}
-		static BoundPou Create(
-			Func<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> bind,
-			ICallableTypeSymbol symbol)
-		{
-			var lazyBound = LazyExtensions.Create(bind);
-			var lazyFlowAnalyis = LazyExtensions.Create(() => AnalyzeFlow(symbol, lazyBound));
-			var lazyBoundBody = lazyBound.Select(x => x.Item1);
-			return new BoundPou(lazyBoundBody, lazyFlowAnalyis);
-		}
+			=> BoundFunction.Create(scope, @interface, body, symbol);
 
 		public static BoundPou FromFunctionBlock(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionBlockSymbol symbol)
-		{
-			(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
-			{
-				var messageBag = new MessageBag();
-				var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
-				var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
-				foreach (var local in localVariables)
-				{
-					if (symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
-						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingParameter.DeclaringSpan, local.DeclaringSpan));
-					if (symbol.Fields.TryGetValue(local.Name, out var existingField))
-						messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringSpan, local.DeclaringSpan));
-				}
-				var innerScope = new TemporaryVariablesScope(insideFbScope, localVariables);
-				return CreateBoundBody(innerScope, messageBag, body);
-			}
-
-			return Create(Bind, symbol);
-		}
+			=> BoundFunctionBlock.Create(scope, @interface, body, symbol);
 	}
 
 	public sealed class LibrarySymbol : IScopeSymbol
