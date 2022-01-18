@@ -79,6 +79,7 @@ namespace Compiler
 			T Visit(ContinueBoundStatement continueBoundStatement);
 			T Visit(ReturnBoundStatement returnBoundStatement);
 			T Visit(ForLoopBoundStatement forLoopBoundStatement);
+			T Visit(InitVariableBoundStatement initVariableBoundStatement);
 		}
 		interface IVisitor
 		{
@@ -91,6 +92,7 @@ namespace Compiler
 			void Visit(ContinueBoundStatement continueBoundStatement);
 			void Visit(ReturnBoundStatement returnBoundStatement);
 			void Visit(ForLoopBoundStatement forLoopBoundStatement);
+			void Visit(InitVariableBoundStatement initVariableBoundStatement);
 		}
 		interface IVisitor<T, TContext>
 		{
@@ -103,6 +105,7 @@ namespace Compiler
 			T Visit(ContinueBoundStatement continueBoundStatement, TContext context);
 			T Visit(ReturnBoundStatement returnBoundStatement, TContext context);
 			T Visit(ForLoopBoundStatement forLoopBoundStatement, TContext context);
+			T Visit(InitVariableBoundStatement initVariableBoundStatement, TContext context);
 		}
 	}
 
@@ -562,6 +565,23 @@ namespace Compiler
 
 		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
 		public T Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
+		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+	}
+	public sealed class InitVariableBoundStatement : IBoundStatement
+	{
+		public INode OriginalNode { get; }
+		public readonly IVariableSymbol LeftSide;
+		public readonly IBoundExpression? RightSide;
+
+		public InitVariableBoundStatement(INode originalNode, IVariableSymbol leftSide, IBoundExpression? rightSide)
+		{
+			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
+			LeftSide = leftSide ?? throw new ArgumentNullException(nameof(leftSide));
+			RightSide = rightSide;
+		}
+
+		void IBoundStatement.Accept(IBoundStatement.IVisitor visitor) => visitor.Visit(this);
+		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 

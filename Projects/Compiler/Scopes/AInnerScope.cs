@@ -17,4 +17,11 @@ namespace Compiler.Scopes
 		public virtual ErrorsAnd<IVariableSymbol> LookupVariable(CaseInsensitiveString identifier, SourceSpan sourceSpan) => OuterScope.LookupVariable(identifier, sourceSpan);
 		public virtual ErrorsAnd<IScopeSymbol> LookupScope(CaseInsensitiveString identifier, SourceSpan sourceSpan) => OuterScope.LookupScope(identifier, sourceSpan);
 	}
+	
+	public abstract class AInnerStatementScope<TScope> : AInnerScope<IStatementScope>, IStatementScope where TScope : IStatementScope
+	{
+		protected AInnerStatementScope(TScope outerScope) : base(outerScope) {}
+
+		public bool InsideLoop => OuterScope.InsideLoop;
+	}
 }

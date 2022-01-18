@@ -109,7 +109,8 @@ namespace Compiler
 
 				if (!operatorFunction.HasValue)
 				{
-					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundLeft.Type, boundRight.Type));
+					if(!boundLeft.Type.IsError() && !boundRight.Type.IsError())
+						MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(binaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundLeft.Type, boundRight.Type));
 					var function = FunctionVariableSymbol.CreateError(binaryOperatorExpressionSyntax.TokenOperator.SourceSpan,
 						ImplicitName.ErrorBinaryOperator(boundLeft.Type.Code, boundRight.Type.Code, SystemScope.BuiltInFunctionTable.GetBinaryOperatorFunctionName(binaryOperatorExpressionSyntax.TokenOperator)));
 					operatorFunction = new OperatorFunction(function, false);
@@ -189,7 +190,8 @@ namespace Compiler
 
 			if (!operatorFunction.HasValue)
 			{
-				MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundValue.Type));
+				if(!boundValue.Type.IsError())
+					MessageBag.Add(new CannotPerformArithmeticOnTypesMessage(unaryOperatorExpressionSyntax.TokenOperator.SourceSpan, boundValue.Type));
 				var function = FunctionVariableSymbol.CreateError(unaryOperatorExpressionSyntax.TokenOperator.SourceSpan,
 					ImplicitName.ErrorUnaryOperator(boundValue.Type.Code, SystemScope.BuiltInFunctionTable.GetUnaryOperatorFunctionName(unaryOperatorExpressionSyntax.TokenOperator)));
 				operatorFunction = new OperatorFunction(function, false);
@@ -208,6 +210,12 @@ namespace Compiler
 		public IBoundExpression Visit(VariableExpressionSyntax variableExpressionSyntax, IType? context)
 		{
 			var variable = Scope.LookupVariable(variableExpressionSyntax.Identifier, variableExpressionSyntax.SourceSpan).Extract(MessageBag);
+			if (variable is InlineLocalVariableSymbol inlineLocalVariable && !inlineLocalVariable.IsDeclared)
+			{
+				if(!inlineLocalVariable.IsErrorDeclared)
+					MessageBag.Add(new CannotUseVariableBeforeItIsDeclaredMessage(variableExpressionSyntax.SourceSpan, inlineLocalVariable));
+				inlineLocalVariable.DeclareError(context ?? ITypeSymbol.CreateErrorForVar(variableExpressionSyntax.SourceSpan, variableExpressionSyntax.Identifier));
+			}
 			var boundExpression = new VariableBoundExpression(variableExpressionSyntax, variable);
 			return ImplicitCast(boundExpression, context);
 		}

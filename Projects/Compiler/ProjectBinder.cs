@@ -86,7 +86,7 @@ namespace Compiler
 	public abstract class BoundPou
 	{
 		private readonly ICallableTypeSymbol CallableSymbol;
-		protected abstract (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps { get; }
+		protected abstract (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) BoundBodyAndTemps { get; }
 		private ImmutableArray<IMessage>? _lazyFlowAnalyis;
 		public ImmutableArray<IMessage> FlowAnalysis
 		{
@@ -109,31 +109,26 @@ namespace Compiler
 
 		private sealed class BoundFunction : BoundPou
 		{
-			private readonly Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> _lazyBoundBody;
+			private readonly Lazy<(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode)> _lazyBoundBody;
 
 			public BoundFunction(
 				FunctionTypeSymbol symbol,
-				Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBoundBody) : base(symbol)
+				Lazy<(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode)> lazyBoundBody) : base(symbol)
 			{
 				_lazyBoundBody = lazyBoundBody;
 			}
-			protected override (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps => _lazyBoundBody.Value;
+			protected override (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) BoundBodyAndTemps => _lazyBoundBody.Value;
 
 			public static BoundFunction Create(
 				IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
 			{
-				(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
+				(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) Bind()
 				{
 					var messageBag = new MessageBag();
 					var callableScope = new InsideCallableScope(scope, symbol);
 					var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
-					foreach (var local in localVariables)
-					{
-						if (symbol.Parameters.TryGetValue(local.Name, out var existing))
-							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existing.DeclaringSpan, local.DeclaringSpan));
-					}
-					var innerScope = new TemporaryVariablesScope(callableScope, localVariables);
-					return CreateBoundBody(innerScope, messageBag, body);
+					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => symbol.Parameters.TryGetValue(local.Name);
+					return CreateBoundBody(callableScope, localVariables, messageBag, body, getAlreadyDeclared);
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
@@ -142,34 +137,27 @@ namespace Compiler
 		}
 		private sealed class BoundFunctionBlock : BoundPou
 		{
-			private readonly Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> _lazyBoundBody;
+			private readonly Lazy<(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode)> _lazyBoundBody;
 
 			public BoundFunctionBlock(
 				FunctionBlockSymbol symbol,
-				Lazy<(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>)> lazyBoundBody) :
+				Lazy<(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode)> lazyBoundBody) :
 				base(symbol)
 			{
 				_lazyBoundBody = lazyBoundBody;
 			}
 
-			protected override (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) BoundBodyAndTemps => _lazyBoundBody.Value;
+			protected override (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) BoundBodyAndTemps => _lazyBoundBody.Value;
 
 			public static BoundFunctionBlock Create(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionBlockSymbol symbol)
 			{
-				(ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) Bind()
+				(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) Bind()
 				{
 					var messageBag = new MessageBag();
 					var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
 					var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
-					foreach (var local in localVariables)
-					{
-						if (symbol.Parameters.TryGetValue(local.Name, out var existingParameter))
-							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingParameter.DeclaringSpan, local.DeclaringSpan));
-						if (symbol.Fields.TryGetValue(local.Name, out var existingField))
-							messageBag.Add(new SymbolAlreadyExistsMessage(local.Name, existingField.DeclaringSpan, local.DeclaringSpan));
-					}
-					var innerScope = new TemporaryVariablesScope(insideFbScope, localVariables);
-					return CreateBoundBody(innerScope, messageBag, body);
+					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => (IVariableSymbol?)symbol.Parameters.TryGetValue(local.Name) ?? symbol.Fields.TryGetValue(local.Name);
+					return CreateBoundBody(insideFbScope, localVariables, messageBag, body, getAlreadyDeclared);
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
@@ -193,27 +181,43 @@ namespace Compiler
 						initialValue);
 				});
 
-		static (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) CreateBoundBody(
-			TemporaryVariablesScope scope,
+		static (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) CreateBoundBody(
+			IScope outerScope,
+			OrderedSymbolSet<LocalVariableSymbol> tempVariables,
 			MessageBag messageBag,
-			IStatementSyntax body)
+			StatementListSyntax body,
+			Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared)
 		{
-			var bound = StatementBinder.Bind(body, scope, messageBag);
-			return (messageBag.ToErrorsAnd(bound), scope.LocalVariables);
+			var rootNode = new RootVarDeclTreeNode(tempVariables);
+			var scope = rootNode.GetScope(outerScope);
+			var bound = StatementBinder.Bind(body, rootNode, scope, messageBag);
+			rootNode.GetAllMessages(messageBag, getAlreadyDeclared);
+			return (messageBag.ToErrorsAnd(bound), rootNode);
 		}
-		private static ImmutableArray<IMessage> AnalyzeFlow(ICallableTypeSymbol symbol, (ErrorsAnd<IBoundStatement>, OrderedSymbolSet<LocalVariableSymbol>) bound)
+		private static ImmutableArray<IMessage> AnalyzeFlow(ICallableTypeSymbol symbol,
+			(ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) bound)
 		{
-			var (boundBody, localVariables) = bound;
-			var trackedVariables =
-				EnumerableExtensions.Concat(
-					localVariables.Where(v => v.InitialValue == null).Select(v => KeyValuePair.Create((IVariableSymbol)v, FlowAnalyzer.VariableKind.Unrequired)),
-					symbol.Parameters.Where(p => p.Kind == ParameterKind.Output).Select(v => KeyValuePair.Create((IVariableSymbol)v, FlowAnalyzer.VariableKind.Required)))
-				.ToImmutableArray();
+			var (boundBody, rootVarDeclNode) = bound;
+			var trackedVariables = GetTrackedVariables(symbol, rootVarDeclNode);
+
 			var messageBag = new MessageBag();
-			var initialExpressions = localVariables.Select(v => v.InitialValue).WhereNotNull();
+			var initialExpressions = rootVarDeclNode.GetBeforeCodeInitializations();
 			FlowAnalyzer.Analyse(initialExpressions, boundBody.Value, trackedVariables, messageBag);
 			return messageBag.ToImmutable();
 		}
+
+		private static ImmutableArray<FlowAnalyzer.TrackedVariable> GetTrackedVariables(ICallableTypeSymbol symbol, RootVarDeclTreeNode rootVarDeclNode)
+		{
+			var trackedVariables = ImmutableArray.CreateBuilder<FlowAnalyzer.TrackedVariable>();
+			rootVarDeclNode.GetAllTrackedVariables(trackedVariables);
+			foreach (var p in symbol.Parameters)
+			{
+				if (p.Kind == ParameterKind.Output)
+					trackedVariables.Add(FlowAnalyzer.TrackedVariable.Required(p));
+			}
+			return trackedVariables.ToImmutable();
+		}
+
 		public static BoundPou FromFunction(IScope scope, PouInterfaceSyntax @interface, StatementListSyntax body, FunctionTypeSymbol symbol)
 			=> BoundFunction.Create(scope, @interface, body, symbol);
 

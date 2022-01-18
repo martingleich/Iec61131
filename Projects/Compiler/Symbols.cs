@@ -48,6 +48,35 @@ namespace Compiler
 		}
 		public readonly IBoundExpression? InitialValue; 
 	}
+	public sealed class InlineLocalVariableSymbol : IVariableSymbol
+	{
+		public SourceSpan DeclaringSpan { get; }
+		public CaseInsensitiveString Name { get; }
+		private IType? _type;
+
+		public InlineLocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name)
+		{
+			DeclaringSpan = declaringSpan;
+			Name = name;
+		}
+
+		public IType Type => _type ?? throw new InvalidOperationException();
+
+		internal bool IsDeclared => _type != null;
+		internal bool IsErrorDeclared { get; private set; }
+		internal void Declare(IType type)
+		{
+			if (_type != null && !IsErrorDeclared)
+				throw new InvalidOperationException();
+			IsErrorDeclared = false;
+			_type = type;
+		}
+		internal void DeclareError(IType type)
+		{
+			IsErrorDeclared = true;
+			_type = type;
+		}
+	}
 	public sealed class ErrorVariableSymbol : AVariableSymbol
 	{
 		public ErrorVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace Compiler
 {
@@ -24,13 +23,13 @@ namespace Compiler
 			_variableTable = variableTable ?? throw new ArgumentNullException(nameof(variableTable));
 		}
 
-		private static ImmutableDictionary<IVariableSymbol, int> CreateVariableTable(ImmutableArray<KeyValuePair<IVariableSymbol, VariableKind>> trackedVariables)
+		private static ImmutableDictionary<IVariableSymbol, int> CreateVariableTable(ImmutableArray<TrackedVariable> trackedVariables)
 		{
-			var table = ImmutableDictionary.CreateBuilder<IVariableSymbol, int>(SymbolByNameComparer<IVariableSymbol>.Instance);
+			var table = ImmutableDictionary.CreateBuilder<IVariableSymbol, int>(ReferenceEqualityComparer<IVariableSymbol>.Instance);
 			int id = 0;
-			foreach (var (variable, _) in trackedVariables)
+			foreach (var trackedVariable in trackedVariables)
 			{
-				table.Add(variable, id);
+				table.Add(trackedVariable.Variable, id);
 				++id;
 			}
 			return table.ToImmutable();
@@ -39,12 +38,34 @@ namespace Compiler
 		public enum VariableKind
 		{
 			Unrequired = 0,
-			Required = 1,
+			Inline = 1,
+			Required = 2,
+		}
+
+		public readonly struct TrackedVariable
+		{
+			public readonly IVariableSymbol Variable;
+			public readonly VariableKind Kind;
+
+			public TrackedVariable(IVariableSymbol variable, VariableKind kind)
+			{
+				Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+				Kind = kind;
+			}
+
+			public static TrackedVariable Required(IVariableSymbol variable) => new (variable, VariableKind.Required);
+			public static TrackedVariable Inline(IVariableSymbol variable) => new (variable, VariableKind.Inline);
+			public static TrackedVariable Unrequired(IVariableSymbol variable) => new (variable, VariableKind.Unrequired);
+			public void Deconstruct(out IVariableSymbol variable, out VariableKind kind)
+			{
+				variable = Variable;
+				kind = Kind;
+			}
 		}
 		public static void Analyse(
-			IEnumerable<IBoundExpression> initialExpressions,
+			ImmutableArray<IBoundExpression> initialExpressions,
 			IBoundStatement statement,
-			ImmutableArray<KeyValuePair<IVariableSymbol, VariableKind>> trackedVariables,
+			ImmutableArray<TrackedVariable> trackedVariables,
 			MessageBag messages)
 		{
 			var variableTable = CreateVariableTable(trackedVariables);
@@ -52,9 +73,16 @@ namespace Compiler
 			analyzer.Analyze(initialExpressions, statement, messages, trackedVariables);
 		}
 
-		private void Analyze(IEnumerable<IBoundExpression> initialExpressions, IBoundStatement statement, MessageBag messages, ImmutableArray<KeyValuePair<IVariableSymbol, VariableKind>> trackedVariables)
+		private void Analyze(
+			ImmutableArray<IBoundExpression> initialExpressions,
+			IBoundStatement statement,
+			MessageBag messages,
+			ImmutableArray<TrackedVariable> trackedVariables)
 		{
 			var state = FlowState.Empty(_variableTable.Count);
+			foreach (var (variable, kind) in trackedVariables)
+				if(kind == VariableKind.Inline) // Mark all inline variables as readable until they are declared, so we don't report duplicate errors for using a variable before it is declared.
+					state = state.MarkReadable(_variableTable, variable);
 			foreach (var initial in initialExpressions)
 				state = initial.Accept(_reader, state);
 			var result = statement.Accept(this, state);
@@ -150,6 +178,19 @@ namespace Compiler
 
 		FlowState IBoundStatement.IVisitor<FlowState, FlowState>.Visit(ReturnBoundStatement returnBoundStatement, FlowState context)
 			=> context.AddReturn();
+		FlowState IBoundStatement.IVisitor<FlowState, FlowState>.Visit(InitVariableBoundStatement initVariableBoundStatement, FlowState context)
+		{
+			if (initVariableBoundStatement.RightSide is IBoundExpression initial)
+			{
+				var afterReadInitial = initial.Accept(_reader, context);
+				var assigner = Assigner.ForVariable(initVariableBoundStatement.LeftSide);
+				return assigner.PerformAssign(_variableTable, afterReadInitial);
+			}
+			else
+			{
+				return context.MarkUnreadable(_variableTable, initVariableBoundStatement.LeftSide);
+			}
+		}
 
 		private readonly struct Assigner
 		{
@@ -385,6 +426,13 @@ namespace Compiler
 				copy[i >> 6] |= 1ul << (i & 0x3F);
 				return new BitSet(copy);
 			}
+			public BitSet Remove(int i)
+			{
+				var copy = new ulong[_bits.Length];
+				Array.Copy(_bits, copy, _bits.Length);
+				copy[i >> 6] &= ~(1ul << (i & 0x3F));
+				return new BitSet(copy);
+			}
 			public BitSet Intersect(BitSet other)
 			{
 				var copy = new ulong[_bits.Length];
@@ -422,6 +470,13 @@ namespace Compiler
 			{
 				if (table.TryGetValue(variable, out int id) && !ReadableVariables.Contains(id))
 					return new FlowState(_state, ReadableVariables.Add(id));
+				else
+					return this;
+			}
+			public FlowState MarkUnreadable(ImmutableDictionary<IVariableSymbol, int> table, IVariableSymbol variable)
+			{
+				if (table.TryGetValue(variable, out int id) && ReadableVariables.Contains(id))
+					return new FlowState(_state, ReadableVariables.Remove(id));
 				else
 					return this;
 			}

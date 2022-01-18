@@ -43,8 +43,9 @@ namespace Compiler
 		public static bool operator !=(SourceSpan left, SourceSpan right) => !(left == right);
 		[ExcludeFromCodeCoverage]
 		public override string ToString() => $"{Start}:{Length}";
-	}
 
+		public static SourceSpan FirstStarting(SourceSpan a, SourceSpan b) => a.Start < b.Start ? a : b;
+	}
 
 	public static class SourceSpanEx
 	{

@@ -27,9 +27,16 @@ namespace Compiler
 
 		public override string ToString() => $"{File}:{Offset}";
 		public override bool Equals(object? obj) => throw new NotImplementedException();
-		public bool Equals(SourcePoint other) => Offset.Equals(other.Offset);
-		public int CompareTo(SourcePoint other) => Offset.CompareTo(other.Offset);
-		public override int GetHashCode() => Offset.GetHashCode();
+		public bool Equals(SourcePoint other) => string.Equals(File, other.File) &&  Offset.Equals(other.Offset);
+		public int CompareTo(SourcePoint other)
+		{
+			switch (string.Compare(File, other.File))
+			{
+				case 0: return Offset.CompareTo(other.Offset);
+				case int x: return x;
+			}
+		}
+		public override int GetHashCode() => HashCode.Combine(File, Offset);
 
 		public static bool operator ==(SourcePoint left, SourcePoint right) => left.Equals(right);
 		public static bool operator !=(SourcePoint left, SourcePoint right) => !(left == right);

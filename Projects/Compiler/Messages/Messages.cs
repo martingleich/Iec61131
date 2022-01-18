@@ -604,4 +604,43 @@ namespace Compiler.Messages
 
 		public override string Text => $"Unreachable code detected.";
 	}
+	public sealed class ShadowedLocalVariableMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol InnerVariable;
+		public readonly IVariableSymbol OuterVariable;
+
+		public ShadowedLocalVariableMessage(SourceSpan span, IVariableSymbol innerVariable, IVariableSymbol outerVariable)
+			: base(span)
+		{
+			InnerVariable = innerVariable ?? throw new ArgumentNullException(nameof(innerVariable));
+			OuterVariable = outerVariable ?? throw new ArgumentNullException(nameof(outerVariable));
+		}
+
+		public override string Text => $"This variable would shadow another variable with the same name.";
+	}
+	public sealed class CannotInferTypeOfVariableMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol Variable;
+
+		public CannotInferTypeOfVariableMessage(SourceSpan span, IVariableSymbol variable)
+			: base(span)
+		{
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+		}
+
+		public override string Text => $"Cannot infer the type of the variable '{Variable.Name}', use either an initial value or a type annotation.";
+	}
+	
+	public sealed class CannotUseVariableBeforeItIsDeclaredMessage : ACriticalMessage
+	{
+		public readonly IVariableSymbol Variable;
+
+		public CannotUseVariableBeforeItIsDeclaredMessage(SourceSpan span, IVariableSymbol variable)
+			: base(span)
+		{
+			Variable = variable ?? throw new ArgumentNullException(nameof(variable));
+		}
+
+		public override string Text => $"Cannot use the variable '{Variable.Name}' before is is declared.";
+	}
 }
