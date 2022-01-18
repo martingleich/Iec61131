@@ -59,15 +59,6 @@ namespace Tests
 			Assert.Empty(myFunction.Parameters);
 		}
 		[Fact]
-		public void Function_VarIsIgnored()
-		{
-			var boundInterface = BindHelper.NewProject
-				.AddFunction("MyFunction", "VAR myTemp : REAL; END_VAR", "")
-				.BindInterfaces();
-			var myFunction = boundInterface.FunctionSymbols["MyFunction"].Type;
-			Assert.Empty(myFunction.Parameters);
-		}
-		[Fact]
 		public void Function_InputsInSameBlock()
 		{
 			var boundInterface = BindHelper.NewProject
@@ -162,7 +153,7 @@ namespace Tests
 		[InlineData("FUNCTION_BLOCK", "VAR_INPUT")]
 		[InlineData("FUNCTION_BLOCK", "VAR_OUTPUT")]
 		[InlineData("FUNCTION_BLOCK", "VAR_IN_OUT")]
-		[InlineData("FUNCTION_BLOCK", "VAR")]
+		[InlineData("FUNCTION_BLOCK", "VAR_INST")]
 		public void Error_VariableCannotHaveInitalValue(string pouKind, string varKind)
 		{
 			BindHelper.NewProject
@@ -171,7 +162,6 @@ namespace Tests
 		}
 
 		[Theory]
-		[InlineData("FUNCTION", "VAR")]
 		[InlineData("FUNCTION", "VAR_TEMP")]
 		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
 		public void InitialValue(string pouKind, string varKind)
@@ -189,7 +179,6 @@ namespace Tests
 				});
 		}
 		[Theory]
-		[InlineData("FUNCTION", "VAR")]
 		[InlineData("FUNCTION", "VAR_TEMP")]
 		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
 		public void Error_InitialValue_WrongType(string pouKind, string varKind)
@@ -199,7 +188,6 @@ namespace Tests
 				.BindBodies(ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 		[Theory]
-		[InlineData("FUNCTION", "VAR")]
 		[InlineData("FUNCTION", "VAR_TEMP")]
 		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
 		public void InitialValue_ReferenceInput(string pouKind, string varKind)
@@ -217,7 +205,6 @@ namespace Tests
 		}
 
 		[Theory]
-		[InlineData("FUNCTION", "VAR")]
 		[InlineData("FUNCTION", "VAR_TEMP")]
 		[InlineData("FUNCTION_BLOCK", "VAR_TEMP")]
 		public void InitialValue_CannotReadTemp(string pouKind, string varKind)

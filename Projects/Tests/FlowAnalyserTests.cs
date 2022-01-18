@@ -41,7 +41,7 @@ namespace Tests
 		public void UnassignedTemp()
 		{
 			NewProject
-				.AddFunction("foo", "VAR myTemp : INT; END_VAR", "")
+				.AddFunction("foo", "VAR_TEMP myTemp : INT; END_VAR", "")
 				.BindBodies()
 				.InspectFlowMessages("foo");
 		}
@@ -49,7 +49,7 @@ namespace Tests
 		public void ReadTempBeforeWrite_TempInitialized()
 		{
 			NewProject
-				.AddFunction("foo", "VAR myTemp : INT := 2; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp;")
+				.AddFunction("foo", "VAR_TEMP myTemp : INT := 2; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp;")
 				.BindBodies()
 				.InspectFlowMessages("foo");
 		}
@@ -57,7 +57,7 @@ namespace Tests
 		public void VarInputAlwaysAssigned()
 		{
 			NewProject
-				.AddFunction("foo", "VAR_INPUT myInput : INT; END_VAR VAR myTemp : INT; END_VAR", "myTemp := myInput;")
+				.AddFunction("foo", "VAR_INPUT myInput : INT; END_VAR VAR_TEMP myTemp : INT; END_VAR", "myTemp := myInput;")
 				.BindBodies()
 				.InspectFlowMessages("foo");
 		}
@@ -66,7 +66,7 @@ namespace Tests
 		public void VarInOutAlwaysAssigned()
 		{
 			NewProject
-				.AddFunction("foo", "VAR_IN_OUT myInout : INT; END_VAR VAR myTemp : INT; END_VAR", "myTemp := myInout;")
+				.AddFunction("foo", "VAR_IN_OUT myInout : INT; END_VAR VAR_TEMP myTemp : INT; END_VAR", "myTemp := myInout;")
 				.BindBodies()
 				.InspectFlowMessages("foo");
 		}
@@ -99,7 +99,7 @@ namespace Tests
 		public void Error_ReadTempBeforeWrite()
 		{
 			NewProject
-				.AddFunction("foo", "VAR myTemp : INT; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp;")
+				.AddFunction("foo", "VAR_TEMP myTemp : INT; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp;")
 				.BindBodies()
 				.InspectFlowMessages("foo", Err_UnassignedVar("myTemp"));
 		}
@@ -107,7 +107,7 @@ namespace Tests
 		public void Error_ReadTempBeforeWrite_NoCascade()
 		{
 			NewProject
-				.AddFunction("foo", "VAR myTemp : INT; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp; myOtherTemp := myTemp;")
+				.AddFunction("foo", "VAR_TEMP myTemp : INT; myOtherTemp : INT; END_VAR", "myOtherTemp := myTemp; myOtherTemp := myTemp;")
 				.BindBodies()
 				.InspectFlowMessages("foo", Err_UnassignedVar("myTemp"));
 		}
@@ -168,7 +168,7 @@ namespace Tests
 		public void Wrn_UnreachableCode_CTRL_InLoop(string ctrl)
 		{
 			NewProject
-				.AddFunction("foo", "VAR_INPUT xCond : BOOL; END_VAR VAR a : INT; b : INT; END_VAR", $"WHILE xCond DO a := 0; {ctrl}; a := b; END_WHILE")
+				.AddFunction("foo", "VAR_INPUT xCond : BOOL; END_VAR VAR_TEMP a : INT; b : INT; END_VAR", $"WHILE xCond DO a := 0; {ctrl}; a := b; END_WHILE")
 				.BindBodies()
 				.InspectFlowMessages("foo", WarningOfType<UnreachableCodeMessage>());
 		}
@@ -178,7 +178,7 @@ namespace Tests
 		public void Conditinal_CTRL_InLoop_No_Unreachable(string ctrl)
 		{
 			NewProject
-				.AddFunction("foo", "VAR_INPUT xCond : BOOL; xCond2 : BOOL; END_VAR VAR a : INT; END_VAR", $"WHILE xCond DO IF xCond2 THEN {ctrl}; END_IF a := 0; END_WHILE")
+				.AddFunction("foo", "VAR_INPUT xCond : BOOL; xCond2 : BOOL; END_VAR VAR_TEMP a : INT; END_VAR", $"WHILE xCond DO IF xCond2 THEN {ctrl}; END_IF a := 0; END_WHILE")
 				.BindBodies()
 				.InspectFlowMessages("foo");
 		}
@@ -188,7 +188,7 @@ namespace Tests
 		public void UnreachableCode_Wrapped_Conditinal_CTRL_InLoop(string ctrl)
 		{
 			NewProject
-				.AddFunction("foo", "VAR_INPUT xCond : BOOL; xCond2 : BOOL; END_VAR VAR a : INT; END_VAR", $"WHILE xCond DO IF xCond2 THEN {ctrl}; ELSE {ctrl}; END_IF a := 0; END_WHILE")
+				.AddFunction("foo", "VAR_INPUT xCond : BOOL; xCond2 : BOOL; END_VAR VAR_TEMP a : INT; END_VAR", $"WHILE xCond DO IF xCond2 THEN {ctrl}; ELSE {ctrl}; END_IF a := 0; END_WHILE")
 				.BindBodies()
 				.InspectFlowMessages("foo", WarningOfType<UnreachableCodeMessage>());
 		}
@@ -198,7 +198,7 @@ namespace Tests
 		public void Wrn_UnreachableCode_CTRL_InWhileLoop_IgnoredInOuter(string ctrl)
 		{
 			NewProject
-				.AddFunction("foo", "VAR_INPUT xCond : BOOL; END_VAR VAR a : INT; b : INT; c : INT; END_VAR", $"WHILE xCond DO WHILE xCond DO a := 0; {ctrl}; a := b; END_WHILE a := c; END_WHILE")
+				.AddFunction("foo", "VAR_INPUT xCond : BOOL; END_VAR VAR_TEMP a : INT; b : INT; c : INT; END_VAR", $"WHILE xCond DO WHILE xCond DO a := 0; {ctrl}; a := b; END_WHILE a := c; END_WHILE")
 				.BindBodies()
 				.InspectFlowMessages("foo", WarningOfType<UnreachableCodeMessage>(), Err_UnassignedVar("c"));
 		}

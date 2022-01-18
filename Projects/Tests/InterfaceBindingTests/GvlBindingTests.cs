@@ -56,11 +56,16 @@ namespace Tests
 				v => AssertEx.CheckVariable(v, "abc", boundInterface.SystemScope.Real),
 				v => AssertEx.CheckVariable(v, "xyz", boundInterface.SystemScope.Int));
 		}
-		[Fact]
-		public void Error_GVL_VAR_Block()
+		[Theory]
+		[InlineData("VAR_INST")]
+		[InlineData("VAR_TEMP")]
+		[InlineData("VAR_INPUT")]
+		[InlineData("VAR_OUTPUT")]
+		[InlineData("VAR_IN_OUT")]
+		public void Error_GVL_VAR_Block(string varKind)
 		{
 			BindHelper.NewProject
-				.AddGVL("MyGVL", "VAR xyz : INT; END_VAR")
+				.AddGVL("MyGVL", $"{varKind} xyz : INT; END_VAR")
 				.BindInterfaces(ErrorOfType<OnlyVarGlobalInGvlMessage>());
 		}
 		[Fact]

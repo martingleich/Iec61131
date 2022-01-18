@@ -26,7 +26,7 @@ namespace Compiler
 		private sealed class ParameterKindMapper : IVarDeclKindToken.IVisitor<ParameterKind?>
 		{
 			public static readonly ParameterKindMapper Instance = new();
-			public ParameterKind? Visit(VarToken varToken) => null;
+			public ParameterKind? Visit(VarInstToken varInstToken) => null;
 			public ParameterKind? Visit(VarInputToken varInputToken) => Input;
 			public ParameterKind? Visit(VarGlobalToken varGlobalToken) => null;
 			public ParameterKind? Visit(VarOutToken varOutToken) => Output;

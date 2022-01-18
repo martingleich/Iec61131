@@ -94,7 +94,7 @@ namespace Tests.ExpressionBinderTests
 VAR_INPUT input : INT; END_VAR
 VAR_OUTPUT output : INT; END_VAR
 VAR_IN_OUT inout : INT; END_VAR
-VAR field : INT; END_VAR
+VAR_INST field : INT; END_VAR
 VAR_TEMP temp : INT; END_VAR", "")
 				.BindGlobalExpression<InitializerBoundExpression>("{.field := 7}", "MyFB"); // Only VAR-Elements are expected as input
 			Assert.Collection(boundExpression.Elements,

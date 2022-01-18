@@ -126,7 +126,7 @@ namespace Compiler
 				{
 					var messageBag = new MessageBag();
 					var callableScope = new InsideCallableScope(scope, symbol);
-					var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, token => token is VarToken || token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
 					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => symbol.Parameters.TryGetValue(local.Name);
 					return CreateBoundBody(callableScope, localVariables, messageBag, body, getAlreadyDeclared);
 				}
@@ -155,7 +155,7 @@ namespace Compiler
 				{
 					var messageBag = new MessageBag();
 					var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
-					var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, token => token is VarTempToken, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
 					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => (IVariableSymbol?)symbol.Parameters.TryGetValue(local.Name) ?? symbol.Fields.TryGetValue(local.Name);
 					return CreateBoundBody(insideFbScope, localVariables, messageBag, body, getAlreadyDeclared);
 				}
@@ -167,9 +167,9 @@ namespace Compiler
 
 		private static readonly object? Marker = new();
 
-		static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, Func<IVarDeclKindToken, bool> isLocal, MessageBag messages)
+		static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
 			=> ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
-				kind => isLocal(kind) ? Marker : null,
+				kind => kind is VarTempToken ? Marker : null,
 				(_, scope, bag, syntax) =>
 				{
 					var type = TypeCompiler.MapComplete(scope, syntax.Type.Type, messages);
@@ -519,7 +519,7 @@ namespace Compiler
 				=> BoundPou.FromFunctionBlock(moduleScope, Syntax, BodySyntax, Symbol);
 			private static IEnumerable<FieldVariableSymbol> BindFields(IScope scope, MessageBag messageBag, SyntaxArray<VarDeclBlockSyntax> vardecls)
 				=> BindVariableBlocks(vardecls, scope, messageBag,
-					kindToken => kindToken as VarToken,
+					kindToken => kindToken as VarInstToken,
 					(_, scope, bag, syntax) =>
 					{
 						if (syntax.Initial != null)

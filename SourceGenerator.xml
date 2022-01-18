@@ -171,7 +171,6 @@
     <TokenKeywordClass>
       <Name>VarToken</Name>
       <Generating>VAR</Generating>
-      <Interface>IVarDeclKindToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>
       <Name>EndVarToken</Name>
@@ -200,6 +199,11 @@
     <TokenKeywordClass>
       <Name>VarTempToken</Name>
       <Generating>VAR_TEMP</Generating>
+      <Interface>IVarDeclKindToken</Interface>
+    </TokenKeywordClass>
+    <TokenKeywordClass>
+      <Name>VarInstToken</Name>
+      <Generating>VAR_INST</Generating>
       <Interface>IVarDeclKindToken</Interface>
     </TokenKeywordClass>
     <TokenKeywordClass>

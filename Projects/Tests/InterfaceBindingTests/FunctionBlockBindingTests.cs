@@ -61,10 +61,10 @@ namespace Tests
 			Assert.Empty(myFunction.Parameters);
 		}
 		[Fact]
-		public void Function_VarIsIgnored()
+		public void Function_VarInstIsIgnored()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddFunctionBlock("MyFunction", "VAR myTemp : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INST myTemp : REAL; END_VAR", "")
 				.BindInterfaces();
 			var myFunction = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Empty(myFunction.Parameters);
@@ -158,7 +158,7 @@ namespace Tests
 		public void MemberVariable()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddFunctionBlock("MyFunction", "VAR field : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INST field : REAL; END_VAR", "")
 				.BindInterfaces();
 			var fb = Assert.IsType<FunctionBlockSymbol>(boundInterface.Types["MyFunction"]);
 			Assert.Collection(fb.Fields,
@@ -168,7 +168,7 @@ namespace Tests
 		public void Error_MemberVariable_CollideParameter()
 		{
 			var boundInterface = BindHelper.NewProject
-				.AddFunctionBlock("MyFunction", "VAR_INPUT field : INT; END_VAR VAR field : REAL; END_VAR", "")
+				.AddFunctionBlock("MyFunction", "VAR_INPUT field : INT; END_VAR VAR_INST field : REAL; END_VAR", "")
 				.BindInterfaces(ErrorOfType<SymbolAlreadyExistsMessage>(err => Assert.Equal("field", err.Name.Original)));
 		}
 	}
