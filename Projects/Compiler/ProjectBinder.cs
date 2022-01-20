@@ -28,7 +28,7 @@ namespace Compiler
 			FunctionBlockPous = functionBlockPous ?? throw new ArgumentNullException(nameof(functionBlockPous));
 		}
 
-		public ImmutableArray<IMessage>? _backingBindMessages;
+		private ImmutableArray<IMessage>? _backingBindMessages;
 		public ImmutableArray<IMessage> BindMessages
 		{
 			get

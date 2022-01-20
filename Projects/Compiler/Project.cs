@@ -75,5 +75,20 @@ namespace Compiler
 			=> Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource.FromSource(source));
 		public Project Add(GlobalVariableListLanguageSource source)
 			=> Add(ParsedGVLLanguageSource.FromSource(source));
+
+		public Project Add(ILanguageSource source) => source.Accept(ProjectAdder.Instance, this);
+
+		private sealed class ProjectAdder : ILanguageSource.IVisitor<Project, Project>
+		{
+			public static readonly ProjectAdder Instance = new();
+			public Project Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource, Project context)
+				=> context.Add(topLevelInterfaceAndBodyPouLanguageSource);
+			public Project Visit(GlobalVariableListLanguageSource globalVariableLanguageSource, Project context)
+				=> context.Add(globalVariableLanguageSource);
+			public Project Visit(DutLanguageSource dutLanguageSource, Project context)
+				=> context.Add(dutLanguageSource);
+			public Project Visit(TopLevelPouLanguageSource topLevelPouLanguageSource, Project context)
+				=> context.Add(topLevelPouLanguageSource);
+		}
 	}
 }
