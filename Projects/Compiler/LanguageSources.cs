@@ -17,7 +17,7 @@ namespace Compiler
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
-		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
+		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public sealed class TopLevelPouLanguageSource : ILanguageSource
@@ -31,7 +31,7 @@ namespace Compiler
 			Code = code;
 		}
 
-		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
+		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public sealed class GlobalVariableListLanguageSource : ILanguageSource
@@ -47,7 +47,7 @@ namespace Compiler
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 
-		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
+		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public sealed class DutLanguageSource : ILanguageSource
@@ -61,7 +61,7 @@ namespace Compiler
 			Source = source ?? throw new ArgumentNullException(nameof(source));
 		}
 
-		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
+		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
 
 	public readonly struct ParsedDutLanguageSource

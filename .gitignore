@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 /report
 *.diagsession
+/Projects/OfflineCompiler/Properties/launchSettings.json
