@@ -4,6 +4,7 @@ using Compiler;
 using Compiler.Messages;
 using System.Linq;
 using StandardLibraryExtensions;
+using System.Collections.Generic;
 
 namespace OfflineCompiler
 {
@@ -13,14 +14,15 @@ namespace OfflineCompiler
 			DirectoryInfo folder,
 			TextWriter stdout)
 		{
-			var project = Project.Empty(folder.Name.ToCaseInsensitive());
 			var sourceMap = new SourceMap();
+			var sources = new List<ILanguageSource>();
 			foreach (var (lmSource, sourcemap) in folder.EnumerateFiles().Select(ToLanguageSource).WhereNotNullStruct())
 			{
-				project = project.Add(lmSource);
-				sourceMap.AddFile(sourcemap);
+				sources.Add(lmSource);
+				sourceMap.Add(sourcemap);
 			}
 
+			var project = Project.New(folder.Name.ToCaseInsensitive(), sources);
 			foreach (var msg in Enumerable.Concat(project.ParseMessages, project.BoundModule.BindMessages))
 				stdout.WriteLine(GetMessageText(msg, sourceMap));
 		}

@@ -61,7 +61,7 @@ namespace OfflineCompiler
 		}
 
 		private readonly Dictionary<string, SingleFile> Maps = new();
-		public void AddFile(SingleFile file)
+		public void Add(SingleFile file)
 		{
 			Maps.Add(file.SourceFile, file);
 		}
