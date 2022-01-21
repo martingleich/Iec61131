@@ -18,6 +18,7 @@ namespace Compiler
 		}
 
 		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
 	public sealed class TopLevelPouLanguageSource : ILanguageSource
@@ -32,6 +33,7 @@ namespace Compiler
 		}
 
 		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
 	public sealed class GlobalVariableListLanguageSource : ILanguageSource
@@ -48,6 +50,7 @@ namespace Compiler
 		}
 
 		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
 	public sealed class DutLanguageSource : ILanguageSource
@@ -62,6 +65,7 @@ namespace Compiler
 		}
 
 		T ILanguageSource.Accept<T, TContext>(ILanguageSource.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+		void ILanguageSource.Accept(ILanguageSource.IVisitor visitor) => visitor.Visit(this);
 	}
 
 	public readonly struct ParsedDutLanguageSource

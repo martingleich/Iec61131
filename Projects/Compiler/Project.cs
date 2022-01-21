@@ -59,6 +59,14 @@ namespace Compiler
 			ImmutableArray<ParsedDutLanguageSource>.Empty,
 			ImmutableArray<LibraryLanguageSource>.Empty);
 
+		public static Project New(CaseInsensitiveString name, IEnumerable<ILanguageSource> sources)
+		{
+			var forMany = new ProjectAdderMany();
+			foreach (var source in sources)
+				source.Accept(forMany);
+			return forMany.AddTo(name);
+		}
+
 		public Project Add(ParsedDutLanguageSource source)
 			=> new(Name, Pous, Gvls, Duts.Add(source), Libraries);
 		public Project Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource source)
@@ -77,6 +85,13 @@ namespace Compiler
 			=> Add(ParsedGVLLanguageSource.FromSource(source));
 
 		public Project Add(ILanguageSource source) => source.Accept(ProjectAdder.Instance, this);
+		public Project Add(IEnumerable<ILanguageSource> sources)
+		{
+			var forMany = new ProjectAdderMany();
+			foreach (var source in sources)
+				source.Accept(forMany);
+			return forMany.AddTo(this);
+		}
 
 		private sealed class ProjectAdder : ILanguageSource.IVisitor<Project, Project>
 		{
@@ -89,6 +104,41 @@ namespace Compiler
 				=> context.Add(dutLanguageSource);
 			public Project Visit(TopLevelPouLanguageSource topLevelPouLanguageSource, Project context)
 				=> context.Add(topLevelPouLanguageSource);
+		}
+		private sealed class ProjectAdderMany : ILanguageSource.IVisitor
+		{
+			public ProjectAdderMany()
+			{
+				Pous = ImmutableArray.CreateBuilder<ParsedTopLevelInterfaceAndBodyPouLanguageSource>();
+				Gvls = ImmutableArray.CreateBuilder<ParsedGVLLanguageSource>();
+				Duts = ImmutableArray.CreateBuilder<ParsedDutLanguageSource>();
+			}
+
+			private readonly ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource>.Builder Pous;
+			private readonly ImmutableArray<ParsedGVLLanguageSource>.Builder Gvls;
+			private readonly ImmutableArray<ParsedDutLanguageSource>.Builder Duts;
+
+			public Project AddTo(Project p) => new (
+					p.Name,
+					p.Pous.AddRange(Pous),
+					p.Gvls.AddRange(Gvls),
+					p.Duts.AddRange(Duts),
+					p.Libraries);
+			public Project AddTo(CaseInsensitiveString name) => new (
+					name,
+					Pous.ToImmutable(),
+					Gvls.ToImmutable(),
+					Duts.ToImmutable(),
+					ImmutableArray<LibraryLanguageSource>.Empty);
+
+			public void Visit(TopLevelInterfaceAndBodyPouLanguageSource topLevelInterfaceAndBodyPouLanguageSource)
+				=> Pous.Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource.FromSource(topLevelInterfaceAndBodyPouLanguageSource));
+			public void Visit(GlobalVariableListLanguageSource globalVariableLanguageSource)
+				=> Gvls.Add(ParsedGVLLanguageSource.FromSource(globalVariableLanguageSource));
+			public void Visit(DutLanguageSource dutLanguageSource)
+				=> Duts.Add(ParsedDutLanguageSource.FromSource(dutLanguageSource));
+			public void Visit(TopLevelPouLanguageSource topLevelPouLanguageSource)
+				=> Pous.Add(ParsedTopLevelInterfaceAndBodyPouLanguageSource.FromSource(topLevelPouLanguageSource));
 		}
 	}
 }
