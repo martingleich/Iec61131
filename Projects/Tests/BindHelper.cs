@@ -142,6 +142,8 @@ namespace Tests
 				BoundPous = boundPous;
 			}
 
+			public SystemScope SystemScope => BoundModule.Interface.SystemScope;
+
 			public KeyValuePair<ISymbol, BoundPou> this[CaseInsensitiveString name] => BoundPous.First(s => s.Key.Name == name);
 
 			public TestBoundBodies Inspect(string name, Action<IBoundStatement> check) => Inspect(name.ToCaseInsensitive(), check);
@@ -238,5 +240,9 @@ namespace Tests
 				varName);
 		public static void AssertVariableExpression(IBoundExpression expression, string varName)
 			=> Assert.Equal(varName.ToCaseInsensitive(), Assert.IsType<VariableBoundExpression>(expression).Variable.Name);
+
+		public static Action<ILiteralValue> LiteralInt(short i) => l => Assert.Equal(i, Assert.IsType<IntLiteralValue>(l).Value);
+		public static Action<ILiteralValue> LiteralDInt(int i) => l => Assert.Equal(i, Assert.IsType<DIntLiteralValue>(l).Value);
+		public static Action<ILiteralValue> LiteralBool(bool b) => l => Assert.Equal(b, Assert.IsType<BooleanLiteralValue>(l).Value);
 	}
 }

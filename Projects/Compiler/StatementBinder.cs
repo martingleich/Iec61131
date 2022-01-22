@@ -402,10 +402,10 @@ namespace Compiler
 				variable,
 				out var type,
 				out var initial);
-			variable.Declare(type);
+			if(!variable.IsDeclared) // This can happen if the same variable is declared multiple times in the same block, just ignore the second declaration.
+				variable.Declare(type);
 			return new InitVariableBoundStatement(localVarDeclStatementSyntax, variable, initial);
 		}
-
 		void GetLocalVariableArgs(
 			SourceSpan sourceSpan,
 			VarTypeSyntax? typeSyntax,

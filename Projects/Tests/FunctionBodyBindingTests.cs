@@ -319,6 +319,124 @@
 		}
 	}
 
+	public sealed class StatementBindingTests_LocalVarDecl
+	{
+		[Fact]
+		public static void LocalVar_InitOnly()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x := FALSE; x;")
+				.BindBodies();
+			bodies.Inspect("foo", st =>
+			{
+				var initVarSt = AssertEx.AssertNthStatement<InitVariableBoundStatement>(st, 0);
+				AssertEx.EqualCaseInsensitive("x", initVarSt.LeftSide.Name);
+				AssertEx.EqualType(bodies.SystemScope.Bool, initVarSt.LeftSide.Type);
+				AssertEx.HasConstantValue(initVarSt.RightSide, bodies.SystemScope, AssertEx.LiteralBool(false));
+				var varExpr = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 1);
+				AssertEx.AssertVariableExpression(varExpr.Expression, "x");
+			});
+		}
+		[Fact]
+		public static void LocalVar_InitAndType()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : BOOL := FALSE; x;")
+				.BindBodies();
+			bodies.Inspect("foo", st =>
+			{
+				var initVarSt = AssertEx.AssertNthStatement<InitVariableBoundStatement>(st, 0);
+				AssertEx.EqualCaseInsensitive("x", initVarSt.LeftSide.Name);
+				AssertEx.EqualType(bodies.SystemScope.Bool, initVarSt.LeftSide.Type);
+				AssertEx.HasConstantValue(initVarSt.RightSide, bodies.SystemScope, AssertEx.LiteralBool(false));
+				var varExpr = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 1);
+				AssertEx.AssertVariableExpression(varExpr.Expression, "x");
+			});
+		}
+		[Fact]
+		public static void LocalVar_TypeOnly()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : BOOL; x := 0; x;")
+				.BindBodies();
+			bodies.Inspect("foo", st =>
+			{
+				var initVarSt = AssertEx.AssertNthStatement<InitVariableBoundStatement>(st, 0);
+				AssertEx.EqualCaseInsensitive("x", initVarSt.LeftSide.Name);
+				AssertEx.EqualType(bodies.SystemScope.Bool, initVarSt.LeftSide.Type);
+				Assert.Null(initVarSt.RightSide);
+				var varExpr = AssertEx.AssertNthStatement<ExpressionBoundStatement>(st, 2);
+				AssertEx.AssertVariableExpression(varExpr.Expression, "x");
+			});
+		}
+		
+		[Fact]
+		public static void Error_LocalVar_TypeInitMismatch()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : INT := TRUE;")
+				.BindBodies(ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
+		[Fact]
+		public static void Error_LocalVar_NoTypeNoInit()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x;")
+				.BindBodies(ErrorOfType<CannotInferTypeOfVariableMessage>());
+		}
+		[Fact]
+		public static void Error_MultipleVariables()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : INT; VAR x : BOOL;")
+				.BindBodies(ErrorOfType<SymbolAlreadyExistsMessage>());
+		}
+		[Fact]
+		public static void Error_ShadowingVariable_InIfBlock()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : INT; IF TRUE THEN VAR x : BOOL; END_IF")
+				.BindBodies(ErrorOfType<ShadowedLocalVariableMessage>());
+		}
+		[Fact]
+		public static void Error_ShadowingVariable_VarTempBlock()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "VAR_TEMP x : INT; END_VAR", "VAR x : INT;")
+				.BindBodies(ErrorOfType<ShadowedLocalVariableMessage>());
+		}
+		[Fact]
+		public static void Error_UseVariableBeforeDeclared()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "x := 7; VAR x : INT;")
+				.BindBodies(ErrorOfType<CannotUseVariableBeforeItIsDeclaredMessage>());
+		}
+		[Fact]
+		public static void SameVariableInDiffrentBlocks()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "VAR_INPUT x : BOOL; END_VAR", "IF x THEN VAR y : INT := 0; y; ELSE VAR y : REAL := 0; y; END_IF")
+				.BindBodies();
+		}
+		[Fact]
+		public static void Error_FlowAnalyis_UseVariableBeforeWritten()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "VAR x : INT; x; x := 0;")
+				.BindBodies()
+				.InspectFlowMessages("foo", ErrorOfType<UseOfUnassignedVariableMessage>());
+		}
+		[Fact]
+		public static void Error_FlowAnalyis_NoErrorForUseBeforeDeclare()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "x; VAR x : INT;")
+				.BindBodies(ErrorOfType<CannotUseVariableBeforeItIsDeclaredMessage>())
+				.InspectFlowMessages("foo");
+		}
+	}
+
 	public static class StatementBindingTests_ForLoop
 	{
 		[Theory]
@@ -484,6 +602,91 @@
 					var whileSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
 					AssertEx.AssertNthStatement<ExitBoundStatement>(whileSt.Body, 0);
 				});
+		}
+
+		[Fact]
+		public static void LocalVar_NoType()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 DO END_FOR")
+				.BindBodies();
+				bodies.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					var indexVarExpr = Assert.IsType<VariableBoundExpression>(forSt.Index);
+					AssertEx.EqualCaseInsensitive("i", indexVarExpr.Variable.Name);
+					AssertEx.EqualType(bodies.SystemScope.Int, indexVarExpr.Variable.Type);
+					var initial = Assert.IsType<LiteralBoundExpression>(forSt.Initial);
+					AssertEx.HasConstantValue(initial, bodies.SystemScope, AssertEx.LiteralInt(0));
+				});
+		}
+		
+		[Fact]
+		public static void LocalVar_Type()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i : DINT := 0 TO 10 DO END_FOR")
+				.BindBodies();
+				bodies.Inspect("foo", st =>
+				{
+					var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+					var indexVarExpr = Assert.IsType<VariableBoundExpression>(forSt.Index);
+					AssertEx.EqualCaseInsensitive("i", indexVarExpr.Variable.Name);
+					AssertEx.EqualType(bodies.SystemScope.DInt, indexVarExpr.Variable.Type);
+					var initial = Assert.IsType<LiteralBoundExpression>(forSt.Initial);
+					AssertEx.HasConstantValue(initial, bodies.SystemScope, AssertEx.LiteralDInt(0));
+				});
+		}
+
+		[Fact]
+		public static void LocalVar_IncompatibleType_Error()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i : INT := DINT#1000000 TO 10 DO END_FOR")
+				.BindBodies(ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
+
+		[Fact]
+		public static void LocalVarShadowing_Error()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "VAR_TEMP i : INT; END_VAR", "FOR VAR i := 0 TO 10 DO END_FOR")
+				.BindBodies(ErrorOfType<ShadowedLocalVariableMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.InnerVariable.Name)));
+		}
+
+		[Fact]
+		public static void LocalVar_UseInsideBlock()
+		{
+			var bodies = BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 DO i; END_FOR")
+				.BindBodies();
+			bodies.Inspect("foo", st =>
+			{
+				var forSt = AssertEx.AssertNthStatement<ForLoopBoundStatement>(st, 0);
+				var exprSt = AssertEx.AssertNthStatement<ExpressionBoundStatement>(forSt.Body, 0);
+				AssertEx.AssertVariableExpression(exprSt.Expression, "i");
+			});
+		}
+		[Fact]
+		public static void LocalVar_AfterBlock_Error()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 DO END_FOR i;")
+				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.Identifier)));
+		}
+		[Fact]
+		public static void LocalVar_UpperBound_Error()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO i DO END_FOR")
+				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.Identifier)));
+		}
+		[Fact]
+		public static void LocalVar_Step_Error()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 BY i DO END_FOR")
+				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.Identifier)));
 		}
 	}
 }
