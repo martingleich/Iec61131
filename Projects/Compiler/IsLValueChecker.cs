@@ -10,18 +10,18 @@ namespace Compiler
 
 		public ErrorsAnd<bool> Visit(VariableBoundExpression variableBoundExpression)
 		{
-			if (variableBoundExpression.Variable is FunctionVariableSymbol functionVariable)
-				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(functionVariable, variableBoundExpression.OriginalNode.SourceSpan));
-			else if (variableBoundExpression.Variable is ParameterVariableSymbol parameterVariable)
-			{
-				if (parameterVariable.Kind.Equals(ParameterKind.Input))
-					return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(parameterVariable, variableBoundExpression.OriginalNode.SourceSpan));
-				else
-					return ErrorsAnd.Create(true);
-			}
+			if (!IsAssignable(variableBoundExpression.Variable))
+				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
 			else
 				return ErrorsAnd.Create(true);
 		}
+		private static bool IsAssignable(IVariableSymbol variable) => variable switch
+		{
+			FunctionVariableSymbol => false,
+			ParameterVariableSymbol parameterVariable => !parameterVariable.Kind.Equals(ParameterKind.Input),
+			InlineLocalVariableSymbol inlineVariable => !inlineVariable.IsReadonly,
+			_ => true,
+		};
 		public ErrorsAnd<bool> Visit(DerefBoundExpression derefBoundExpression) => ErrorsAnd.Create(true);
 		public ErrorsAnd<bool> Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression) => IsLValue(arrayIndexAccessBoundExpression.Base);
 		public ErrorsAnd<bool> Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression) => ErrorsAnd.Create(true);

@@ -256,5 +256,12 @@
 				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 BY i DO END_FOR")
 				.BindBodies(ErrorOfType<VariableNotFoundMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.Identifier)));
 		}
+		[Fact]
+		public static void Error_CannotAssignToLocalVar()
+		{
+			BindHelper.NewProject
+				.AddFunction("foo", "", "FOR VAR i := 0 TO 10 DO i := 0; END_FOR")
+				.BindBodies(ErrorOfType<CannotAssignToVariableMessage>(msg => AssertEx.EqualCaseInsensitive("i", msg.Variable.Name)));
+		}
 	}
 }

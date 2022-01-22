@@ -53,11 +53,13 @@ namespace Compiler
 		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name { get; }
 		private IType? _type;
+		public readonly bool IsReadonly;
 
-		public InlineLocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name)
+		public InlineLocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, bool isReadonly)
 		{
 			DeclaringSpan = declaringSpan;
 			Name = name;
+			IsReadonly = isReadonly;
 		}
 
 		public IType Type => _type ?? throw new InvalidOperationException();
