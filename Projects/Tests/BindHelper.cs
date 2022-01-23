@@ -65,6 +65,8 @@ namespace Tests
 				=> BindGlobalExpression<IBoundExpression>(expression, targetType, checks);
 			public T BindGlobalExpression<T>(string expression, string? targetType, params Action<IMessage>[] checks) where T : IBoundExpression
 				=> new TestGlobalExpression(this).BindGlobalExpression<T>(expression, targetType, checks);
+			public (T Value, BoundModuleInterface BoundInterface) BindGlobalExpressionEx<T>(string expression, string? targetType, params Action<IMessage>[] checks) where T : IBoundExpression
+				=> new TestGlobalExpression(this).BindGlobalExpressionEx<T>(expression, targetType, checks);
 			public TestGlobalExpression WithGlobalVar(string name, string type)
 				=> new TestGlobalExpression(this).WithGlobalVar(name, type);
 		}
@@ -107,14 +109,15 @@ namespace Tests
 				return type;
 			}
 
-			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
+			public (T Value, BoundModuleInterface BoundInterface) BindGlobalExpressionEx<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
 			{
-				var expressionParseMessages = new MessageBag();
-				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
-				ExactlyMessages()(expressionParseMessages);
 				ExactlyMessages()(Project.MyProject.ParseMessages);
 				ExactlyMessages()(Project.MyProject.BoundModule.InterfaceMessages);
 				var boundModuleInterface = Project.MyProject.BoundModule.Interface;
+
+				var expressionParseMessages = new MessageBag();
+				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
+				ExactlyMessages()(expressionParseMessages);
 				var moduleScope = new GlobalInternalModuleScope(boundModuleInterface, new RootScope(boundModuleInterface.SystemScope));
 				var variables = Variables.ToSymbolSet(x =>
 				{
@@ -126,8 +129,10 @@ namespace Tests
 				var targetType = targetTypeText != null ? MapType(moduleScope, targetTypeText) : null;
 				var boundExpression = ExpressionBinder.Bind(expressionSyntax, realScope, bindMessages, targetType);
 				ExactlyMessages(checks)(bindMessages.ToImmutable());
-				return Assert.IsAssignableFrom<T>(boundExpression);
+				return (Assert.IsAssignableFrom<T>(boundExpression), boundModuleInterface);
 			}
+			public T BindGlobalExpression<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
+				=> BindGlobalExpressionEx<T>(expression, targetTypeText, checks).Value;
 			public IBoundExpression BindGlobalExpression(string expression, string? targetTypeText, params Action<IMessage>[] checks)
 				=> BindGlobalExpression<IBoundExpression>(expression, targetTypeText, checks);
 		}

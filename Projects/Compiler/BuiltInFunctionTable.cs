@@ -266,11 +266,11 @@ namespace Compiler
 		private static ILiteralValue ModDINT(IType result, ILiteralValue[] args) => new DIntLiteralValue(checked((int)(((DIntLiteralValue)args[0]).Value % ((DIntLiteralValue)args[1]).Value)), result);
 		private static ILiteralValue NegDINT(IType result, ILiteralValue[] args) => new DIntLiteralValue(checked((int)-(((DIntLiteralValue)args[0]).Value)), result);
 
-		private static ILiteralValue AddUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UIntLiteralValue)args[0]).Value + ((UIntLiteralValue)args[1]).Value)), result);
-		private static ILiteralValue SubUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UIntLiteralValue)args[0]).Value - ((UIntLiteralValue)args[1]).Value)), result);
-		private static ILiteralValue MulUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UIntLiteralValue)args[0]).Value * ((UIntLiteralValue)args[1]).Value)), result);
-		private static ILiteralValue DivUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UIntLiteralValue)args[0]).Value / ((UIntLiteralValue)args[1]).Value)), result);
-		private static ILiteralValue ModUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UIntLiteralValue)args[0]).Value % ((UIntLiteralValue)args[1]).Value)), result);
+		private static ILiteralValue AddUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UDIntLiteralValue)args[0]).Value + ((UDIntLiteralValue)args[1]).Value)), result);
+		private static ILiteralValue SubUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UDIntLiteralValue)args[0]).Value - ((UDIntLiteralValue)args[1]).Value)), result);
+		private static ILiteralValue MulUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UDIntLiteralValue)args[0]).Value * ((UDIntLiteralValue)args[1]).Value)), result);
+		private static ILiteralValue DivUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UDIntLiteralValue)args[0]).Value / ((UDIntLiteralValue)args[1]).Value)), result);
+		private static ILiteralValue ModUDINT(IType result, ILiteralValue[] args) => new UDIntLiteralValue(checked((uint)(((UDIntLiteralValue)args[0]).Value % ((UDIntLiteralValue)args[1]).Value)), result);
 
 		private static ILiteralValue AddLINT(IType result, ILiteralValue[] args) => new LIntLiteralValue(checked((long)(((LIntLiteralValue)args[0]).Value + ((LIntLiteralValue)args[1]).Value)), result);
 		private static ILiteralValue SubLINT(IType result, ILiteralValue[] args) => new LIntLiteralValue(checked((long)(((LIntLiteralValue)args[0]).Value - ((LIntLiteralValue)args[1]).Value)), result);
@@ -298,10 +298,7 @@ namespace Compiler
 		private static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, BuiltInTypeTable builtInTypeTable)
 		{
 			var resultValue = builtInTypeTable.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
-			if (resultValue == null)
-				throw new OverflowException();
-			else
-				return resultValue;
+			return resultValue ?? throw new InvalidOperationException("Implicit arithmetic cast must always succeed");
 		}
 		private static ILiteralValue Real_To_LReal(IType result, ILiteralValue[] args)
 			=> new LRealLiteralValue(((RealLiteralValue)args[0]).Value, result);
