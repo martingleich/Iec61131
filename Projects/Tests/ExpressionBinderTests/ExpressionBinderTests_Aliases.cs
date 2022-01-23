@@ -5,7 +5,6 @@ namespace Tests.ExpressionBinderTests
 {
 	public static class ExpressionBinderTests_Aliases
 	{
-		private static readonly SystemScope SystemScope = BindHelper.SystemScope;
 		[Fact]
 		public static void LiteralAsAlias_SInt()
 		{
@@ -115,11 +114,10 @@ namespace Tests.ExpressionBinderTests
 		[Fact]
 		public static void SizeofAlias()
 		{
-			var boundExpression = BindHelper.NewProject
+			var (boundExpression, boundItf) = BindHelper.NewProject
 				.AddDut("myalias", "LINT")
-				.BindGlobalExpression("SIZEOF(myalias)", null);
-			Assert.IsType<SizeOfTypeBoundExpression>(boundExpression);
-			AssertEx.HasConstantValue(boundExpression, SystemScope, value =>
+				.BindGlobalExpressionEx<SizeOfTypeBoundExpression>("SIZEOF(myalias)", null);
+			AssertEx.HasConstantValue(boundExpression, boundItf.SystemScope, value =>
 				Assert.Equal(8, Assert.IsType<IntLiteralValue>(value).Value));
 		}
 		[Fact]

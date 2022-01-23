@@ -31,7 +31,7 @@ namespace Tests
 
 		private static void AssertTypeCompiler(string input, Action<IType> check, params Action<IMessage>[] errorChecks)
 		{
-			var rootScope = new RootScope(new SystemScope("Test".ToCaseInsensitive()));
+			var rootScope = new RootScope(BindHelper.SystemScope);
 			var naiveScope = new TypeSetScope(SymbolSet.Create<ITypeSymbol>(MyType), rootScope);
 			var source = ParserTestHelper.ParseType(input);
 			var bag = new MessageBag();

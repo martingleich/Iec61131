@@ -9,16 +9,14 @@ namespace Tests.ExpressionBinderTests
 
 	public static class ExpressionBinderTests_CallExpression
 	{
-		public readonly static SystemScope SystemScope = BindHelper.SystemScope;
-
 		[Fact]
 		public static void NoArgFunctionWithReturn()
 		{
-			var boundExpression = BindHelper.NewProject
+			var (boundExpression, boundItf) = BindHelper.NewProject
 				.AddFunction("MyFunc", ": INT", "MyFunc := 0;")
-				.BindGlobalExpression<CallBoundExpression>("MyFunc()", null);
+				.BindGlobalExpressionEx<CallBoundExpression>("MyFunc()", null);
 			Assert.Empty(boundExpression.Arguments);
-			AssertEx.EqualType(SystemScope.Int, boundExpression.Type);
+			AssertEx.EqualType(boundItf.SystemScope.Int, boundExpression.Type);
 		}
 		[Fact]
 		public static void NoArgFunctionWithoutReturn()
