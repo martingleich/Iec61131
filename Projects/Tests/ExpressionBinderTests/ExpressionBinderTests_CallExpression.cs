@@ -194,9 +194,18 @@ namespace Tests.ExpressionBinderTests
 		public static void Error_ParameterWasAlreadyPassed()
 		{
 			BindHelper.NewProject
-				.AddFunction("MyFunc", $"VAR_INPUT arg : INT; arg2 : INT; END_VAR", "")
+				.AddFunction("MyFunc", $"VAR_INPUT arg : INT; END_VAR", "")
 				.WithGlobalVar("x", "INT")
 				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg := x, arg := 6)", null, ErrorOfType<ParameterWasAlreadyPassedMessage>());
+		}
+
+		[Fact]
+		public static void Error_ParameterWasAlreadyPassed_Output()
+		{
+			BindHelper.NewProject
+				.AddFunction("MyFunc", $"VAR_OUTPUT arg : INT; END_VAR", "")
+				.WithGlobalVar("x", "INT")
+				.BindGlobalExpression<CallBoundExpression>($"MyFunc(arg => x, arg => x)", null, ErrorOfType<ParameterWasAlreadyPassedMessage>());
 		}
 
 		[Fact]

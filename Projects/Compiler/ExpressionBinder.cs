@@ -314,12 +314,6 @@ namespace Compiler
 				SyntaxCommaSeparated<CallArgumentSyntax> args)
 			{
 				bool isError = function.IsError();
-				// Bind arguments
-				if (args.Count != function.GetParameterCountWithoutReturn())
-				{
-					// Error wrong number of arguments.
-					MessageBag.Add(!isError, new WrongNumberOfArgumentsMessage(function, args.Count, args.SourceSpan));
-				}
 
 				var boundArguments = ImmutableArray.CreateBuilder<BoundCallArgument>();
 				int nextParamId = 0;
@@ -371,22 +365,32 @@ namespace Compiler
 				}
 
 				var boundArgumentsFrozen = boundArguments.ToImmutable();
-				CheckForDuplicateParameter(boundArgumentsFrozen);
+				int uniquePassedArgumentsCount = CheckForDuplicateParameter(boundArgumentsFrozen);
+				if (uniquePassedArgumentsCount != function.GetParameterCountWithoutReturn())
+				{
+					// Error wrong number of arguments.
+					MessageBag.Add(!isError, new WrongNumberOfArgumentsMessage(function, args.Count, args.SourceSpan));
+				}
 				return boundArgumentsFrozen;
 
-				void CheckForDuplicateParameter(ImmutableArray<BoundCallArgument> boundArguments)
+				int CheckForDuplicateParameter(ImmutableArray<BoundCallArgument> boundArguments)
 				{
+					int uniqueCount = 0;
 					foreach (var d in from arg in boundArguments
-									  group arg by arg.ParameterSymbol.Name into duplicates
-									  where duplicates.MoreThan(1)
-									  select duplicates)
+									  group arg by arg.ParameterSymbol.Name)
 					{
-						var first = d.First();
-						foreach (var d2 in d.Skip(1))
+
+						if (d.MoreThan(1))
 						{
-							MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourceSpan, d2.Parameter.OriginalNode.SourceSpan));
+							var first = d.First();
+							foreach (var d2 in d.Skip(1))
+							{
+								MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourceSpan, d2.Parameter.OriginalNode.SourceSpan));
+							}
 						}
+						++uniqueCount;
 					}
+					return uniqueCount;
 				}
 
 				BoundCallArgument BindCallArgument(ParameterVariableSymbol symbol, IExpressionSyntax arg)
