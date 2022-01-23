@@ -1,0 +1,32 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "StructuredText",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.structured-text",
+				"match": "\\b(?i)(var|end_var|var_input|var_global|var_out|var_in_out|var_temp|var_inst|function|function_block|pointer|array|string|of|if|then|end_if|elsif|else|while|end_while|repeat|until|end_repeat|exit|continue|return|for|to|by|end_for|do|case|end_case|and|xor|or|not|constant|sizeof|adr|type|end_type|struct|end_struct|union|end_union|mod|true|false|char|lreal|real|lint|dint|int|sint|ulint|udint|uint|usint|lword|dword|word|byte|bool|ltim|time|ldt|dt|ldate|ltod|tod)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.structured-text",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.structured-text",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.structured-text"
+}

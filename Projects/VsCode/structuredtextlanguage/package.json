@@ -1,0 +1,25 @@
+{
+    "name": "structuredtextlanguage",
+    "displayName": "StructuredTextLanguage",
+    "description": "Support for Structured Text.",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.63.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "structured-text",
+            "aliases": ["StructuredText", "structured-text"],
+            "extensions": [".st", ".pou.st", "gvl.st", "dut.st"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "structured-text",
+            "scopeName": "source.structured-text",
+            "path": "./syntaxes/structured-text.tmLanguage.json"
+        }]
+    }
+}
