@@ -41,9 +41,9 @@ namespace OfflineCompiler
 
 		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource(FileInfo info) => info.Extension.ToUpperInvariant() switch
 		{
-			".POU" => ToLanguageSource2(info, ToLanguageSourcePou),
-			".GVL" => ToLanguageSource2(info, ToLanguageSourceGvl),
-			".DUT" => ToLanguageSource2(info, ToLanguageSourceDut),
+			".POU.ST" => ToLanguageSource2(info, ToLanguageSourcePou),
+			".GVL.ST" => ToLanguageSource2(info, ToLanguageSourceGvl),
+			".DUT.ST" => ToLanguageSource2(info, ToLanguageSourceDut),
 			_ => null,
 		};
 		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource2(FileInfo info, Func<FileInfo, string, ILanguageSource> creator)
