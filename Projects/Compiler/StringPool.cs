@@ -28,16 +28,16 @@
 
 		public string GetString(string baseString, int start, int length)
 		{
-			uint hash = FnvHashHelper.HashString(baseString);
+			var hash = FnvHashHelper.HashString(baseString);
 			return GetString(hash, baseString, start, length);
 		}
 
-		public string GetString(uint hash, string baseString, int start, int length)
+		public string GetString(FnvHashHelper.Hash hash, string baseString, int start, int length)
 		{
 			// Lookup with quadratic probing
 			lock (SharedHashTable)
 			{
-				uint key = hash;
+				uint key = hash.Value;
 				uint probe = 0;
 				while (probe < PROBES_COUNT)
 				{
@@ -72,7 +72,7 @@
 				// Insert at end if there is still space in the bucket.
 				// NOTE: You could make the span completly random in range[0;probe]
 				uint pos = probe == PROBES_COUNT ? RandProbe() : probe;
-				key = unchecked(hash + (pos * (pos + 1)) / 2) & SHARED_COUNT_MASK;
+				key = unchecked(hash.Value + (pos * (pos + 1)) / 2) & SHARED_COUNT_MASK;
 				var stringValue = start == 0 && length == baseString.Length ? baseString : baseString.Substring(start, length);
 				return SharedHashTable[key] = stringValue;
 			}

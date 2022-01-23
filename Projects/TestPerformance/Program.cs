@@ -18,15 +18,19 @@ namespace TestPerformance
 
 			public bool OnMessageWithTypes(IMessageSinkMessage message, HashSet<string> messageTypes)
 			{
+				Messages.Add(message.ToString()!);
+				if (message is ITestCaseDiscoveryMessage testCaseDiscoveryMessage)
+					TestCases.AddRange(testCaseDiscoveryMessage.TestCases);
 				if (message is IDiscoveryCompleteMessage)
 					Discovery.Release();
 				if (message is ITestAssemblyFinished)
-					if(TestsFinished.CurrentCount < 1)
-						TestsFinished.Release();
+					TestsFinished.Release();
 				return true;
 			}
-			public SemaphoreSlim Discovery = new SemaphoreSlim(1, 1);
-			public SemaphoreSlim TestsFinished = new SemaphoreSlim(1, 1);
+			public List<string> Messages = new();
+			public SemaphoreSlim Discovery = new SemaphoreSlim(0, 1);
+			public List<ITestCase> TestCases = new();
+			public SemaphoreSlim TestsFinished = new SemaphoreSlim(0, 1);
 		}
 
 		static void Main(string[] args)
@@ -39,17 +43,18 @@ namespace TestPerformance
 			ITestFrameworkDiscoveryOptions testFrameworkDiscoveryOptions = TestFrameworkOptions.ForDiscovery(null);
 			testFrameworkDiscoveryOptions.SetSynchronousMessageReporting(true);
 			testFrameworkDiscoveryOptions.SetPreEnumerateTheories(true);
+
 			controller.Find(false, msgReceiver, testFrameworkDiscoveryOptions);
+			msgReceiver.Discovery.Wait();
+			var testCases = msgReceiver.TestCases;
 
 			ITestFrameworkExecutionOptions testFrameworkExecutionOptions = TestFrameworkOptions.ForExecution(null);
 			testFrameworkExecutionOptions.SetSynchronousMessageReporting(true);
 			testFrameworkExecutionOptions.SetDisableParallelization(true);
 
-			msgReceiver.Discovery.Wait();
-
 			while (true)
 			{
-				controller.RunAll(msgReceiver, testFrameworkDiscoveryOptions, testFrameworkExecutionOptions);
+				controller.RunTests(testCases, msgReceiver, testFrameworkExecutionOptions);
 				msgReceiver.TestsFinished.Wait();
 			}
 		}

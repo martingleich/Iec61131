@@ -39,11 +39,15 @@ namespace Compiler
 		private IToken? SkipWhitespace(IToken? leadingToken)
 		{
 			int whitespaceStart = Cursor;
+			var hash = FnvHashHelper.Hash.Initial;
 			while (Cursor < Text.Length && char.IsWhiteSpace(Text[Cursor]))
+			{
+				hash.Add(Text[Cursor]);
 				++Cursor;
+			}
 			if (whitespaceStart != Cursor)
 			{
-				var whitespace = StringPool.GetString(Text, whitespaceStart, Cursor - whitespaceStart);
+				var whitespace = StringPool.GetString(hash, Text, whitespaceStart, Cursor - whitespaceStart);
 				return new WhitespaceToken(whitespace, whitespace, PointAtOffset(whitespaceStart), leadingToken);
 			}
 			return leadingToken;
@@ -361,9 +365,13 @@ namespace Compiler
 		private IToken ScanIdentifier(IToken? leadingToken)
 		{
 			int start = Cursor - 1;
+			var hash = FnvHashHelper.Hash.Initial;
 			while (Cursor < Text.Length && IsMidIdentifier(Text[Cursor]))
+			{
+				hash.Add(Text[Cursor]);
 				++Cursor;
-			var generating = StringPool.GetString(Text, start, Cursor - start);
+			}
+			var generating = StringPool.GetString(hash, Text, start, Cursor - start);
 			if (ScannerKeywordTable.TryMap(generating, PointAtOffset(start), leadingToken) is IToken token)
 			{
 				if (token is IBuiltInTypeToken builtInTypeToken)
