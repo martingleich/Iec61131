@@ -5,6 +5,11 @@ Add CASE statement
 Add Exception System
 Add safe ENUMs
 Add simple x64 codegenerator
+Add constant condition handling to flow analysis
+Add call output and call return value var decls.
+Add syntax highlighting to vscode
+Create vs code package.
+Add snippets to vscode
 
 Simple incremental compile
 Add bound node types for symbols, this would give a working space for the multiple compile-phases and allow a details lookup.
