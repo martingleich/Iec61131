@@ -4,7 +4,7 @@ namespace Compiler
 {
 	public readonly struct DurationNs64 : IEquatable<DurationNs64>, IComparable<DurationNs64>
 	{
-		private readonly long Nanoseconds;
+		public readonly long Nanoseconds;
 
 		public static readonly DurationNs64 Zero = new(0);
 		public DurationNs64(long nanoseconds)

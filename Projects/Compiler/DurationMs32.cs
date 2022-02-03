@@ -4,7 +4,7 @@ namespace Compiler
 {
 	public readonly struct DurationMs32 : IEquatable<DurationMs32>, IComparable<DurationMs32>
 	{
-		private readonly int Milliseconds;
+		public readonly int Milliseconds;
 
 		public static readonly DurationMs32 Zero = new(0);
 		public DurationMs32(int milliseconds)
