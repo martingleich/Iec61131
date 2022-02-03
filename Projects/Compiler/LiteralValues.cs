@@ -5,7 +5,28 @@ namespace Compiler
 {
 	public interface ILiteralValue : IEquatable<ILiteralValue>
 	{
-		public IType Type { get; }
+		IType Type { get; }
+		T Accept<T>(IVisitor<T> visitor);
+
+		public interface IVisitor<T>
+		{
+			T Visit(TimeLiteralValue timeLiteralValue);
+			T Visit(LTimeLiteralValue lTimeLiteralValue);
+			T Visit(NullPointerLiteralValue nullPointerLiteralValue);
+			T Visit(LRealLiteralValue lRealLiteralValue);
+			T Visit(RealLiteralValue realLiteralValue);
+			T Visit(EnumLiteralValue enumLiteralValue);
+			T Visit(UnknownLiteralValue unknownLiteralValue);
+			T Visit(BooleanLiteralValue booleanLiteralValue);
+			T Visit(LIntLiteralValue lIntLiteralValue);
+			T Visit(ULIntLiteralValue uLIntLiteralValue);
+			T Visit(DIntLiteralValue dIntLiteralValue);
+			T Visit(UDIntLiteralValue uDIntLiteralValue);
+			T Visit(IntLiteralValue intLiteralValue);
+			T Visit(UIntLiteralValue uIntLiteralValue);
+			T Visit(USIntLiteralValue uSIntLiteralValue);
+			T Visit(SIntLiteralValue sIntLiteralValue);
+		}
 	}
 
 	public interface IAnyIntLiteralValue : ILiteralValue
@@ -25,6 +46,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(SIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as SIntLiteralValue);
@@ -44,6 +66,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(USIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as USIntLiteralValue);
@@ -53,16 +76,17 @@ namespace Compiler
 	}
 	public sealed class UIntLiteralValue : IAnyIntLiteralValue, IEquatable<UIntLiteralValue>
 	{
-		public readonly uint Value;
+		public readonly ushort Value;
 		OverflowingInteger IAnyIntLiteralValue.Value => OverflowingInteger.FromLong(Value);
 
-		public UIntLiteralValue(uint value, IType type)
+		public UIntLiteralValue(ushort value, IType type)
 		{
 			Value = value;
 			Type = type ?? throw new ArgumentNullException(nameof(type));
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(UIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as UIntLiteralValue);
@@ -82,6 +106,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(IntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as IntLiteralValue);
@@ -101,6 +126,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(UDIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as UDIntLiteralValue);
@@ -120,6 +146,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(DIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as DIntLiteralValue);
@@ -139,6 +166,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(ULIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as ULIntLiteralValue);
@@ -158,6 +186,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(LIntLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as LIntLiteralValue);
@@ -175,6 +204,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 		public bool Equals(BooleanLiteralValue? other) => other != null && other.Value == Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as BooleanLiteralValue);
 		public override bool Equals(object? obj) => throw new NotImplementedException();
@@ -189,6 +219,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(UnknownLiteralValue? other) => other != null;
 		public bool Equals(ILiteralValue? other) => Equals(other as UnknownLiteralValue);
@@ -207,6 +238,7 @@ namespace Compiler
 
 		public EnumTypeSymbol Type { get; }
 		IType ILiteralValue.Type => Type;
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(EnumLiteralValue? other) => other != null && TypeRelations.IsIdentical(Type, other.Type) && InnerValue.Equals(other.InnerValue);
 		public bool Equals(ILiteralValue? other) => Equals(other as EnumLiteralValue);
@@ -225,6 +257,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(RealLiteralValue? other) => other != null && BitConverter.SingleToInt32Bits(other.Value) == BitConverter.SingleToInt32Bits(Value);
 		public bool Equals(ILiteralValue? other) => Equals(other as RealLiteralValue);
@@ -242,6 +275,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(LRealLiteralValue? other) => other != null && BitConverter.DoubleToInt64Bits(other.Value) == BitConverter.DoubleToInt64Bits(Value);
 		public bool Equals(ILiteralValue? other) => Equals(other as LRealLiteralValue);
@@ -258,6 +292,7 @@ namespace Compiler
 		}
 
 		IType ILiteralValue.Type => Type;
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(ILiteralValue? other) => Equals(other as NullPointerLiteralValue);
 		public bool Equals(NullPointerLiteralValue? other) => other != null && TypeRelations.IsIdentical(Type, other.Type);
@@ -277,6 +312,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(LTimeLiteralValue? other) => other != null && Value == other.Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as LTimeLiteralValue);
@@ -295,6 +331,7 @@ namespace Compiler
 		}
 
 		public IType Type { get; }
+		T ILiteralValue.Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
 
 		public bool Equals(TimeLiteralValue? other) => other != null && Value == other.Value;
 		public bool Equals(ILiteralValue? other) => Equals(other as TimeLiteralValue);
