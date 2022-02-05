@@ -55,7 +55,7 @@ namespace Compiler.Types
 			=> CreateError(sourceSpan, ImplicitName.ErrorModule, name, returnType);
 		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString module, CaseInsensitiveString name, IType returnType)
 			=> new(true, module, name, sourceSpan, OrderedSymbolSet.ToOrderedSymbolSet(
-				new ParameterVariableSymbol(ParameterKind.Output, sourceSpan, name, returnType)));
+				new ParameterVariableSymbol(ParameterKind.Output, sourceSpan, name, 0, returnType)));
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}

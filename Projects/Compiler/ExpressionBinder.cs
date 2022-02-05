@@ -328,7 +328,7 @@ namespace Compiler
 							explicitParameterSyntax.Identifier == function.Name) // The implicit output for return is not accessable from the outside
 						{
 							MessageBag.Add(!isError, new ParameterNotFoundMessage(function, explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourceSpan));
-							symbol = ParameterVariableSymbol.CreateError(explicitParameterSyntax.Identifier, explicitParameterSyntax.TokenIdentifier.SourceSpan);
+							symbol = ParameterVariableSymbol.CreateError(explicitParameterSyntax.Identifier, -1, explicitParameterSyntax.TokenIdentifier.SourceSpan);
 						}
 						else
 						{

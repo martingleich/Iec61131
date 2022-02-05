@@ -119,10 +119,11 @@ namespace Tests
 				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
 				ExactlyMessages()(expressionParseMessages);
 				var moduleScope = new GlobalInternalModuleScope(boundModuleInterface, new RootScope(boundModuleInterface.SystemScope));
+				int id = 0;
 				var variables = Variables.ToSymbolSet(x =>
 				{
 					var type = MapType(moduleScope, x.Value);
-					return new LocalVariableSymbol(default, x.Key, type, null);
+					return new LocalVariableSymbol(default, x.Key, id++, type, null);
 				});
 				var realScope = new VariableSetScope(variables, moduleScope);
 				var bindMessages = new MessageBag();

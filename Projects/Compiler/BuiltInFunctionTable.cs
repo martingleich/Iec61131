@@ -17,17 +17,17 @@ namespace Compiler
 		{
 			var name = OperatorName(baseName, type);
 			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), type),
-				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), type),
-				new(ParameterKind.Output, default, name, returnType)));
+				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), 0, type),
+				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), 1, type),
+				new(ParameterKind.Output, default, name, 2, returnType)));
 			return new FunctionVariableSymbol(funcType);
 		}
 		private static FunctionVariableSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
 			var name = OperatorName(baseName, type);
 			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), type),
-				new(ParameterKind.Output, default, name, type)));
+				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), 0, type),
+				new(ParameterKind.Output, default, name, 1, type)));
 			return new FunctionVariableSymbol(funcType);
 		}
 
@@ -38,8 +38,8 @@ namespace Compiler
 		{
 			var name = CastFunctionName(from, to);
 			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), from),
-				new(ParameterKind.Output, default, name, to)));
+				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), 0, from),
+				new(ParameterKind.Output, default, name, 1, to)));
 			return new FunctionVariableSymbol(funcType);
 		}
 

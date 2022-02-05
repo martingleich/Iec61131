@@ -17,6 +17,20 @@ namespace Compiler
 
 		public static IVariableSymbol CreateError(SourceSpan declaringSpan, CaseInsensitiveString name) =>
 			new ErrorVariableSymbol(declaringSpan, name, ITypeSymbol.CreateErrorForVar(declaringSpan, name));
+
+		public interface IVisitor<T>
+		{
+			T Visit(FunctionVariableSymbol functionVariableSymbol);
+			T Visit(ParameterVariableSymbol parameterVariableSymbol);
+			T Visit(EnumVariableSymbol enumVariableSymbol);
+			T Visit(GlobalVariableSymbol globalVariableSymbol);
+			T Visit(ErrorVariableSymbol errorVariableSymbol);
+			T Visit(InlineLocalVariableSymbol inlineLocalVariableSymbol);
+			T Visit(LocalVariableSymbol localVariableSymbol);
+			T Visit(FieldVariableSymbol fieldVariableSymbol);
+		}
+
+		T Accept<T>(IVisitor<T> visitor);
 	}
 
 	public abstract class AVariableSymbol : IVariableSymbol
@@ -32,6 +46,7 @@ namespace Compiler
 		public SourceSpan DeclaringSpan { get; }
 		public IType Type { get; }
 		public override string ToString() => $"{Name} : {Type}";
+		public abstract T Accept<T>(IVariableSymbol.IVisitor<T> visitor);
 	}
 	
 	public sealed class FieldVariableSymbol : AVariableSymbol
@@ -39,26 +54,37 @@ namespace Compiler
 		public FieldVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)
 		{
 		}
+		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
-	public sealed class LocalVariableSymbol : AVariableSymbol
+
+	public interface ILocalVariableSymbol : IVariableSymbol
 	{
-		public LocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type, IBoundExpression? initialValue) : base(declaringSpan, name, type)
+		public int LocalId { get; }
+	}
+	public sealed class LocalVariableSymbol : AVariableSymbol, ILocalVariableSymbol
+	{
+		public int LocalId { get; }
+		public LocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, int localId, IType type, IBoundExpression? initialValue) : base(declaringSpan, name, type)
 		{
+			LocalId = localId;
 			InitialValue = initialValue;
 		}
 		public readonly IBoundExpression? InitialValue; 
+		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
-	public sealed class InlineLocalVariableSymbol : IVariableSymbol
+	public sealed class InlineLocalVariableSymbol : IVariableSymbol, ILocalVariableSymbol
 	{
 		public SourceSpan DeclaringSpan { get; }
 		public CaseInsensitiveString Name { get; }
+		public int LocalId { get; }
 		private IType? _type;
 		public readonly bool IsReadonly;
 
-		public InlineLocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, bool isReadonly)
+		public InlineLocalVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, int localId, bool isReadonly)
 		{
 			DeclaringSpan = declaringSpan;
 			Name = name;
+			LocalId = localId;
 			IsReadonly = isReadonly;
 		}
 
@@ -78,12 +104,41 @@ namespace Compiler
 			IsErrorDeclared = true;
 			_type = type;
 		}
+		public T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
+	}
+	
+	public sealed class ParameterVariableSymbol : IVariableSymbol
+	{
+		public static ParameterVariableSymbol CreateError(int id, SourceSpan span)
+			=> CreateError(ImplicitName.ErrorParam(id), id, span);
+		public static ParameterVariableSymbol CreateError(CaseInsensitiveString name, int id, SourceSpan span)
+			=> new (ParameterKind.Input, span, name, id, ITypeSymbol.CreateErrorForVar(span, name));
+
+		public int ParameterId;
+		public ParameterVariableSymbol(ParameterKind kind, SourceSpan declaringSpan, CaseInsensitiveString name, int parameterId, IType type)
+		{
+			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+			DeclaringSpan = declaringSpan;
+			Name = name;
+			ParameterId = parameterId;
+			Type = type ?? throw new ArgumentNullException(nameof(type));
+		}
+
+		public ParameterKind Kind { get; }
+		public SourceSpan DeclaringSpan { get; }
+		public CaseInsensitiveString Name { get; }
+		public IType Type { get; }
+
+		public override string ToString() => $"{Kind} {Name} : {Type}";
+
+		public T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class ErrorVariableSymbol : AVariableSymbol
 	{
 		public ErrorVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)
 		{
 		}
+		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 
 	}
 	public sealed class GlobalVariableSymbol : AVariableSymbol
@@ -122,6 +177,7 @@ namespace Compiler
 			if (InitialValueSyntax != null)
 				InitialValue = ConstantExpressionEvaluator.EvaluateConstant(systemScope, InitialValueSyntax, messages);
 		}
+		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class EnumVariableSymbol : IVariableSymbol
@@ -172,28 +228,7 @@ namespace Compiler
 			InGetConstantValue = false;
 			return _value = new EnumLiteralValue(Type, literalValue);
 		}
-	}
-	public sealed class ParameterVariableSymbol : IVariableSymbol
-	{
-		public static ParameterVariableSymbol CreateError(int id, SourceSpan span)
-			=> CreateError(ImplicitName.ErrorParam(id), span);
-		public static ParameterVariableSymbol CreateError(CaseInsensitiveString name, SourceSpan span)
-			=> new (ParameterKind.Input, span, name, ITypeSymbol.CreateErrorForVar(span, name));
-		public ParameterVariableSymbol(ParameterKind kind, SourceSpan declaringSpan, CaseInsensitiveString name, IType type)
-		{
-			Kind = kind ?? throw new ArgumentNullException(nameof(kind));
-			DeclaringSpan = declaringSpan;
-			Name = name;
-			Type = type ?? throw new ArgumentNullException(nameof(type));
-		}
-
-		public ParameterKind Kind { get; }
-		public SourceSpan DeclaringSpan { get; }
-		public CaseInsensitiveString Name { get; }
-		public IType Type { get; }
-
-		public override string ToString() => $"{Kind} {Name} : {Type}";
-
+		public T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 	public sealed class FunctionVariableSymbol : IVariableSymbol
 	{
@@ -217,6 +252,7 @@ namespace Compiler
 			=> new(FunctionTypeSymbol.CreateError(sourceSpan, name, returnType));
 
 		public override string ToString() => UniqueId.ToString();
+		public T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 
 	public sealed class GlobalVariableListSymbol : IScopeSymbol

@@ -85,7 +85,7 @@ namespace Compiler
 
 	public abstract class BoundPou
 	{
-		private readonly ICallableTypeSymbol CallableSymbol;
+		public readonly ICallableTypeSymbol CallableSymbol;
 		protected abstract (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) BoundBodyAndTemps { get; }
 		private ImmutableArray<IMessage>? _lazyFlowAnalyis;
 		public ImmutableArray<IMessage> FlowAnalysis
@@ -126,9 +126,9 @@ namespace Compiler
 				{
 					var messageBag = new MessageBag();
 					var callableScope = new InsideCallableScope(scope, symbol);
-					var localVariables = BindLocalVariables(@interface.VariableDeclarations, callableScope, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					var rootNode = RootVarDeclTreeNode.FromLocalsSyntax(@interface.VariableDeclarations, callableScope);
 					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => symbol.Parameters.TryGetValue(local.Name);
-					return CreateBoundBody(callableScope, localVariables, messageBag, body, getAlreadyDeclared);
+					return CreateBoundBody(callableScope, rootNode, messageBag, body, getAlreadyDeclared);
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
@@ -155,9 +155,9 @@ namespace Compiler
 				{
 					var messageBag = new MessageBag();
 					var insideFbScope = new InsideTypeScope(new InsideCallableScope(scope, symbol), symbol.Fields);
-					var localVariables = BindLocalVariables(@interface.VariableDeclarations, insideFbScope, messageBag).ToOrderedSymbolSetWithDuplicates(messageBag);
+					var rootNode = RootVarDeclTreeNode.FromLocalsSyntax(@interface.VariableDeclarations, insideFbScope);
 					Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared = local => (IVariableSymbol?)symbol.Parameters.TryGetValue(local.Name) ?? symbol.Fields.TryGetValue(local.Name);
-					return CreateBoundBody(insideFbScope, localVariables, messageBag, body, getAlreadyDeclared);
+					return CreateBoundBody(insideFbScope, rootNode, messageBag, body, getAlreadyDeclared);
 				}
 
 				var lazyBound = LazyExtensions.Create(Bind);
@@ -165,30 +165,14 @@ namespace Compiler
 			}
 		}
 
-		private static readonly object? Marker = new();
-
-		static IEnumerable<LocalVariableSymbol> BindLocalVariables(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope, MessageBag messages)
-			=> ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
-				kind => kind is VarTempToken ? Marker : null,
-				(_, scope, bag, syntax) =>
-				{
-					var type = TypeCompiler.MapComplete(scope, syntax.Type.Type, messages);
-					var initialValue = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
-					return new LocalVariableSymbol(
-						syntax.TokenIdentifier.SourceSpan,
-						syntax.Identifier,
-						type,
-						initialValue);
-				});
 
 		static (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) CreateBoundBody(
 			IScope outerScope,
-			OrderedSymbolSet<LocalVariableSymbol> tempVariables,
+			RootVarDeclTreeNode rootNode,
 			MessageBag messageBag,
 			StatementListSyntax body,
 			Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared)
 		{
-			var rootNode = new RootVarDeclTreeNode(tempVariables);
 			var scope = rootNode.GetScope(outerScope);
 			var bound = StatementBinder.Bind(body, rootNode, scope, messageBag);
 			rootNode.GetAllMessages(messageBag, getAlreadyDeclared);
@@ -747,11 +731,12 @@ namespace Compiler
 
 		private static OrderedSymbolSet<ParameterVariableSymbol> BindParameters(IScope Scope, MessageBag Messages, PouInterfaceSyntax context)
 		{
+			int paramId = 0;
 			var allParameters = BindParameters(Scope, Messages, context.VariableDeclarations).Concat(BindReturnValue(Scope, Messages, context.Name, context.ReturnDeclaration));
 			var uniqueParameters = allParameters.ToOrderedSymbolSetWithDuplicates(Messages);
 			return uniqueParameters;
 
-			static IEnumerable<ParameterVariableSymbol> BindParameters(IScope scope, MessageBag messages, SyntaxArray<VarDeclBlockSyntax> vardecls)
+			IEnumerable<ParameterVariableSymbol> BindParameters(IScope scope, MessageBag messages, SyntaxArray<VarDeclBlockSyntax> vardecls)
 				=> BindVariableBlocks(vardecls, scope, messages,
 					kind => ParameterKind.TryMapDecl(kind),
 					(kind, scope, bag, syntax) =>
@@ -763,14 +748,15 @@ namespace Compiler
 							kind,
 							syntax.TokenIdentifier.SourceSpan,
 							syntax.Identifier,
+							paramId++,
 							type);
 					});
-			static IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope scope, MessageBag messages, CaseInsensitiveString functionName, VarTypeSyntax? syntax)
+			IEnumerable<ParameterVariableSymbol> BindReturnValue(IScope scope, MessageBag messages, CaseInsensitiveString functionName, VarTypeSyntax? syntax)
 			{
 				if (syntax != null)
 				{
 					IType type = TypeCompiler.MapSymbolic(scope, syntax.Type, messages);
-					yield return new ParameterVariableSymbol(ParameterKind.Output, syntax.Type.SourceSpan, functionName, type);
+					yield return new ParameterVariableSymbol(ParameterKind.Output, syntax.Type.SourceSpan, functionName, ++paramId, type);
 				}
 			}
 		}

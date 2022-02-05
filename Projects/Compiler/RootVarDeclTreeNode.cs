@@ -8,28 +8,43 @@ namespace Compiler
 	public sealed class RootVarDeclTreeNode : VarDeclTreeNode
 	{
 		private readonly OrderedSymbolSet<LocalVariableSymbol> Locals;
-		private MessageBag? _messages;
+		public readonly MessageBag Messages;
+		private int _nextLocalId;
 
-		public RootVarDeclTreeNode(OrderedSymbolSet<LocalVariableSymbol> locals)
+		public RootVarDeclTreeNode(OrderedSymbolSet<LocalVariableSymbol> locals, MessageBag messages, int firstId)
 		{
 			Locals = locals;
+			Messages = messages;
+			_nextLocalId = firstId;
 		}
 
-		public MessageBag Messages
+		private static readonly object? Marker = new();
+		public static RootVarDeclTreeNode FromLocalsSyntax(SyntaxArray<VarDeclBlockSyntax> vardecls, IScope scope)
 		{
-			get
-			{
-				if (_messages == null)
-					_messages = new MessageBag();
-				return _messages;
-			}
+			var messages = new MessageBag();
+			int id = 0;
+			var locals = ProjectBinder.BindVariableBlocks(vardecls, scope, messages,
+			   kind => kind is VarTempToken ? Marker : null,
+			   (_, scope, bag, syntax) =>
+			   {
+				   var type = TypeCompiler.MapComplete(scope, syntax.Type.Type, messages);
+				   var initialValue = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
+				   return new LocalVariableSymbol(
+					   syntax.TokenIdentifier.SourceSpan,
+					   syntax.Identifier,
+					   id++,
+					   type,
+					   initialValue);
+			   }).ToOrderedSymbolSetWithDuplicates(messages);
+			return new RootVarDeclTreeNode(locals, messages, id);
 		}
+
 
 		protected override RootVarDeclTreeNode RootNode => this;
 		public void GetAllMessages(MessageBag messages, Func<IVariableSymbol, IVariableSymbol?> getAlreadyDeclared)
 		{
-			if (_messages != null)
-				messages.AddRange(_messages);
+			if (Messages != null)
+				messages.AddRange(Messages);
 			foreach (var local in Locals)
 			{
 				if (getAlreadyDeclared(local) is IVariableSymbol alreadyDeclared)
@@ -62,6 +77,8 @@ namespace Compiler
 		}
 
 		public IScope GetScope(IScope outerScope) => new TemporaryVariablesScope(outerScope, Locals);
+
+		public int NextLocalId() => _nextLocalId++;
 
 		private sealed class TemporaryVariablesScope : AInnerScope<IScope>
 		{

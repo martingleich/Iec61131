@@ -14,7 +14,7 @@ namespace Compiler
 			{
 				if (st is LocalVarDeclStatementSyntax localVarDecl)
 				{
-					var variable = new InlineLocalVariableSymbol(localVarDecl.SourceSpan, localVarDecl.Identifier, isReadonly: false);
+					var variable = new InlineLocalVariableSymbol(localVarDecl.SourceSpan, localVarDecl.Identifier, RootNode.NextLocalId(), isReadonly: false);
 					variablesBuilder.Add(variable);
 				}
 			}
@@ -24,7 +24,7 @@ namespace Compiler
 
 		public InlineVarDeclTreeNode AddChild(ForStatementDeclareLocalIndexSyntax declaredIndex)
 		{
-			var variable = new InlineLocalVariableSymbol(declaredIndex.SourceSpan, declaredIndex.Identifier, isReadonly: true);
+			var variable = new InlineLocalVariableSymbol(declaredIndex.SourceSpan, declaredIndex.Identifier, RootNode.NextLocalId(), isReadonly: true);
 			var variables = SymbolSet.Create(variable);
 			return AddChild(variables);
 		}
