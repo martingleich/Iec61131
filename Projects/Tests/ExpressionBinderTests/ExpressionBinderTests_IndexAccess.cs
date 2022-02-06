@@ -78,10 +78,12 @@ namespace Tests.ExpressionBinderTests
 		[Fact]
 		public static void IndexAccess_ToAliasOfArray()
 		{
-			BindHelper.NewProject
+			var boundExpression = BindHelper.NewProject
 				.AddDut("myalias", "ARRAY[0..10] OF INT")
 				.WithGlobalVar("arr", "myalias")
-				.BindGlobalExpression("arr[0]", null);
+				.BindGlobalExpression<ArrayIndexAccessBoundExpression>("arr[0]", null);
+			var index = Assert.Single(boundExpression.Indices);
+			Assert.IsType<LiteralBoundExpression>(index); // A direct type context is used. So no cast is generated.
 		}
 		[Fact]
 		public static void IndexAccess_ToAliasOfPointer()
@@ -108,6 +110,7 @@ namespace Tests.ExpressionBinderTests
 				.WithGlobalVar("arr", "ARRAY[0..5] OF ARRAY[1..9] OF INT")
 				.BindGlobalExpression("arr[4][2]", null);
 		}
+
 
 		[Fact]
 		public static void Error_IndexAccess_ToNonArray()
@@ -156,5 +159,4 @@ namespace Tests.ExpressionBinderTests
 				.BindGlobalExpression("arr[4, 9]", null, ErrorOfType<WrongNumberOfDimensionInIndexMessage>());
 		}
 	}
-
 }

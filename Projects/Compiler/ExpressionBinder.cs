@@ -272,7 +272,7 @@ namespace Compiler
 			}
 
 			var boundBase = indexAccessExpressionSyntax.LeftSide.Accept(this, null);
-			var castedIndices = indexAccessExpressionSyntax.Indices.Select(idx => ImplicitCast(idx.Accept(this, null), SystemScope.PointerDiffrenceType)).ToImmutableArray();
+			var castedIndices =  indexAccessExpressionSyntax.Indices.Select(idx => idx.Accept(this, SystemScope.PointerDiffrenceType)).ToImmutableArray();
 			var realBaseType = TypeRelations.ResolveAlias(boundBase.Type);
 			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
 			{
