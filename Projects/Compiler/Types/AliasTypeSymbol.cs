@@ -6,8 +6,8 @@ namespace Compiler.Types
 	public sealed class AliasTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
 		public SourceSpan DeclaringSpan { get; }
-		public CaseInsensitiveString Name => UniqueId.Name;
-		public UniqueSymbolId UniqueId { get; }
+		public CaseInsensitiveString Name => UniqueName.Name;
+		public UniqueSymbolId UniqueName { get; }
 		public IType? _aliasedType;
 		private bool Inside_GetLayoutInfo;
 		private bool RecursiveLayoutWasDone;
@@ -19,7 +19,7 @@ namespace Compiler.Types
 		{
 			DeclaringSpan = declaringSpan;
 			_aliasedType = null;
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 		public AliasTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString module, CaseInsensitiveString name, IType aliasedType)
 		{
@@ -27,7 +27,7 @@ namespace Compiler.Types
 			_aliasedType = aliasedType ?? throw new ArgumentNullException(nameof(aliasedType));
 			MaybeLayoutInfo = aliasedType.LayoutInfo;
 			RecursiveLayoutWasDone = false;
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 
 		private UndefinedLayoutInfo? MaybeLayoutInfo { get; set; }
@@ -100,6 +100,6 @@ namespace Compiler.Types
 			=> EmptyScopeHelper.LookupScope(Name, identifier, errorPosition);
 		public ErrorsAnd<ITypeSymbol> LookupType(CaseInsensitiveString identifier, SourceSpan errorPosition)
 			=> EmptyScopeHelper.LookupType(Name, identifier, errorPosition);
-		public override string ToString() => UniqueId.ToString();
+		public override string ToString() => UniqueName.ToString();
 	}
 }

@@ -7,8 +7,8 @@ namespace Compiler.Types
 	{
 		public string Code => Name.Original;
 		public SourceSpan DeclaringSpan { get; }
-		public CaseInsensitiveString Name => UniqueId.Name;
-		public UniqueSymbolId UniqueId { get; }
+		public CaseInsensitiveString Name => UniqueName.Name;
+		public UniqueSymbolId UniqueName { get; }
 
 		private readonly StructuredLayoutHelper _layoutHelper;
 		public SymbolSet<FieldVariableSymbol> Fields => !_fields.IsDefault ? _fields : throw new InvalidOperationException("Fields is not initialized.");
@@ -21,7 +21,7 @@ namespace Compiler.Types
 		{
 			DeclaringSpan = declaringSpan;
 			_layoutHelper = new StructuredLayoutHelper();
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
@@ -52,6 +52,6 @@ namespace Compiler.Types
 			span,
 			false,
 			Fields);
-		public override string ToString() => UniqueId.ToString();
+		public override string ToString() => UniqueName.ToString();
 	}
 }

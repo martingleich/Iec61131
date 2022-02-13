@@ -2,7 +2,6 @@
 {
 	public interface ICallableTypeSymbol : ITypeSymbol
 	{
-		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
+		OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
 	}
-	
 }

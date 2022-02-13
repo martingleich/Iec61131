@@ -151,10 +151,10 @@ namespace Compiler
 			IType type,
 			IBoundExpression? initialValueSyntax) : base(declaringSpan, name, type)
 		{
-			UniqueName = $"{moduleName}::{gvlName}::{name}";
+			UniqueName = new UniqueSymbolId(new UniqueSymbolId(moduleName, gvlName).ToCaseInsensitive(), name);
 			InitialValueSyntax = initialValueSyntax;
 		}
-		public readonly string UniqueName;
+		public readonly UniqueSymbolId UniqueName;
 		private ILiteralValue? _initialValue;
 		public ILiteralValue? InitialValue {
 			get
@@ -240,7 +240,7 @@ namespace Compiler
 		IType IVariableSymbol.Type => Type;
 		public FunctionTypeSymbol Type { get; }
 		public CaseInsensitiveString Name => Type.Name;
-		public UniqueSymbolId UniqueId => Type.UniqueId;
+		public UniqueSymbolId UniqueName => Type.UniqueName;
 		public SourceSpan DeclaringSpan => Type.DeclaringSpan;
 		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan)
 			=> new(FunctionTypeSymbol.CreateError(sourceSpan));
@@ -251,7 +251,7 @@ namespace Compiler
 		public static FunctionVariableSymbol CreateError(SourceSpan sourceSpan, CaseInsensitiveString name, IType returnType)
 			=> new(FunctionTypeSymbol.CreateError(sourceSpan, name, returnType));
 
-		public override string ToString() => UniqueId.ToString();
+		public override string ToString() => UniqueName.ToString();
 		public T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}
 

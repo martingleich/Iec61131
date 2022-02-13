@@ -7,8 +7,8 @@ namespace Compiler.Types
 	{
 		private readonly StructuredLayoutHelper _layoutHelper;
 		public bool IsUnion { get; }
-		public CaseInsensitiveString Name => UniqueId.Name;
-		public UniqueSymbolId UniqueId { get; }
+		public CaseInsensitiveString Name => UniqueName.Name;
+		public UniqueSymbolId UniqueName { get; }
 		public string Code => Name.Original;
 
 		public LayoutInfo LayoutInfo => _layoutHelper.LayoutInfo;
@@ -28,7 +28,7 @@ namespace Compiler.Types
 			IsUnion = isUnion;
 			_fields = fields;
 			_layoutHelper = new StructuredLayoutHelper(layoutInfo);
-			UniqueId = new( module, name);
+			UniqueName = new( module, name);
 		}
 
 		public override string ToString() => Name.ToString();
@@ -42,7 +42,7 @@ namespace Compiler.Types
 			DeclaringSpan = declaringSpan;
 			IsUnion = isUnion;
 			_layoutHelper = new StructuredLayoutHelper();
-			UniqueId = new( module, name);
+			UniqueName = new( module, name);
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);

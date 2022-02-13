@@ -668,6 +668,17 @@ namespace Compiler
 		T IBoundStatement.Accept<T>(IBoundStatement.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundStatement.Accept<T, TContext>(IBoundStatement.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 	}
+	public sealed class ForLoopFunctions
+	{
+		public readonly FunctionVariableSymbol Add;
+		public readonly FunctionVariableSymbol LessEqual;
+
+		public ForLoopFunctions(FunctionVariableSymbol add, FunctionVariableSymbol lessEqual)
+		{
+			Add = add ?? throw new ArgumentNullException(nameof(add));
+			LessEqual = lessEqual ?? throw new ArgumentNullException(nameof(lessEqual));
+		}
+	}
 	public sealed class ForLoopBoundStatement : IBoundStatement
 	{
 		public INode OriginalNode { get; }
@@ -676,17 +687,23 @@ namespace Compiler
 		public readonly IBoundExpression Initial;
 		public readonly IBoundExpression UpperBound;
 		public readonly IBoundExpression Step;
-		public readonly FunctionVariableSymbol IncrementFunctionSymbol;
 		public readonly IBoundStatement Body;
+		public readonly ForLoopFunctions? Functions;
 
-		public ForLoopBoundStatement(INode originalNode, IBoundExpression index, IBoundExpression initial, IBoundExpression upperBound, IBoundExpression step, FunctionVariableSymbol incrementFunctionSymbol, IBoundStatement body)
+		public ForLoopBoundStatement(INode originalNode,
+							   IBoundExpression index,
+							   IBoundExpression initial,
+							   IBoundExpression upperBound,
+							   IBoundExpression step,
+							   ForLoopFunctions? functions,
+							   IBoundStatement body)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
 			Index = index ?? throw new ArgumentNullException(nameof(index));
 			Initial = initial ?? throw new ArgumentNullException(nameof(initial));
 			UpperBound = upperBound ?? throw new ArgumentNullException(nameof(upperBound));
 			Step = step ?? throw new ArgumentNullException(nameof(step));
-			IncrementFunctionSymbol = incrementFunctionSymbol ?? throw new ArgumentNullException(nameof(incrementFunctionSymbol));
+			Functions = functions;
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 

@@ -185,17 +185,7 @@ namespace Compiler
 						new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", SourcePoint.Null, null)), boundIndex.Type);
 
 			var realIndexType = TypeRelations.ResolveAlias(boundIndex.Type);
-			FunctionVariableSymbol incrementFunctionSymbol;
-			if (realIndexType is BuiltInType builtInType && scope.SystemScope.BuiltInFunctionTable.TryGetOperatorFunction(("ADD", true), builtInType) is OperatorFunction incrementOperatorFunction)
-			{
-				incrementFunctionSymbol = incrementOperatorFunction.Symbol;
-			}
-			else
-			{
-				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.Index.SourceSpan));
-				var errorName = ImplicitName.ErrorBinaryOperator(realIndexType.Code, realIndexType.Code, "ADD");
-				incrementFunctionSymbol = FunctionVariableSymbol.CreateError(forStatementSyntax.SourceSpan, errorName, realIndexType);
-			}
+			var functions = GetForLoopFunction(forStatementSyntax, scope, realIndexType).Extract(MessageBag);
 
 			var bodyScope = new LoopScope(scope);
 			var boundBody = BindInner(forStatementSyntax.Statements, varDeclTreeNode, bodyScope, MessageBag);
@@ -206,8 +196,16 @@ namespace Compiler
 				boundInitial,
 				boundUpperBound,
 				boundStep,
-				incrementFunctionSymbol,
+				functions,
 				boundBody);
+
+			static ErrorsAnd<ForLoopFunctions?> GetForLoopFunction(ForStatementSyntax forStatementSyntax, IStatementScope scope, IType realIndexType)
+			{
+				if (realIndexType is BuiltInType builtInType && scope.SystemScope.BuiltInFunctionTable.GetForLoopFunctions(builtInType) is ForLoopFunctions f)
+					return f;
+				else
+					return ErrorsAnd.Create<ForLoopFunctions?>(null, new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.Index.SourceSpan));
+			}
 		}
 
 		IBoundStatement IStatementSyntax.IVisitor<IBoundStatement>.Visit(EmptyStatementSyntax emptyStatementSyntax)

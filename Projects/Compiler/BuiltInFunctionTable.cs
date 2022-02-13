@@ -365,6 +365,16 @@ namespace Compiler
 			public (string Name, bool IsGenericReturn) Visit(MinusToken minusToken) => ("NEG", true);
 			public (string Name, bool IsGenericReturn) Visit(NotToken notToken) => ("NOT", true);
 		}
+
+		public ForLoopFunctions? GetForLoopFunctions(BuiltInType type)
+		{
+			var add = TryGetOperatorFunction(("ADD", true), type);
+			var lessEqual = TryGetOperatorFunction(("LESS_EQUAL", false), type);
+			if (add.HasValue && lessEqual.HasValue)
+				return new ForLoopFunctions(add.Value.Symbol, lessEqual.Value.Symbol);
+			else
+				return null;
+		}
 	}
 
 	public readonly struct OperatorFunction

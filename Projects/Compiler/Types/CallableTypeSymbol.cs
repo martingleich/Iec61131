@@ -1,4 +1,6 @@
-﻿namespace Compiler.Types
+﻿using System.Linq;
+
+namespace Compiler.Types
 {
 	public static class CallableTypeSymbol
 	{

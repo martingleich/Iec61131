@@ -4,15 +4,15 @@
 	{
 		public ErrorTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString name)
 		{
-			UniqueId = new UniqueSymbolId(CaseInsensitiveString.Empty, Name);
+			UniqueName = new UniqueSymbolId(CaseInsensitiveString.Empty, Name);
 			DeclaringSpan = declaringSpan;
 		}
 
 		public LayoutInfo LayoutInfo => new(0, 1);
-		public CaseInsensitiveString Name => UniqueId.Name;
+		public CaseInsensitiveString Name => UniqueName.Name;
 		public string Code => Name.Original;
 		public SourceSpan DeclaringSpan { get; }
-		public UniqueSymbolId UniqueId {get;}
+		public UniqueSymbolId UniqueName {get;}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.VisitError(context);
 

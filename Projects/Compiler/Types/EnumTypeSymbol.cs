@@ -5,8 +5,8 @@ namespace Compiler.Types
 {
 	public sealed class EnumTypeSymbol : ITypeSymbol, _IDelayedLayoutType, IScopeSymbol
 	{
-		public CaseInsensitiveString Name => UniqueId.Name;
-		public UniqueSymbolId UniqueId { get; }
+		public CaseInsensitiveString Name => UniqueName.Name;
+		public UniqueSymbolId UniqueName { get; }
 		public string Code => Name.Original;
 		public LayoutInfo LayoutInfo => BaseType.LayoutInfo;
 		private IType? _baseType;
@@ -23,13 +23,13 @@ namespace Compiler.Types
 			DeclaringSpan = declaringSpan;
 			_baseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 			_values = values;
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 
 		internal EnumTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString module, CaseInsensitiveString name)
 		{
 			DeclaringSpan = declaringSpan;
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 		internal void _SetBaseType(IType baseType)
 		{
@@ -40,7 +40,7 @@ namespace Compiler.Types
 			_values = values;
 		}
 
-		public override string ToString() => UniqueId.ToString();
+		public override string ToString() => UniqueName.ToString();
 
 		public UndefinedLayoutInfo GetLayoutInfo(MessageBag messageBag, SourceSpan span)
 		{

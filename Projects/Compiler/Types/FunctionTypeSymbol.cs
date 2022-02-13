@@ -18,14 +18,15 @@ namespace Compiler.Types
 		public override int GetHashCode() => HashCode.Combine(ModuleName, Name);
 		public static bool operator ==(UniqueSymbolId left, UniqueSymbolId right) => left.Equals(right);
 		public static bool operator !=(UniqueSymbolId left, UniqueSymbolId right) => !(left == right);
-		public override string ToString() => $"{ModuleName}::{Name}";
+		public CaseInsensitiveString ToCaseInsensitive() => $"{ModuleName}::{Name}".ToCaseInsensitive();
+		public override string ToString() => ToCaseInsensitive().ToString();
 	}
 
 	public sealed class FunctionTypeSymbol : ICallableTypeSymbol
 	{
 		public readonly bool IsError;
-		public CaseInsensitiveString Name => UniqueId.Name;
-		public UniqueSymbolId UniqueId { get; }
+		public CaseInsensitiveString Name => UniqueName.Name;
+		public UniqueSymbolId UniqueName { get; }
 		public SourceSpan DeclaringSpan { get; }
 		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
 		public LayoutInfo LayoutInfo => new (0, 1);
@@ -40,10 +41,10 @@ namespace Compiler.Types
 			IsError = isError;
 			DeclaringSpan = declaringSpan;
 			Parameters = parameters;
-			UniqueId = new UniqueSymbolId(module, name);
+			UniqueName = new UniqueSymbolId(module, name);
 		}
 
-		public override string ToString() => UniqueId.ToString();
+		public override string ToString() => UniqueName.ToString();
 
 		public static FunctionTypeSymbol CreateError(SourceSpan sourceSpan)
 			=> CreateError(sourceSpan, ImplicitName.ErrorFunction, ITypeSymbol.CreateErrorForFunc(sourceSpan, ImplicitName.ErrorFunction));
