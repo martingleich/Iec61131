@@ -1,0 +1,40 @@
+﻿using System;
+using Compiler;
+
+namespace OfflineCompiler
+{
+
+	public sealed partial class CodegenIR
+	{
+		private sealed class VariableAddressableVisitor : IVariableSymbol.IVisitor<IAddressable>
+		{
+			private readonly CodegenIR CodeGen;
+
+			public VariableAddressableVisitor(CodegenIR codeGen)
+			{
+				CodeGen = codeGen ?? throw new ArgumentNullException(nameof(codeGen));
+			}
+
+			private GeneratorT Generator => CodeGen.Generator;
+
+			public IAddressable Visit(LocalVariableSymbol localVariableSymbol) => Generator.LocalVariable(localVariableSymbol);
+			public IAddressable Visit(InlineLocalVariableSymbol inlineLocalVariableSymbol) => Generator.LocalVariable(inlineLocalVariableSymbol);
+			public IAddressable Visit(ParameterVariableSymbol parameterVariableSymbol)
+			{
+				var parameter = Generator.Parameter(parameterVariableSymbol);
+				if (parameterVariableSymbol.Kind == ParameterKind.InOut)
+					return new PointerVariableAddressable(parameter, parameterVariableSymbol.Type.LayoutInfo.Size);
+				else
+					return parameter;
+			}
+			public IAddressable Visit(GlobalVariableSymbol globalVariableSymbol) => new GlobalVariable(globalVariableSymbol);
+			public IAddressable Visit(FieldVariableSymbol fieldVariableSymbol) => Generator.GetElementAddressableField(CodeGen.Generator.ThisReference!, fieldVariableSymbol);
+			public IAddressable Visit(FunctionVariableSymbol functionVariableSymbol) => new GlobalVariable(functionVariableSymbol);
+
+			#region Not addressable
+			public IAddressable Visit(ErrorVariableSymbol errorVariableSymbol) => throw new InvalidOperationException();
+			public IAddressable Visit(EnumVariableSymbol enumVariableSymbol) => throw new InvalidOperationException();
+			#endregion
+		}
+	}
+}

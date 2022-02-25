@@ -63,18 +63,18 @@ namespace Compiler
 			}
 		}
 		public static void Analyse(
-			ImmutableArray<IBoundExpression> initialExpressions,
+			OrderedSymbolSet<LocalVariableSymbol> localVariables,
 			IBoundStatement statement,
 			ImmutableArray<TrackedVariable> trackedVariables,
 			MessageBag messages)
 		{
 			var variableTable = CreateVariableTable(trackedVariables);
 			var analyzer = new FlowAnalyzer(variableTable, messages);
-			analyzer.Analyze(initialExpressions, statement, messages, trackedVariables);
+			analyzer.Analyze(localVariables, statement, messages, trackedVariables);
 		}
 
 		private void Analyze(
-			ImmutableArray<IBoundExpression> initialExpressions,
+			OrderedSymbolSet<LocalVariableSymbol> localVariables,
 			IBoundStatement statement,
 			MessageBag messages,
 			ImmutableArray<TrackedVariable> trackedVariables)
@@ -83,8 +83,13 @@ namespace Compiler
 			foreach (var (variable, kind) in trackedVariables)
 				if(kind == VariableKind.Inline) // Mark all inline variables as readable until they are declared, so we don't report duplicate errors for using a variable before it is declared.
 					state = state.MarkReadable(_variableTable, variable);
-			foreach (var initial in initialExpressions)
-				state = initial.Accept(_reader, state);
+			foreach (var localVar in localVariables)
+			{
+				if (localVar.InitialValue is IBoundExpression initial)
+				{
+					state = initial.Accept(_reader, state);
+				}
+			}
 			var result = statement.Accept(this, state);
 			foreach (var (variable, kind) in trackedVariables)
 			{

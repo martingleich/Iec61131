@@ -12,6 +12,7 @@ namespace OfflineCompiler
 	{
 		public static void Compile(
 			DirectoryInfo folder,
+			DirectoryInfo build,
 			TextWriter stdout)
 		{
 			var sourceMap = new SourceMap();
@@ -22,9 +23,27 @@ namespace OfflineCompiler
 				sourceMap.Add(sourcemap);
 			}
 
+			bool isOkay = true;
 			var project = Project.New(folder.Name.ToCaseInsensitive(), sources);
 			foreach (var msg in Enumerable.Concat(project.ParseMessages, project.BoundModule.BindMessages))
+			{
 				stdout.WriteLine(GetMessageText(msg, sourceMap));
+				isOkay &= !msg.Critical;
+			}
+
+			if (build != null && isOkay)
+			{
+				build.Create();
+				foreach (var pou in project.BoundModule.FunctionPous)
+				{
+					var codegen = new CodegenIR(pou.Value);
+					codegen.CompileInitials(pou.Value.LocalVariables);
+					codegen.CompileStatement(pou.Value.BoundBody.Value);
+					var code = codegen.GetGeneratedCode();
+					var resultFile = build.FileInfo($"{pou.Key.Name}.ir");
+					File.WriteAllText(resultFile.FullName, code.ToString(), System.Text.Encoding.UTF8);
+				}
+			}
 		}
 		static string GetMessageText(IMessage msg, SourceMap sourceMap)
 		{
@@ -39,13 +58,37 @@ namespace OfflineCompiler
 		private static DutLanguageSource ToLanguageSourceDut(FileInfo info, string content)
 			=> new(info.Name, content);
 
-		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource(FileInfo info) => info.Extension.ToUpperInvariant() switch
+		private static string Extension(string name, out string remainder)
 		{
-			".POU.ST" => ToLanguageSource2(info, ToLanguageSourcePou),
-			".GVL.ST" => ToLanguageSource2(info, ToLanguageSourceGvl),
-			".DUT.ST" => ToLanguageSource2(info, ToLanguageSourceDut),
-			_ => null,
-		};
+			int id = name.LastIndexOf(".");
+			if (id < 0)
+			{
+				remainder = name;
+				return "";
+			}
+			else
+			{
+				remainder = name.Remove(id);
+				return name[id..];
+			}
+		}
+		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource(FileInfo info)
+		{
+			if (Extension(info.Name, out string remainder).Equals(".ST", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return Extension(remainder, out var _).ToUpperInvariant() switch
+				{
+					".POU" => ToLanguageSource2(info, ToLanguageSourcePou),
+					".GVL" => ToLanguageSource2(info, ToLanguageSourceGvl),
+					".DUT" => ToLanguageSource2(info, ToLanguageSourceDut),
+					_ => null,
+				};
+			}
+			else
+			{
+				return null;
+			}
+		}
 		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource2(FileInfo info, Func<FileInfo, string, ILanguageSource> creator)
 		{
 			var content = File.ReadAllText(info.FullName, System.Text.Encoding.UTF8);

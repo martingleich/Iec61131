@@ -1,4 +1,5 @@
 ﻿using Compiler.Messages;
+using StandardLibraryExtensions;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -13,11 +14,11 @@ namespace Compiler.Types
 
 		private bool RecursiveLayoutWasDone;
 		private bool Inside_RecusiveLayout;
-		public void RecursiveLayout<T>(
+		public void RecursiveLayout(
 			MessageBag messageBag, 
 			SourceSpan span,
 			bool isUnion,
-			SymbolSet<T> fields) where T : IVariableSymbol
+			SymbolSet<FieldVariableSymbol> fields)
 		{
 			if (RecursiveLayoutWasDone)
 				return;
@@ -45,11 +46,11 @@ namespace Compiler.Types
 		{
 		}
 
-		public UndefinedLayoutInfo GetLayoutInfo<T>(
+		public UndefinedLayoutInfo GetLayoutInfo(
 			MessageBag messageBag,
 			SourceSpan span,
 			bool isUnion,
-			SymbolSet<T> fields) where T : IVariableSymbol
+			SymbolSet<FieldVariableSymbol> fields)
 		{
 			if (!MaybeLayoutInfo.HasValue)
 			{
@@ -61,14 +62,14 @@ namespace Compiler.Types
 				{
 					bool isUndefined = false;
 					Inside_GetLayoutInfo = true;
-					var fieldLayouts = new LayoutInfo[fields.Count];
+					var fieldLayouts = new (LayoutInfo, FieldVariableSymbol)[fields.Count];
 					int i = 0;
 					foreach (var field in fields)
 					{
 						var undefinedLayoutInfo = DelayedLayoutType.GetLayoutInfo(field.Type, messageBag, field.DeclaringSpan);
 						if (undefinedLayoutInfo.TryGet(out var layoutInfo))
 						{
-							fieldLayouts[i] = layoutInfo;
+							fieldLayouts[i] = (layoutInfo, field);
 							++i;
 						}
 						else
@@ -82,7 +83,45 @@ namespace Compiler.Types
 					}
 					else
 					{
-						MaybeLayoutInfo = isUnion ? LayoutInfo.Union(fieldLayouts) : LayoutInfo.Struct(fieldLayouts);
+						if (fieldLayouts.Length > 0)
+						{
+							if (isUnion)
+							{
+								LayoutInfo layoutResult = fieldLayouts[0].Item1;
+								fieldLayouts[0].Item2._Complete(0);
+								for(int j = 1; j < fieldLayouts.Length; ++j)
+								{
+									var fieldLayout = fieldLayouts[j];
+									layoutResult = LayoutInfo.Union(layoutResult, fieldLayout.Item1);
+									fieldLayout.Item2._Complete(0);
+								}
+								MaybeLayoutInfo = layoutResult;
+							}
+							else
+							{
+								Array.Sort(fieldLayouts, (a, b) => a.Item1.Alignment.CompareTo(b.Item1.Alignment));
+								int alignment = 1;
+								int cursor = 0;
+								foreach (var fl in fieldLayouts)
+								{
+									var f = fl.Item1;
+									if (cursor % f.Alignment != 0)
+										cursor = ((cursor / f.Alignment) + 1) * f.Alignment;
+									alignment = MathExtensions.Lcm(alignment, f.Alignment);
+									fl.Item2._Complete(cursor);
+									cursor += f.Size;
+								}
+
+								if (cursor % alignment != 0)
+									cursor = ((cursor / alignment) + 1) * alignment;
+
+								MaybeLayoutInfo = new LayoutInfo(cursor, alignment);
+							}
+						}
+						else
+						{
+							MaybeLayoutInfo = LayoutInfo.Zero;
+						}
 					}
 				}
 			}

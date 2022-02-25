@@ -3,21 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CmdParse" Version="1.0.1" />
     <PackageReference Include="StandardLibraryExtensions" Version="1.7.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Compiler\Compiler.csproj" />
-    <ProjectReference Include="..\Runtime\Runtime.csproj" />
+    <PackageReference Include="Superpower" Version="3.0.0" />
   </ItemGroup>
 
 </Project>

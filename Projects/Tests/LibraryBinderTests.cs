@@ -20,7 +20,7 @@ namespace Tests
 				.BindGlobalExpression<CallBoundExpression>("MyLib::foo(7)", null);
 			var callee = Assert.IsType<VariableBoundExpression>(boundCall.Callee);
 			var func = Assert.IsType<FunctionVariableSymbol>(callee.Variable);
-			Assert.Equal(new UniqueSymbolId("MyLib".ToCaseInsensitive(), "foo".ToCaseInsensitive()), func.UniqueId);
+			Assert.Equal(new UniqueSymbolId("MyLib".ToCaseInsensitive(), "foo".ToCaseInsensitive()), func.UniqueName);
 		}
 		[Fact]
 		public static void ReadVariableFromLibrary()
@@ -32,7 +32,7 @@ namespace Tests
 				.AddLibrary(boundLibrary)
 				.BindGlobalExpression<VariableBoundExpression>("MYLIB::MYGVL::VALUE", null);
 			var variable = Assert.IsType<GlobalVariableSymbol>(boundVariable.Variable);
-			Assert.Equal("MyLib::MyGvl::value", variable.UniqueName);
+			AssertEx.EqualCaseInsensitive("MyLib::MyGvl::value", variable.UniqueName.ToCaseInsensitive());
 		}
 
 		[Fact]
@@ -47,7 +47,7 @@ namespace Tests
 				.BindInterfaces();
 			var myDutType = Assert.IsType<StructuredTypeSymbol>(boundInterfaces.Types["MyDut"]);
 			var fieldType = Assert.IsAssignableFrom<ITypeSymbol>(myDutType.Fields["otherField"].Type);
-			Assert.Equal("MyLib::MyDut", fieldType.UniqueId.ToString());
+			Assert.Equal("MyLib::MyDut", fieldType.UniqueName.ToString());
 		}
 		
 		[Fact]

@@ -51,8 +51,20 @@ namespace Compiler
 	
 	public sealed class FieldVariableSymbol : AVariableSymbol
 	{
+		private int? _offset;
+		public int Offset => _offset is int value ? value : throw new InvalidOperationException();
+
 		public FieldVariableSymbol(SourceSpan declaringSpan, CaseInsensitiveString name, IType type) : base(declaringSpan, name, type)
 		{
+		}
+
+		internal void _Complete(int offset)
+		{
+			if (_offset.HasValue)
+				throw new InvalidOperationException();
+			if (offset < 0)
+				throw new ArgumentException($"{nameof(offset)}({offset}) must be non-negative.");
+			_offset = offset;
 		}
 		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}

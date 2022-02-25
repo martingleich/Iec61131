@@ -688,14 +688,14 @@ namespace Compiler
 		public readonly IBoundExpression UpperBound;
 		public readonly IBoundExpression Step;
 		public readonly IBoundStatement Body;
-		public readonly ForLoopFunctions? Functions;
+		public readonly IType IndexType;
 
 		public ForLoopBoundStatement(INode originalNode,
 							   IBoundExpression index,
 							   IBoundExpression initial,
 							   IBoundExpression upperBound,
 							   IBoundExpression step,
-							   ForLoopFunctions? functions,
+							   IType indexType,
 							   IBoundStatement body)
 		{
 			OriginalNode = originalNode ?? throw new ArgumentNullException(nameof(originalNode));
@@ -703,7 +703,7 @@ namespace Compiler
 			Initial = initial ?? throw new ArgumentNullException(nameof(initial));
 			UpperBound = upperBound ?? throw new ArgumentNullException(nameof(upperBound));
 			Step = step ?? throw new ArgumentNullException(nameof(step));
-			Functions = functions;
+			IndexType = indexType;
 			Body = body ?? throw new ArgumentNullException(nameof(body));
 		}
 

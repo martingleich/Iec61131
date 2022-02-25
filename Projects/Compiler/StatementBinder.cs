@@ -185,8 +185,8 @@ namespace Compiler
 						new IntegerLiteralToken(OverflowingInteger.FromLong(1), "", SourcePoint.Null, null)), boundIndex.Type);
 
 			var realIndexType = TypeRelations.ResolveAlias(boundIndex.Type);
-			var functions = GetForLoopFunction(forStatementSyntax, scope, realIndexType).Extract(MessageBag);
-
+			if (realIndexType is not BuiltInType builtInType || !builtInType.IsInt)
+				MessageBag.Add(new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.Index.SourceSpan));
 			var bodyScope = new LoopScope(scope);
 			var boundBody = BindInner(forStatementSyntax.Statements, varDeclTreeNode, bodyScope, MessageBag);
 
@@ -196,16 +196,8 @@ namespace Compiler
 				boundInitial,
 				boundUpperBound,
 				boundStep,
-				functions,
+				realIndexType,
 				boundBody);
-
-			static ErrorsAnd<ForLoopFunctions?> GetForLoopFunction(ForStatementSyntax forStatementSyntax, IStatementScope scope, IType realIndexType)
-			{
-				if (realIndexType is BuiltInType builtInType && scope.SystemScope.BuiltInFunctionTable.GetForLoopFunctions(builtInType) is ForLoopFunctions f)
-					return f;
-				else
-					return ErrorsAnd.Create<ForLoopFunctions?>(null, new CannotUseTypeAsLoopIndexMessage(realIndexType, forStatementSyntax.Index.SourceSpan));
-			}
 		}
 
 		IBoundStatement IStatementSyntax.IVisitor<IBoundStatement>.Visit(EmptyStatementSyntax emptyStatementSyntax)

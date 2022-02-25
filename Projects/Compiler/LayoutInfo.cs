@@ -27,7 +27,6 @@ namespace Compiler
 		public override int GetHashCode() => HashCode.Combine(Size, Alignment);
 		public override string ToString() => $"Size = {Size}";
 
-		public static LayoutInfo Union(IEnumerable<LayoutInfo> layouts) => layouts.Aggregate(Union);
 		public static LayoutInfo Union(LayoutInfo a, LayoutInfo b) => new (
 				Math.Max(a.Size, b.Size),
 				MathExtensions.Lcm(a.Alignment, b.Alignment));

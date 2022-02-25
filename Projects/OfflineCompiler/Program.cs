@@ -11,6 +11,10 @@ namespace OfflineCompiler
 			[CmdName("folder")]
 			[CmdFree(0)]
 			public DirectoryInfo Folder { get; init; }
+
+			[CmdName("output")]
+			[CmdDefault(null)]
+			public DirectoryInfo Output { get; init; }
 		}
 
 		public static int Main(string[] args) => CommandLineParser.Call<CmdArgs>(args, RealMain);
@@ -18,7 +22,7 @@ namespace OfflineCompiler
 		{
 			try
 			{
-				OfflineCompiler.Compile(args.Folder, Console.Out);
+				OfflineCompiler.Compile(args.Folder, args.Output, Console.Out);
 				return 0;
 			}
 			catch (Exception e)

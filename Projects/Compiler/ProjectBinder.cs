@@ -99,6 +99,8 @@ namespace Compiler
 				return _lazyFlowAnalyis.Value;
 			}
 		}
+
+		public OrderedSymbolSet<LocalVariableSymbol> LocalVariables => BoundBodyAndTemps.Item2.Locals;
 		public ErrorsAnd<IBoundStatement> BoundBody => BoundBodyAndTemps.Item1;
 
 
@@ -165,7 +167,6 @@ namespace Compiler
 			}
 		}
 
-
 		static (ErrorsAnd<IBoundStatement>, RootVarDeclTreeNode) CreateBoundBody(
 			IScope outerScope,
 			RootVarDeclTreeNode rootNode,
@@ -185,8 +186,7 @@ namespace Compiler
 			var trackedVariables = GetTrackedVariables(symbol, rootVarDeclNode);
 
 			var messageBag = new MessageBag();
-			var initialExpressions = rootVarDeclNode.GetBeforeCodeInitializations();
-			FlowAnalyzer.Analyse(initialExpressions, boundBody.Value, trackedVariables, messageBag);
+			FlowAnalyzer.Analyse(rootVarDeclNode.Locals, boundBody.Value, trackedVariables, messageBag);
 			return messageBag.ToImmutable();
 		}
 

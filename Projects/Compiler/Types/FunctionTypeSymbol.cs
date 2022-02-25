@@ -18,8 +18,8 @@ namespace Compiler.Types
 		public override int GetHashCode() => HashCode.Combine(ModuleName, Name);
 		public static bool operator ==(UniqueSymbolId left, UniqueSymbolId right) => left.Equals(right);
 		public static bool operator !=(UniqueSymbolId left, UniqueSymbolId right) => !(left == right);
-		public CaseInsensitiveString ToCaseInsensitive() => $"{ModuleName}::{Name}".ToCaseInsensitive();
-		public override string ToString() => ToCaseInsensitive().ToString();
+		public CaseInsensitiveString ToCaseInsensitive() => ToString().ToCaseInsensitive();
+		public override string ToString() => $"{ModuleName}::{Name}";
 	}
 
 	public sealed class FunctionTypeSymbol : ICallableTypeSymbol
@@ -30,7 +30,7 @@ namespace Compiler.Types
 		public SourceSpan DeclaringSpan { get; }
 		public OrderedSymbolSet<ParameterVariableSymbol> Parameters { get; }
 		public LayoutInfo LayoutInfo => new (0, 1);
-		public string Code => Name.Original;
+		public string Code => UniqueName.ToString();
 
 		public FunctionTypeSymbol(CaseInsensitiveString module, CaseInsensitiveString name, SourceSpan declaringSpan, OrderedSymbolSet<ParameterVariableSymbol> parameters) :
 			this(false, module, name, declaringSpan, parameters)

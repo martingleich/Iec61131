@@ -7,7 +7,7 @@ namespace Compiler
 {
 	public sealed class RootVarDeclTreeNode : VarDeclTreeNode
 	{
-		private readonly OrderedSymbolSet<LocalVariableSymbol> Locals;
+		public readonly OrderedSymbolSet<LocalVariableSymbol> Locals;
 		public readonly MessageBag Messages;
 		private int _nextLocalId;
 
@@ -73,6 +73,14 @@ namespace Compiler
 			foreach (var local in Locals)
 				if (local.InitialValue != null)
 					builder.Add(local.InitialValue);
+			return builder.ToImmutable();
+		}
+		public ImmutableDictionary<LocalVariableSymbol, IBoundExpression> GetInitialValues()
+		{
+			var builder = ImmutableDictionary.CreateBuilder<LocalVariableSymbol, IBoundExpression>(SymbolByNameComparer<LocalVariableSymbol>.Instance);
+			foreach (var local in Locals)
+				if (local.InitialValue != null)
+					builder.Add(local, local.InitialValue);
 			return builder.ToImmutable();
 		}
 
