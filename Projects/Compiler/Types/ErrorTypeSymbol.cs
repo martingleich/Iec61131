@@ -4,7 +4,7 @@
 	{
 		public ErrorTypeSymbol(SourceSpan declaringSpan, CaseInsensitiveString name)
 		{
-			UniqueName = new UniqueSymbolId(CaseInsensitiveString.Empty, Name);
+			UniqueName = new UniqueSymbolId(CaseInsensitiveString.Empty, name);
 			DeclaringSpan = declaringSpan;
 		}
 

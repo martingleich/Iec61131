@@ -24,10 +24,9 @@ namespace Compiler
 		public static ILiteralValue? EvaluateConstant(SystemScope systemScope, IBoundExpression expression, MessageBag messages)
 			=> expression.Accept(new ConstantExpressionEvaluator(messages, systemScope));
 
-		private ILiteralValue? NotAConstant(IBoundExpression node) => NotAConstant(node.OriginalNode);
-		private ILiteralValue? NotAConstant(INode node)
+		private ILiteralValue? NotAConstant(IBoundExpression node)
 		{
-			MessageBag.Add(new NotAConstantMessage(node.SourceSpan));
+			MessageBag.Add(new NotAConstantMessage(node.GetSourcePositionOrDefault()));
 			return null;
 		}
 		private ILiteralValue? EvaluateConstantFunction(IBoundExpression expression, FunctionVariableSymbol function, params ILiteralValue?[] args)
@@ -48,12 +47,12 @@ namespace Compiler
 			}
 			catch (DivideByZeroException) // Divsion by zero in constant context
 			{
-				MessageBag.Add(new DivsionByZeroInConstantContextMessage(default));
+				MessageBag.Add(new DivsionByZeroInConstantContextMessage(expression.GetSourcePositionOrDefault()));
 				return null;
 			}
 			catch (OverflowException) // Overflow in constant context
 			{
-				MessageBag.Add(new OverflowInConstantContextMessage(default));
+				MessageBag.Add(new OverflowInConstantContextMessage(expression.GetSourcePositionOrDefault()));
 				return null;
 			}
 		}
@@ -80,7 +79,7 @@ namespace Compiler
 		public ILiteralValue? Visit(LiteralBoundExpression literalBoundExpression) => literalBoundExpression.Value;
 		public ILiteralValue? Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression)
 		{
-			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, sizeOfTypeBoundExpression.OriginalNode.SourceSpan);
+			var undefinedLayoutInf = DelayedLayoutType.GetLayoutInfo(sizeOfTypeBoundExpression.ArgType, MessageBag, sizeOfTypeBoundExpression.GetSourcePositionOrDefault());
 			if (undefinedLayoutInf.TryGet(out var layoutInfo))
 				return new IntLiteralValue(checked((short)layoutInfo.Size), sizeOfTypeBoundExpression.Type);
 			else
@@ -91,7 +90,7 @@ namespace Compiler
 			if (variableBoundExpression.Variable is EnumVariableSymbol enumValueSymbol)
 				return enumValueSymbol._GetConstantValue(MessageBag);
 			else
-				return NotAConstant(variableBoundExpression.OriginalNode);
+				return NotAConstant(variableBoundExpression);
 		}
 
 		public ILiteralValue? Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression)

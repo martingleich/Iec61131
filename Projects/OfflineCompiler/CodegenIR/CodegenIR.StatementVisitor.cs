@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Compiler;
-using Compiler.Types;
 using StandardLibraryExtensions;
 using IR = Runtime.IR;
 
@@ -15,7 +14,7 @@ namespace OfflineCompiler
 			private readonly IR.Label? _loopExitLabel;
 			private readonly IR.Label? _loopContinueLabel;
 
-			public StatementVisitor(CodegenIR codeGen) : this(codeGen, default, default)
+			public StatementVisitor(CodegenIR codeGen) : this(codeGen, null, null)
 			{
 			}
 			private StatementVisitor(CodegenIR codeGen, IR.Label? loopExitLabel, IR.Label? loopContinueLabel)
@@ -29,7 +28,7 @@ namespace OfflineCompiler
 
 			private void AddComment(IBoundNode boundNode)
 			{
-				var text = SyntaxToStringConverter.ExactToString(boundNode.OriginalNode);
+				var text = SyntaxToStringConverter.ExactToString(boundNode);
 				CodeGen.Generator.IL_Comment(text.Trim());
 			}
 			private void AddComment(params INode[] nodes)
@@ -179,15 +178,15 @@ namespace OfflineCompiler
 			}
 			public void Visit(WhileBoundStatement whileBoundStatement)
 			{
-				var whileSyntax = (WhileStatementSyntax)whileBoundStatement.OriginalNode;
-				AddComment(whileSyntax.TokenWhile, whileSyntax.Condition, whileSyntax.TokenDo);
+				var whileSyntax = whileBoundStatement.OriginalNode as WhileStatementSyntax;
+				if(whileSyntax != null) AddComment(whileSyntax.TokenWhile, whileSyntax.Condition, whileSyntax.TokenDo);
 				var startLabel = CodeGen.Generator.DeclareLabel();
 				var endLabel = CodeGen.Generator.DeclareLabel();
 				CodeGen.Generator.IL_Label(startLabel);
 				var value = CodeGen.LoadValueAsVariable(whileBoundStatement.Condition);
 				CodeGen.Generator.IL_Jump_IfNot(value, endLabel);
 				whileBoundStatement.Body.Accept(GetInLoopVisitor(endLabel, startLabel));
-				AddComment(whileSyntax.TokenEndWhile);
+				if(whileSyntax != null) AddComment(whileSyntax.TokenEndWhile);
 				CodeGen.Generator.IL_Jump(startLabel);
 				CodeGen.Generator.IL_Label(endLabel);
 			}

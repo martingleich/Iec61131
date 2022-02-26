@@ -6,12 +6,12 @@ namespace Compiler
 	{
 		private readonly static IsLValueChecker Instance = new();
 		public static ErrorsAnd<bool> IsLValue(IBoundExpression expression) => expression.Accept(Instance);
-		private static ErrorsAnd<bool> NotAssignable(IBoundExpression expression) => ErrorsAnd.Create(false, new CannotAssignToSyntaxMessage(expression.OriginalNode.SourceSpan));
+		private static ErrorsAnd<bool> NotAssignable(IBoundExpression expression) => ErrorsAnd.Create(false, new CannotAssignToSyntaxMessage(expression.GetSourcePosition()));
 
 		public ErrorsAnd<bool> Visit(VariableBoundExpression variableBoundExpression)
 		{
 			if (!IsAssignable(variableBoundExpression.Variable))
-				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
+				return ErrorsAnd.Create(false, new CannotAssignToVariableMessage(variableBoundExpression.Variable, variableBoundExpression.GetSourcePositionOrDefault()));
 			else
 				return ErrorsAnd.Create(true);
 		}

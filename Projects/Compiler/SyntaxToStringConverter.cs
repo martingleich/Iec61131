@@ -1,11 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Compiler
 {
 	public static class SyntaxToStringConverter
 	{
+		public static string ExactToString(IBoundNode node)
+		{
+			if (node.OriginalNode is INode original)
+				return ExactToString(original);
+			else
+				return node.ToString() ?? "";
+		}
 		public static string ExactToString(INode node)
 		{
 			var sb = new StringBuilder();

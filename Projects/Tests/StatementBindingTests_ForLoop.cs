@@ -16,8 +16,6 @@
 		[InlineData("UDINT")]
 		[InlineData("LINT")]
 		[InlineData("ULINT")]
-		[InlineData("REAL")]
-		[InlineData("LREAL")]
 		public static void WithType(string type)
 		{
 			BindHelper.NewProject
@@ -77,12 +75,19 @@
 					Assert.IsType<ImplicitCastBoundExpression>(forSt.Step);
 				});
 		}
-		
-		[Fact]
-		public static void Error_NonAddableType()
+	
+		[Theory]
+		[InlineData("BOOL")]
+		[InlineData("REAL")]
+		[InlineData("LREAL")]
+		[InlineData("STRING[20]")]
+		[InlineData("TIME")]
+		[InlineData("DATE")]
+		[InlineData("DT")]
+		public static void Error_NonAddableType(string type)
 		{
 			BindHelper.NewProject
-				.AddFunction("foo", $"VAR_TEMP i : BOOL; END_VAR", "FOR i := FALSE TO TRUE BY FALSE DO ; END_FOR")
+				.AddFunction("foo", $"VAR_INPUT x : {type}; END_VAR VAR_TEMP i : {type}; END_VAR", "FOR i := x TO x BY x DO ; END_FOR")
 				.BindBodies(ErrorOfType<CannotUseTypeAsLoopIndexMessage>());
 		}
 		

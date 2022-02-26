@@ -110,7 +110,7 @@ namespace Compiler
 			{
 				if (!end.Reaches)
 				{
-					AddMessage(new UnreachableCodeMessage(st.OriginalNode.SourceSpan));
+					AddMessage(new UnreachableCodeMessage(st.GetSourcePositionOrDefault()));
 					break;
 				}
 				else
@@ -253,7 +253,7 @@ namespace Compiler
 			public (FlowState, Assigner) Visit(VariableBoundExpression variableBoundExpression, FlowState context)
 			{
 				if (_readWrite && !context.CanRead(_owner._variableTable, variableBoundExpression.Variable, out context))
-					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
+					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.GetSourcePositionOrDefault()));
 				return (context, Assigner.ForVariable(variableBoundExpression.Variable));
 			}
 
@@ -290,7 +290,7 @@ namespace Compiler
 			public FlowState Visit(VariableBoundExpression variableBoundExpression, FlowState context)
 			{
 				if (!context.CanRead(_owner._variableTable, variableBoundExpression.Variable, out context))
-					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.OriginalNode.SourceSpan));
+					_owner.AddMessage(new UseOfUnassignedVariableMessage(variableBoundExpression.Variable, variableBoundExpression.GetSourcePositionOrDefault()));
 				return context;
 			}
 

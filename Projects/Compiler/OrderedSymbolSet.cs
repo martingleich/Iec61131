@@ -35,7 +35,7 @@ namespace Compiler
 					return true;
 				}
 			}
-			value = default;
+			value = default(T);
 			return false;
 		}
 		public T GetValue(CaseInsensitiveString key)

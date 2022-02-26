@@ -16,18 +16,18 @@ namespace Compiler
 		private static FunctionVariableSymbol BinaryOperator(string baseName, BuiltInType type, BuiltInType returnType)
 		{
 			var name = OperatorName(baseName, type);
-			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "LEFT".ToCaseInsensitive(), 0, type),
-				new(ParameterKind.Input, default, "RIGHT".ToCaseInsensitive(), 1, type),
-				new(ParameterKind.Output, default, name, 2, returnType)));
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, SourceSpan.Null, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+				new(ParameterKind.Input, SourceSpan.Null, "LEFT".ToCaseInsensitive(), 0, type),
+				new(ParameterKind.Input, SourceSpan.Null, "RIGHT".ToCaseInsensitive(), 1, type),
+				new(ParameterKind.Output, SourceSpan.Null, name, 2, returnType)));
 			return new FunctionVariableSymbol(funcType);
 		}
 		private static FunctionVariableSymbol UnaryOperator(string baseName, BuiltInType type)
 		{
 			var name = OperatorName(baseName, type);
-			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), 0, type),
-				new(ParameterKind.Output, default, name, 1, type)));
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, SourceSpan.Null, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+				new(ParameterKind.Input, SourceSpan.Null, "VALUE".ToCaseInsensitive(), 0, type),
+				new(ParameterKind.Output, SourceSpan.Null, name, 1, type)));
 			return new FunctionVariableSymbol(funcType);
 		}
 
@@ -37,9 +37,9 @@ namespace Compiler
 		private static FunctionVariableSymbol CastOperator(BuiltInType from, BuiltInType to)
 		{
 			var name = CastFunctionName(from, to);
-			var funcType = new FunctionTypeSymbol(SystemModuleName, name, default, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
-				new(ParameterKind.Input, default, "VALUE".ToCaseInsensitive(), 0, from),
-				new(ParameterKind.Output, default, name, 1, to)));
+			var funcType = new FunctionTypeSymbol(SystemModuleName, name, SourceSpan.Null, OrderedSymbolSet.ToOrderedSymbolSet<ParameterVariableSymbol>(
+				new(ParameterKind.Input, SourceSpan.Null, "VALUE".ToCaseInsensitive(), 0, from),
+				new(ParameterKind.Output, SourceSpan.Null, name, 1, to)));
 			return new FunctionVariableSymbol(funcType);
 		}
 
@@ -312,7 +312,7 @@ namespace Compiler
 			if (AllFunctions.TryGetValue(opName, out var func))
 				return new(func, op.IsGenericReturn);
 			else
-				return default;
+				return null;
 		}
 		public OperatorFunction? TryGetBinaryOperatorFunction(IBinaryOperatorToken token, BuiltInType type)
 		{

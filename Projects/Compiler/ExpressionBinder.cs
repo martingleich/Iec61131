@@ -62,7 +62,7 @@ namespace Compiler
 				return new ImplicitCastBoundExpression(boundValue, castFunction);
 			}
 
-			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.OriginalNode.SourceSpan));
+			MessageBag.Add(new TypeIsNotConvertibleMessage(boundValue.Type, targetType, boundValue.GetSourcePosition()));
 			return new ImplicitErrorCastBoundExpression(boundValue, targetType);
 		}
 
@@ -105,7 +105,7 @@ namespace Compiler
 				if (TypeRelations.IsBuiltInType(realCommonArgType, out var b))
 					operatorFunction = SystemScope.BuiltInFunctionTable.TryGetBinaryOperatorFunction(binaryOperatorExpressionSyntax.TokenOperator, b);
 				else
-					operatorFunction = default;
+					operatorFunction = null;
 
 				if (!operatorFunction.HasValue)
 				{
@@ -186,7 +186,7 @@ namespace Compiler
 			if (TypeRelations.IsBuiltInType(realBoundType, out var b))
 				operatorFunction = SystemScope.BuiltInFunctionTable.TryGetUnaryOperatorFunction(unaryOperatorExpressionSyntax.TokenOperator, b);
 			else
-				operatorFunction = default;
+				operatorFunction = null;
 
 			if (!operatorFunction.HasValue)
 			{
@@ -260,14 +260,14 @@ namespace Compiler
 
 		public IBoundExpression Visit(IndexAccessExpressionSyntax indexAccessExpressionSyntax, IType? context)
 		{
-			void CheckIndexCount(int expectedCount, ImmutableArray<IBoundExpression> boundIndices)
+			void CheckIndexCount(int expectedCount, SyntaxCommaSeparated<IExpressionSyntax> indices)
 			{
-				if (expectedCount != boundIndices.Length)
+				if (expectedCount != indices.Count)
 				{
-					var sourcePos = expectedCount < boundIndices.Length
-						? boundIndices.Skip(expectedCount).SourceSpanHull()
-						: boundIndices.Last().OriginalNode.SourceSpan;
-					MessageBag.Add(new WrongNumberOfDimensionInIndexMessage(1, boundIndices.Length, sourcePos));
+					var sourcePos = expectedCount < indices.Count
+						? indices.Skip(expectedCount).SourceSpanHull()
+						: indices.Last().SourceSpan;
+					MessageBag.Add(new WrongNumberOfDimensionInIndexMessage(1, indices.Count, sourcePos));
 				}
 			}
 
@@ -276,12 +276,12 @@ namespace Compiler
 			var realBaseType = TypeRelations.ResolveAlias(boundBase.Type);
 			if (TypeRelations.IsPointerType(realBaseType, out var pointerBaseType))
 			{
-				CheckIndexCount(1, castedIndices);
+				CheckIndexCount(1, indexAccessExpressionSyntax.Indices);
 				return ImplicitCast(new PointerIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, pointerBaseType.BaseType, castedIndices), context);
 			}
 			else if (TypeRelations.IsArrayType(realBaseType, out var arrayBaseType))
 			{
-				CheckIndexCount(arrayBaseType.Ranges.Length, castedIndices);
+				CheckIndexCount(arrayBaseType.Ranges.Length, indexAccessExpressionSyntax.Indices);
 				return ImplicitCast(new ArrayIndexAccessBoundExpression(indexAccessExpressionSyntax, boundBase, arrayBaseType.BaseType, castedIndices), context);
 			}
 			else
@@ -385,7 +385,7 @@ namespace Compiler
 							var first = d.First();
 							foreach (var d2 in d.Skip(1))
 							{
-								MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.OriginalNode.SourceSpan, d2.Parameter.OriginalNode.SourceSpan));
+								MessageBag.Add(new ParameterWasAlreadyPassedMessage(first.ParameterSymbol, first.Parameter.GetSourcePosition(), d2.Parameter.GetSourcePosition()));
 							}
 						}
 						++uniqueCount;

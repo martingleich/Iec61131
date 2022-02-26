@@ -45,13 +45,14 @@ namespace Compiler
 		public override string ToString() => $"{Start}:{Length}";
 
 		public static SourceSpan FirstStarting(SourceSpan a, SourceSpan b) => a.Start < b.Start ? a : b;
+
+		public static readonly SourceSpan Null = default;
 	}
 
 	public static class SourceSpanEx
 	{
 		public static SourceSpan ConvexHull(this IEnumerable<SourceSpan> self) => self.Aggregate(SourceSpan.ConvexHull);
 		public static SourceSpan SourceSpanHull(this IEnumerable<INode> self) => self.Select(self => self.SourceSpan).ConvexHull();
-		public static SourceSpan SourceSpanHull(this IEnumerable<IBoundExpression> self) => self.Select(self => self.OriginalNode).SourceSpanHull();
 		public static SourceSpan WithLength(this SourcePoint point, int length) => SourceSpan.FromStartLength(point, length);
 	}
 }
