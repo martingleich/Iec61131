@@ -39,9 +39,9 @@ namespace OfflineCompiler
 					var codegen = new CodegenIR(pou.Value);
 					codegen.CompileInitials(pou.Value.LocalVariables);
 					codegen.CompileStatement(pou.Value.BoundBody.Value);
-					var code = codegen.GetGeneratedCode();
+					var compiledPou = codegen.GetGeneratedCode();
 					var resultFile = build.FileInfo($"{pou.Key.Name}.ir");
-					File.WriteAllText(resultFile.FullName, code.ToString(), System.Text.Encoding.UTF8);
+					File.WriteAllText(resultFile.FullName, Runtime.IR.Parser.ToXml(compiledPou), System.Text.Encoding.UTF8);
 				}
 			}
 		}

@@ -1,6 +1,4 @@
-﻿using StandardLibraryExtensions;
-using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
 namespace Runtime.IR
 {
@@ -20,13 +18,6 @@ namespace Runtime.IR
 			OutputArgs = outputArgs;
 			StackUsage = stackUsage;
 		}
-		public override string ToString()
-		{
-			return @$"id: {Id}
-inputs: {InputArgs.DelimitWith(", ")}
-outputs: {OutputArgs.DelimitWith(", ")}
-stackusage: {StackUsage}
-{Code.DelimitWith(Environment.NewLine)}";
-		}
+		public override string ToString() => $"{Id}";
 	}
 }

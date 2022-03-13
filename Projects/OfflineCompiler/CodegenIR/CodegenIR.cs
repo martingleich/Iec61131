@@ -351,7 +351,12 @@ namespace OfflineCompiler
 			}
 		}
 
-		public IR.CompiledPou GetGeneratedCode() => new(Id, Generator.GetStatements(), _stackAllocator.InputArgs, _stackAllocator.OutputArgs, _stackAllocator.TotalMemory);
+		public IR.CompiledPou GetGeneratedCode() => new(
+			Id,
+			Generator.GetStatements(),
+			_stackAllocator.InputArgs,
+			_stackAllocator.OutputArgs,
+			_stackAllocator.TotalMemory);
 
 		public void CompileInitials(OrderedSymbolSet<LocalVariableSymbol> localVariables)
 		{
