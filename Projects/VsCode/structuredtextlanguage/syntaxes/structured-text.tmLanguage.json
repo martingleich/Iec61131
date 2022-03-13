@@ -29,6 +29,11 @@
 		"keywords": {
 			"patterns": [
 				{
+					"name": "keyword.type.structured-text",
+					"match": "\\b(?i)(char|lreal|real|lint|dint|int|sint|ulint|udint|uint|usint|lword|dword|word|byte|bool|ltime|time|ldt|dt|ldate|ltod|tod|(pointer(\\s+to)?)|array|string)\\b",
+					"comment": "Must happen before keyword.control.structured-text because we have to match 'pointer to' before 'to' as keyword."
+				},
+				{
 					"name": "keyword.control.structured-text",
 					"match": "\\b(?i)(of|to|if|then|end_if|elsif|else|while|end_while|repeat|until|end_repeat|exit|continue|return|for|by|end_for|do|case|end_case)\\b"
 				},
@@ -39,11 +44,8 @@
 				{
 					"name": "keyword.other.structured-text",
 					"match": "\\b(?i)(constant|type|end_type|struct|end_struct|union|end_union|function|end_function|function_block|end_function_block|var_input|var_global|var_out|var_in_out|var_temp|var_inst|var|end_var)\\b"
-				},
-				{
-					"name": "keyword.type.structured-text",
-					"match": "\\b(?i)(char|lreal|real|lint|dint|int|sint|ulint|udint|uint|usint|lword|dword|word|byte|bool|ltime|time|ldt|dt|ldate|ltod|tod|pointer|array|string)\\b"
 				}
+
 			]
 		},
 		"comments": {
