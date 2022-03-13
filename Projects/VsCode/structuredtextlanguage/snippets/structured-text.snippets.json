@@ -1,0 +1,74 @@
+{
+    "IF ... END_IF":
+    {
+        "prefix": "if",
+        "body": [
+            "IF ${1:condition} THEN",
+            "\t$0",
+            "END_IF",
+            ""
+        ]
+    },
+    "ELSE":
+    {
+        "prefix": "else",
+        "body": [
+            "ELSE",
+            "\t$0"
+        ]
+    },
+    "ELSIF":
+    {
+        "prefix": "elsif",
+        "body": [
+            "ELSIF ${1:condition} THEN",
+            "\t$0"
+        ]
+    },
+    "WHILE ... END_WHILE":
+    {        
+        "prefix": "while",
+        "body": [
+            "WHILE ${1:condition} DO",
+            "\t$0",
+            "END_WHILE"
+        ]
+    },
+    "FOR ... END_FOR":
+    {
+        "prefix": "for",
+        "body": [
+            "FOR VAR ${1:i} := ${2:0} TO ${3:Upper} DO",
+            "\t$0",
+            "END_FOR"
+        ]
+    },
+    "FOR ... BY ... END_FOR":
+    {
+        "prefix": "for by",
+        "body": [
+            "FOR VAR ${1:i} := ${2:0} TO ${3:Upper} BY ${4:1} DO",
+            "\t$0",
+            "END_FOR"
+        ]
+    },
+    "STRUCT":
+    {
+        "prefix": "struct",
+        "body":[
+            "TYPE ${1:StructName} : STRUCT",
+            "\t${0}",
+            "END_STRUCT",
+            "END_TYPE"
+        ]
+    },
+    "VAR .. END_VAR":
+    {
+        "prefix": "var",
+        "body":[
+            "VAR_${1|INPUT,IN_OUT,OUT,TEMP,INST|}",
+            "\t${0}",
+            "END_VAR"
+        ]
+    }
+}

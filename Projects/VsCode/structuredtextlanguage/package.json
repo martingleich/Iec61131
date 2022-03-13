@@ -9,17 +9,69 @@
     "categories": [
         "Programming Languages"
     ],
+    "author": "Martin Gleich",
+    "main": "./out/extension",
+    "activationEvents": ["*"],
     "contributes": {
         "languages": [{
             "id": "structured-text",
             "aliases": ["StructuredText", "structured-text"],
-            "extensions": [".st", ".pou.st", "gvl.st", "dut.st"],
+            "extensions": [".st", ".pou.st", ".gvl.st", ".dut.st"],
             "configuration": "./language-configuration.json"
         }],
         "grammars": [{
             "language": "structured-text",
             "scopeName": "source.structured-text",
             "path": "./syntaxes/structured-text.tmLanguage.json"
-        }]
+        }],
+        "snippets": [
+            {
+                "language": "structured-text",
+                "path": "./snippets/structured-text.snippets.json"
+            }
+        ],
+        "taskDefinitions": [
+            {
+                "type": "structured-text",
+                "required": [],
+                "properties": {
+                    "folder": {
+                        "type": "string",
+                        "desc": "The project folder that contains the structured-text files. Can be ommited to use the root folder."
+                    }
+                },
+                "when": "processExecutionSupported"
+            }
+        ],
+        "problemMatchers": [
+            {
+                "name": "problem-matcher.structured-text",
+                "owner": "external",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^(Warning|Error)@([^:]*):(\\d+):(\\d+):(\\d+):(\\d+):\\s+(.*)$",
+                    "severity": 1,
+                    "file": 2,
+                    "line": 3,
+                    "column": 4,
+                    "endLine": 5,
+                    "endColumn": 6,
+                    "message": 7
+                }
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -b",
+        "watch": "tsc -b -w"
+    },
+    "devDependencies": {
+		"@types/node": "^12.12.0",
+		"@types/vscode": "^1.45.0",
+		"@typescript-eslint/eslint-plugin": "^4.16.0",
+		"@typescript-eslint/parser": "^4.16.0",
+		"eslint": "^7.21.0",
+		"typescript": "^4.5.5"       
     }
 }
