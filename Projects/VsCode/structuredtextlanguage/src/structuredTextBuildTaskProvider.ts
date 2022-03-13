@@ -19,9 +19,14 @@ export class StructuredTextTaskProvider implements vscode.TaskProvider
 {
     static Type = "structured-text";
     static BuildTask = "build";
+    private _compilerPath : string;
+    constructor(compilerPath : string)
+    {
+        this._compilerPath = compilerPath;
+    }
     provideTasks(token: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]>
     {
-        return getTasks();
+        return getTasks(this._compilerPath);
 
     }
     resolveTask(task: vscode.Task, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Task> {
@@ -29,21 +34,17 @@ export class StructuredTextTaskProvider implements vscode.TaskProvider
             return undefined;
         }
 
-        return resolveTask(task);
+        return resolveTask(this._compilerPath, task);
     }
 }
 
-async function resolveTask(task: vscode.Task) : Promise<vscode.Task|undefined>
+async function resolveTask(compilerPath : string, task: vscode.Task) : Promise<vscode.Task|undefined>
 {
     const definition = <StructuredTextBuilderTaskDefinition>task.definition;
-    const compilerPath : string = "C:\\Home\\source\\Iec361131\\Projects\\OfflineCompiler\\bin\\Debug\\net5.0\\OfflineCompiler.exe";
-    if(!(await exists(compilerPath))) {
-        return undefined;
-    }
-    return getTask(definition.folder, compilerPath, definition);
+    return getTask(compilerPath, definition.folder, definition);
 }
 
-function getTask(folder : string, compilerPath: string, definition?: StructuredTextBuilderTaskDefinition) :vscode.Task
+function getTask(compilerPath : string, folder : string, definition?: StructuredTextBuilderTaskDefinition) :vscode.Task
 {
     if(definition === undefined)
     {
@@ -66,7 +67,7 @@ function getTask(folder : string, compilerPath: string, definition?: StructuredT
     return buildTask;
 }
 
-async function getTasks(): Promise<vscode.Task[]>
+async function getTasks(compilerPath : string): Promise<vscode.Task[]>
 {
     const editor = vscode.window.activeTextEditor;
     const emptyTasks: vscode.Task[] = [];
@@ -80,12 +81,8 @@ async function getTasks(): Promise<vscode.Task[]>
     if(!fileExt.endsWith(".st")) {
         return emptyTasks;
     }
-    const compilerPath : string = "C:\\Home\\source\\Iec361131\\Projects\\OfflineCompiler\\bin\\Debug\\net5.0\\OfflineCompiler.exe";
-    if(!(await exists(compilerPath))) {
-        return emptyTasks;
-    }
 
     var folder = path.dirname(editor.document.fileName)
-    var buildTask = getTask(folder, compilerPath, undefined);
+    var buildTask = getTask(compilerPath, folder, undefined);
     return [buildTask];
 }

@@ -9,10 +9,11 @@ export function activate(_context: vscode.ExtensionContext): void {
 	if (!workspaceRoot) {
 		return;
 	}
+	const compilerPath = _context.asAbsolutePath("bin//OfflineCompiler.exe");
 		
 	buildTaskProvider = vscode.tasks.registerTaskProvider(
 		StructuredTextTaskProvider.Type,
-		new StructuredTextTaskProvider());
+		new StructuredTextTaskProvider(compilerPath));
 }
 
 export function deactivate(): void {

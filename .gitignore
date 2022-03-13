@@ -341,3 +341,5 @@ healthchecksdb
 /report
 *.diagsession
 /Projects/OfflineCompiler/Properties/launchSettings.json
+/Projects/VsCode/structuredtextlanguage/out
+/dev
