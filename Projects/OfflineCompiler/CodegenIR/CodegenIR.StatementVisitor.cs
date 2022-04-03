@@ -3,6 +3,7 @@ using System.Linq;
 using Compiler;
 using StandardLibraryExtensions;
 using IR = Runtime.IR;
+using IRStmt = Runtime.IR.Statements;
 
 namespace OfflineCompiler
 {
@@ -11,20 +12,20 @@ namespace OfflineCompiler
 		private sealed class StatementVisitor : IBoundStatement.IVisitor
 		{
 			private readonly CodegenIR CodeGen;
-			private readonly IR.Label? _loopExitLabel;
-			private readonly IR.Label? _loopContinueLabel;
+			private readonly IRStmt.Label? _loopExitLabel;
+			private readonly IRStmt.Label? _loopContinueLabel;
 
 			public StatementVisitor(CodegenIR codeGen) : this(codeGen, null, null)
 			{
 			}
-			private StatementVisitor(CodegenIR codeGen, IR.Label? loopExitLabel, IR.Label? loopContinueLabel)
+			private StatementVisitor(CodegenIR codeGen, IRStmt.Label? loopExitLabel, IRStmt.Label? loopContinueLabel)
 			{
 				CodeGen = codeGen ?? throw new ArgumentNullException(nameof(codeGen));
 				_loopExitLabel = loopExitLabel;
 				_loopContinueLabel = loopContinueLabel;
 			}
 
-			private StatementVisitor GetInLoopVisitor(IR.Label loopExitLabel, IR.Label loopContinueLabel) => new (CodeGen, loopExitLabel, loopContinueLabel);
+			private StatementVisitor GetInLoopVisitor(IRStmt.Label loopExitLabel, IRStmt.Label loopContinueLabel) => new (CodeGen, loopExitLabel, loopContinueLabel);
 
 			private void AddComment(IBoundNode boundNode)
 			{
@@ -210,7 +211,7 @@ namespace OfflineCompiler
 			public void Visit(ReturnBoundStatement returnBoundStatement)
 			{
 				AddComment(returnBoundStatement);
-				CodeGen.Generator.IL(IR.Return.Instance);
+				CodeGen.Generator.IL(IRStmt.Return.Instance);
 			}
 		}
 	
@@ -218,7 +219,7 @@ namespace OfflineCompiler
 		public void CompileStatement(IBoundStatement statement)
 		{
 			statement.Accept(_statementVisitor);
-			Generator.IL(IR.Return.Instance);
+			Generator.IL(IRStmt.Return.Instance);
 		}
 	}
 }

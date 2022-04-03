@@ -15,8 +15,16 @@ Language-features:
 			(L)TIME MOD (L)TIME -> (L)TIME
 
 VsCode:
+	Clean up build directory.
 	DAP-Implementation
-		Install dap mock
+		Implement logging for the DAP server
+		Unittests for parsing of IR-Code
+		Implement logging for debugging adapter
+		Create debug features:
+			Breakpoints
+			Catch panics
+			Show local variables
+			Callstack
 	LSP-Implementation
 
 

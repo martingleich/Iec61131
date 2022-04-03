@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Superpower;
+using Superpower.Parsers;
+using System;
 
-namespace Runtime.IR
+namespace Runtime.IR.Statements
 {
 	public sealed class Label : IStatement
 	{
@@ -23,5 +25,11 @@ namespace Runtime.IR
 
 		public int? Execute(Runtime runtime) => null;
 		public override string ToString() => $"label {Name}";
+		public static readonly TextParser<Label> ReferenceParser =
+			from arg in Span.NonWhiteSpace
+			select new Label(arg.ToStringValue());
+		public static readonly TextParser<IStatement> StatementParser =
+			from _label in Span.EqualTo("label").ThenIgnore(Span.WhiteSpace).IgnoreThen(ReferenceParser)
+			select (IStatement)_label;
 	}
 }

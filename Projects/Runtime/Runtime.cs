@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace Runtime.IR
+namespace Runtime
 {
+	using IR;
+	using System.Collections.Concurrent;
+
 	public sealed partial class Runtime
 	{
 		public sealed class PanicException : Exception
@@ -23,6 +26,8 @@ namespace Runtime.IR
 
 		private readonly ImmutableArray<byte[]> _memory;
 		private readonly ImmutableDictionary<PouId, CompiledPou> _code;
+		private readonly PouId _entryPoint;
+
 		private readonly struct CallFrame
 		{
 			public readonly CompiledPou Compiled;
@@ -43,10 +48,11 @@ namespace Runtime.IR
 		}
 
 		private const int STACK_AREA = 1;
-		public Runtime(int[] areas, ImmutableDictionary<PouId, CompiledPou> code)
+		public Runtime(int[] areas, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
 		{
 			_memory = areas.Select(size => new byte[size]).ToImmutableArray();
 			_code = code;
+			_entryPoint = entryPoint;
 		}
 
 		public MemoryLocation LoadEffectiveAddress(LocalVarOffset offset) => new(STACK_AREA, (ushort)(CurrentFrame.Base + offset.Offset));
@@ -266,12 +272,6 @@ namespace Runtime.IR
 
 		public PanicException Panic(string message) => new(message, _instructionCursor);
 
-		public void Init(PouId pouId)
-		{
-			_callStack.Clear();
-			_callStack.Push(new CallFrame(0, 0, ImmutableArray<LocalVarOffset>.Empty, _code[pouId]));
-		}
-
 		public bool Step()
 		{
 			if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
@@ -279,6 +279,16 @@ namespace Runtime.IR
 			else
 				++_instructionCursor;
 			return _callStack.Count == 0;
+		}
+		public void Reset()
+		{
+			_callStack.Push(new CallFrame(0, 0, ImmutableArray<LocalVarOffset>.Empty, _code[_entryPoint]));
+		}
+		public void RunOnce()
+		{
+			Reset();
+			while (Step())
+				;
 		}
 	}
 }

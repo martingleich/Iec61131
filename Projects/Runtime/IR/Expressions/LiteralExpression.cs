@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Superpower;
+using Superpower.Parsers;
+using System;
 
-namespace Runtime.IR
+namespace Runtime.IR.Expressions
 {
 	public sealed class LiteralExpression : IExpression
 	{
@@ -29,5 +31,8 @@ namespace Runtime.IR
 		public static LiteralExpression Float64(double value) => Signed64(BitConverter.DoubleToInt64Bits(value));
 		public static LiteralExpression NullPointer => Bits32(0);
 		public override string ToString() => Bits.ToString();
+		public static readonly TextParser<IExpression> Parser =
+			from _value in Numerics.NaturalUInt64
+			select (IExpression)new LiteralExpression(_value);
 	}
 }

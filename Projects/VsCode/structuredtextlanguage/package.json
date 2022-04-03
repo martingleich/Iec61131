@@ -59,6 +59,62 @@
                     "message": 7
                 }
             }
+        ],
+        "breakpoints": [
+            {
+                "language": "structured-text"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "debug-adapter.structured-text",
+                "languages": [
+                    "structured-text"
+                ],
+                "label": "Structured Text Debug",
+                "configurationAttributes": {
+                    "launch": {
+                        "required": ["applicationfolder", "entrypoint"],
+                        "properties": {
+                            "applicationfolder": {
+                                "type": "string",
+                                "description": "Absolute path to the application folder.",
+                                "default": "${workspaceFolder}"
+                            },
+                            "entrypoint": {
+                                "type": "string",
+                                "description": "The entrypoint of the program",
+                                "default": "${command:AskForEntryPoint}"
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "debug-adapter.structured-text",
+                        "request": "launch",
+                        "name": "Ask for entrypoint",
+                        "program": "${workspaceFolder}",
+                        "entrypoint": "${command:AskForEntryPoint}"
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "Structured Text Debug: Launch",
+                        "description": "A new configuration to debug a structured text application",
+                        "body": {
+                            "type": "debug-adapter.structured-text",
+                            "request": "launch",
+                            "name": "Ask for entrypoint",
+                            "program": "${workspaceFolder}",
+                            "entrypoint": "^\"\\${command:AskForEntryPoint}\""
+                        }
+                    }
+                ],
+                "variables": {
+                    "AskForEntryPoint": "extension.structured-text.debug.getEntryPointName"
+                }
+            }
         ]
     },
     "scripts": {

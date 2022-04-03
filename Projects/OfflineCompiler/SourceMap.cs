@@ -67,6 +67,8 @@ namespace OfflineCompiler
 		}
 		public string GetNameOf(SourceSpan span)
 		{
+			if (span.Start.File is null)
+				return "";
 			if (Maps.TryGetValue(span.Start.File, out var file))
 				return file.GetNameOf(span.Start.Offset, span.End.Offset);
 			else

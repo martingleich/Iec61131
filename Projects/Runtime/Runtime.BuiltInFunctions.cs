@@ -1,6 +1,7 @@
-﻿using System.Collections.Immutable;
+﻿using Runtime.IR;
+using System.Collections.Immutable;
 
-namespace Runtime.IR
+namespace Runtime
 {
 	public sealed partial class Runtime
 	{
@@ -26,7 +27,7 @@ namespace Runtime.IR
 			if (outputs.Length != 1)
 				return false;
 			var returnLocation = outputs[0];
-			switch (callee.Callee)
+			switch (callee.Name)
 			{
 				// SINT
 				case "__SYSTEM::ADD_SINT":

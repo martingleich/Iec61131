@@ -10,10 +10,12 @@ namespace OfflineCompiler
 		{
 			[CmdName("folder")]
 			[CmdFree(0)]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public DirectoryInfo Folder { get; init; }
 
 			[CmdName("output")]
 			[CmdDefault(null)]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public DirectoryInfo Output { get; init; }
 		}
 

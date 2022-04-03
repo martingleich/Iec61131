@@ -6,6 +6,8 @@ using Compiler;
 using Compiler.Types;
 using StandardLibraryExtensions;
 using IR = Runtime.IR;
+using IRExpr = Runtime.IR.Expressions;
+using IRStmt = Runtime.IR.Statements;
 
 namespace OfflineCompiler
 {
@@ -40,19 +42,19 @@ namespace OfflineCompiler
 		}
 		public void Assign(CodegenIR codegen, IReadable value)
 		{
-			codegen.Generator.IL(new IR.WriteValue(
+			codegen.Generator.IL(new IRStmt.WriteValue(
 				value.GetExpression(),
 				Offset,
 				Type.Size));
 		}
 		public IReadable ToReadable(CodegenIR codegen) => this;
 		public IWritable ToWritable(CodegenIR codegen) => this;
-		public IReadable ToPointerValue(CodegenIR codegen) => new ElementAddressable(new IR.AddressExpression.BaseStackVar(Offset), Type.Size).ToPointerValue(codegen);
-		public IR.IExpression GetExpression() => new IR.LoadValueExpression(Offset);
+		public IReadable ToPointerValue(CodegenIR codegen) => new ElementAddressable(new IRExpr.AddressExpression.BaseStackVar(Offset), Type.Size).ToPointerValue(codegen);
+		public IR.IExpression GetExpression() => new IRExpr.LoadValueExpression(Offset);
 		public override string ToString() => Id;
 
 		public IAddressable GetElementAddressable(CodegenIR codegen, ElementAddressable.Element element, int derefSize)
-			=> new ElementAddressable(new IR.AddressExpression.BaseStackVar(Offset), ImmutableArray.Create(element), derefSize);
+			=> new ElementAddressable(new IRExpr.AddressExpression.BaseStackVar(Offset), ImmutableArray.Create(element), derefSize);
 	}
 	public sealed record JustReadable(IR.IExpression Expression) : IReadable
 	{
@@ -73,10 +75,10 @@ namespace OfflineCompiler
 		public void Assign(CodegenIR codegen, IReadable value)
 		{
 			var irValue = value.GetExpression();
-			codegen.Generator.IL(new IR.WriteDerefValue(irValue, Pointer.Offset, Size));
+			codegen.Generator.IL(new IRStmt.WriteDerefValue(irValue, Pointer.Offset, Size));
 		}
 
-		public IR.IExpression GetExpression() => new IR.DerefExpression(Pointer.Offset);
+		public IR.IExpression GetExpression() => new IRExpr.DerefExpression(Pointer.Offset);
 		public override string ToString() => $"{Pointer}^";
 	}
 	public sealed class GlobalVariable : IAddressable
@@ -102,7 +104,7 @@ namespace OfflineCompiler
 			return new Deref(tmp, Size);
 		}
 
-		public IReadable ToPointerValue(CodegenIR codegen) => new JustReadable(IR.LiteralExpression.FromMemoryLocation(codegen.Generator.GetMemoryLocation(this)));
+		public IReadable ToPointerValue(CodegenIR codegen) => new JustReadable(IRExpr.LiteralExpression.FromMemoryLocation(codegen.Generator.GetMemoryLocation(this)));
 		public IReadable ToReadable(CodegenIR codegen) => Deref(codegen);
 		public IWritable ToWritable(CodegenIR codegen) => Deref(codegen);
 		public override string ToString() => Name.ToString();
@@ -111,7 +113,7 @@ namespace OfflineCompiler
 		{
 			var ptrValue = ToPointerValue(codegen);
 			var baseVar = codegen.Generator.DeclareTemp(IR.Type.Pointer, ptrValue);
-			return new ElementAddressable(new IR.AddressExpression.BaseDerefStackVar(baseVar.Offset), ImmutableArray.Create(element), derefSize);
+			return new ElementAddressable(new IRExpr.AddressExpression.BaseDerefStackVar(baseVar.Offset), ImmutableArray.Create(element), derefSize);
 		}
 	}
 	public sealed class PointerVariableAddressable : IAddressable
@@ -129,7 +131,7 @@ namespace OfflineCompiler
 		public IWritable ToWritable(CodegenIR codegen) => new Deref(Variable, Size);
 		public IReadable ToPointerValue(CodegenIR codegen) => Variable;
 		public IAddressable GetElementAddressable(CodegenIR codegen, ElementAddressable.Element element, int derefSize)
-			=> new ElementAddressable(new IR.AddressExpression.BaseDerefStackVar(Variable.Offset), ImmutableArray.Create(element), derefSize);
+			=> new ElementAddressable(new IRExpr.AddressExpression.BaseDerefStackVar(Variable.Offset), ImmutableArray.Create(element), derefSize);
 		public override string ToString() => $"{Variable}^";
 	}
 	public sealed class ElementAddressable : IAddressable
@@ -145,7 +147,7 @@ namespace OfflineCompiler
 					Symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
 				}
 
-				public override void AddTo(IR.AddressExpression.Builder builder) => builder.Add(new IR.AddressExpression.ElementOffset((ushort)Symbol.Offset));
+				public override void AddTo(IRExpr.AddressExpression.Builder builder) => builder.Add(new IRExpr.AddressExpression.ElementOffset((ushort)Symbol.Offset));
 
 				public override string ToString() => $"fieldoffset({Symbol.Name})";
 			}
@@ -160,12 +162,12 @@ namespace OfflineCompiler
 					ArrayType = arrayType;
 				}
 
-				public override void AddTo(IR.AddressExpression.Builder builder)
+				public override void AddTo(IRExpr.AddressExpression.Builder builder)
 				{
 					var totalSize = ArrayType.BaseType.LayoutInfo.Size;
 					for (int i = Indices.Length - 1; i >= 0; --i)
 					{
-						builder.Add(new IR.AddressExpression.ElementCheckedArray(
+						builder.Add(new IRExpr.AddressExpression.ElementCheckedArray(
 							ArrayType.Ranges[i].LowerBound,
 							ArrayType.Ranges[i].UpperBound,
 							Indices[i].Offset,
@@ -187,24 +189,24 @@ namespace OfflineCompiler
 					DerefSize = size;
 				}
 
-				public override void AddTo(IR.AddressExpression.Builder builder)
+				public override void AddTo(IRExpr.AddressExpression.Builder builder)
 				{
-					builder.Add(new IR.AddressExpression.ElementUncheckedArray(Index.Offset, DerefSize));
+					builder.Add(new IRExpr.AddressExpression.ElementUncheckedArray(Index.Offset, DerefSize));
 				}
 
 				public override string ToString() => $"{Index}*{DerefSize}";
 			}
 
-			public abstract void AddTo(IR.AddressExpression.Builder builder);
+			public abstract void AddTo(IRExpr.AddressExpression.Builder builder);
 		}
-		public readonly IR.AddressExpression.IBase Base;
+		public readonly IRExpr.AddressExpression.IBase Base;
 		public readonly ImmutableArray<Element> Elements;
 		public readonly int DerefSize;
 
-		public ElementAddressable(IR.AddressExpression.IBase @base, int derefSize) : this(@base, ImmutableArray<Element>.Empty, derefSize)
+		public ElementAddressable(IRExpr.AddressExpression.IBase @base, int derefSize) : this(@base, ImmutableArray<Element>.Empty, derefSize)
 		{
 		}
-		public ElementAddressable(IR.AddressExpression.IBase @base, ImmutableArray<Element> elements, int derefSize)
+		public ElementAddressable(IRExpr.AddressExpression.IBase @base, ImmutableArray<Element> elements, int derefSize)
 		{
 			Base = @base ?? throw new ArgumentNullException(nameof(@base));
 			Elements = elements;
@@ -221,7 +223,7 @@ namespace OfflineCompiler
 		public IWritable ToWritable(CodegenIR codegen) => Deref(codegen);
 		public IReadable ToPointerValue(CodegenIR codegen)
 		{
-			var builder = new IR.AddressExpression.Builder(Base);
+			var builder = new IRExpr.AddressExpression.Builder(Base);
 			foreach (var elem in Elements)
 				elem.AddTo(builder);
 			return new JustReadable(builder.GetAddressExpression());
@@ -271,7 +273,7 @@ namespace OfflineCompiler
 			private int _nextTempId = 0;
 			private int _nextLabelId = 0;
 			public readonly IAddressable? ThisReference;
-			public IR.Label DeclareLabel() => new($"{_nextLabelId++}");
+			public IRStmt.Label DeclareLabel() => new($"{_nextLabelId++}");
 			public LocalVariable DeclareTemp(IR.Type type)
 			{
 				var id = $"tmp{_nextTempId++}";
@@ -294,21 +296,21 @@ namespace OfflineCompiler
 			}
 			public void IL_WriteDeref(IReadable value, LocalVariable variable)
 			{
-				_statements.Add(new IR.WriteDerefValue(value.GetExpression(), variable.Offset, variable.Type.Size));
+				_statements.Add(new IRStmt.WriteDerefValue(value.GetExpression(), variable.Offset, variable.Type.Size));
 			}
 			public void IL_Comment(string comment)
 			{
-				IL(new IR.Comment(comment));
+				IL(new IRStmt.Comment(comment));
 			}
-			public void IL_Jump(IR.Label target)
+			public void IL_Jump(IRStmt.Label target)
 			{
-				IL(new IR.Jump(target));
+				IL(new IRStmt.Jump(target));
 			}
-			public void IL_Jump_IfNot(LocalVariable variable, IR.Label target)
+			public void IL_Jump_IfNot(LocalVariable variable, IRStmt.Label target)
 			{
-				IL(new IR.JumpIfNot(variable.Offset, target));
+				IL(new IRStmt.JumpIfNot(variable.Offset, target));
 			}
-			public void IL_Label(IR.Label label)
+			public void IL_Label(IRStmt.Label label)
 			{
 				label.StatementId = _statements.Count;
 				IL(label);
@@ -319,7 +321,7 @@ namespace OfflineCompiler
 			public IReadable IL_SimpleCall(IR.Type type, IR.PouId symbolId, params LocalVariable[] args)
 			{
 				var tmp = DeclareTemp(type);
-				IL(new IR.StaticCall(symbolId,
+				IL(new IRStmt.StaticCall(symbolId,
 					args.Select(arg => arg.Offset).ToImmutableArray(),
 					ImmutableArray.Create(tmp.Offset)));
 				return tmp;

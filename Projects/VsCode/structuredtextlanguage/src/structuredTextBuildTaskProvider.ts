@@ -55,7 +55,7 @@ function getTask(compilerPath : string, folder : string, definition?: Structured
         };
     }
 
-    const processExecution = new vscode.ProcessExecution(compilerPath, ["--folder", definition.folder]);
+    const processExecution = new vscode.ProcessExecution(compilerPath, ["--folder", definition.folder, "--output", definition.folder + "/build/"]);
     const buildTask = new vscode.Task(
         definition, // taskDefinition
         vscode.TaskScope.Workspace, // workspaceFolder

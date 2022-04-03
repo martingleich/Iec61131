@@ -1,4 +1,6 @@
-﻿namespace Runtime.IR
+﻿using Superpower;
+
+namespace Runtime.IR.Expressions
 {
 	public sealed class LoadValueExpression : IExpression
 	{
@@ -15,5 +17,8 @@
 			runtime.Copy(pointer, location, size);
 		}
 		public override string ToString() => $"{Offset}";
+		public static readonly TextParser<IExpression> Parser =
+			from _value in LocalVarOffset.Parser
+			select (IExpression)new LoadValueExpression(_value);
 	}
 }

@@ -20,7 +20,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestPerformance", "Projects
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OfflineCompiler", "Projects\OfflineCompiler\OfflineCompiler.csproj", "{1C59CECC-AC12-4C6A-8C7C-EA0D9BB4D754}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Runtime", "Projects\Runtime\Runtime.csproj", "{4DF0106C-1FDD-4557-8378-7625F59F521A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runtime", "Projects\Runtime\Runtime.csproj", "{4DF0106C-1FDD-4557-8378-7625F59F521A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeTests", "Projects\RuntimeTests\RuntimeTests.csproj", "{40BDFDDA-056B-4702-9E30-9A44C0DFF445}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,6 +54,10 @@ Global
 		{4DF0106C-1FDD-4557-8378-7625F59F521A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DF0106C-1FDD-4557-8378-7625F59F521A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DF0106C-1FDD-4557-8378-7625F59F521A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40BDFDDA-056B-4702-9E30-9A44C0DFF445}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40BDFDDA-056B-4702-9E30-9A44C0DFF445}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40BDFDDA-056B-4702-9E30-9A44C0DFF445}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40BDFDDA-056B-4702-9E30-9A44C0DFF445}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

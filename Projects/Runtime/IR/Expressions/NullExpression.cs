@@ -1,4 +1,4 @@
-﻿namespace Runtime.IR
+﻿namespace Runtime.IR.Expressions
 {
 	public sealed class NullExpression : IExpression
 	{

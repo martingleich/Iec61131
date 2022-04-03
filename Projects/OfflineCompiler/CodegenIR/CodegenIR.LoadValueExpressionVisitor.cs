@@ -5,6 +5,8 @@ using System.Linq;
 using Compiler;
 using Compiler.Types;
 using IR = Runtime.IR;
+using IRExpr = Runtime.IR.Expressions;
+using IRStmt = Runtime.IR.Statements;
 
 namespace OfflineCompiler
 {
@@ -22,7 +24,7 @@ namespace OfflineCompiler
 			private GeneratorT Generator => CodeGen.Generator;
 
 			public IReadable Visit(LiteralBoundExpression literalBoundExpression) => new JustReadable(literalBoundExpression.Value.Accept(LoadLiteralValueVisitor.Instance));
-			public IReadable Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new JustReadable(IR.LiteralExpression.Signed32(sizeOfTypeBoundExpression.Type.LayoutInfo.Size));
+			public IReadable Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new JustReadable(IRExpr.LiteralExpression.Signed32(sizeOfTypeBoundExpression.Type.LayoutInfo.Size));
 			public IReadable Visit(VariableBoundExpression variableBoundExpression) => variableBoundExpression.Variable.Accept(CodeGen._loadVariableExpressionVisitor);
 			public IReadable Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression) => implicitEnumCastBoundExpression.Value.Accept(this);
 			public IReadable Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
@@ -148,9 +150,9 @@ namespace OfflineCompiler
 				if (calleeInfo.TakesSelf(out var selfId))
 					inputs[selfId] = CodeGen.LoadAddressAsVariable(callBoundExpression.Callee);
 
-				var returnType = calleeInfo.ReturnParam is ParameterVariableSymbol returnParam ? CodegenIR.TypeFromIType(returnParam.Type) : IR.Type.Bits0;
+				var returnType = calleeInfo.ReturnParam is ParameterVariableSymbol returnParam ? TypeFromIType(returnParam.Type) : IR.Type.Bits0;
 				var returnVar = CodeGen.Generator.DeclareTemp(returnType);
-				CodeGen.Generator.IL(new IR.StaticCall(
+				CodeGen.Generator.IL(new IRStmt.StaticCall(
 					CodegenIR.PouIdFromSymbol(staticCallee),
 					inputs.Select(x => x.Offset).ToImmutableArray(),
 					intermediateOutputs.Prepend(returnVar).Select(x => x.Offset).ToImmutableArray()));
@@ -177,7 +179,7 @@ namespace OfflineCompiler
 					{
 						var type = (ArrayType)initializerBoundExpression.Type;
 						var idx = CodeGen.Generator.DeclareTemp(IR.Type.Bits32);
-						idx.Assign(CodeGen, new JustReadable(IR.LiteralExpression.Signed32(arrayElem.Index.Value)));
+						idx.Assign(CodeGen, new JustReadable(IRExpr.LiteralExpression.Signed32(arrayElem.Index.Value)));
 						var.GetElementAddressable(CodeGen, new ElementAddressable.Element.ArrayIndex(ImmutableArray.Create(idx), type), TypeFromIType(arrayElem.Value.Type).Size)
 							.ToWritable(CodeGen)
 							.Assign(CodeGen, value);
@@ -194,9 +196,9 @@ namespace OfflineCompiler
 						var index = CodeGen.Generator.DeclareTemp(IR.Type.Bits32);
 						var indexPtr = CodeGen.Generator.DeclareTemp(IR.Type.Pointer, index.ToPointerValue(CodeGen));
 						var arrayPtr = new PointerVariableAddressable(CodeGen.Generator.DeclareTemp(IR.Type.Pointer, var.ToPointerValue(CodeGen)), type.BaseType.LayoutInfo.Size);
-						var initialValue = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IR.LiteralExpression.Signed32(0)));
-						var upperBound = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IR.LiteralExpression.Signed32(type.ElementCount)));
-						var step = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IR.LiteralExpression.Signed32(0)));
+						var initialValue = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(0)));
+						var upperBound = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(type.ElementCount)));
+						var step = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(0)));
 						CodeGen._statementVisitor.GenerateForLoop(
 							null,
 							"DINT",
@@ -222,7 +224,7 @@ namespace OfflineCompiler
 			public IReadable Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression)
 			{
 				implicitDiscardBoundExpression.Value.Accept(CodeGen._loadValueExpressionVisitor);
-				return new JustReadable(IR.NullExpression.Instance);
+				return new JustReadable(IRExpr.NullExpression.Instance);
 			}
 			public IReadable Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression) => throw new InvalidOperationException();
 		}

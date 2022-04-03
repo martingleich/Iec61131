@@ -1,4 +1,7 @@
-﻿namespace Runtime.IR
+﻿using Superpower;
+using Superpower.Parsers;
+
+namespace Runtime.IR.Expressions
 {
 	public sealed class DerefExpression : IExpression
 	{
@@ -16,5 +19,8 @@
 		}
 
 		public override string ToString() => $"*{Address}";
+		public static readonly TextParser<IExpression> Parser =
+			from _value in Span.EqualTo("*").IgnoreThen(LocalVarOffset.Parser)
+		    select (IExpression)new DerefExpression(_value);
 	}
 }

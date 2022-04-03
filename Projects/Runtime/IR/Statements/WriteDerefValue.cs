@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Runtime.IR
+namespace Runtime.IR.Statements
 {
 	public sealed class WriteDerefValue : IStatement
 	{
@@ -21,6 +21,6 @@ namespace Runtime.IR
 			Value.LoadTo(runtime, address, Size);
 			return null;
 		}
-		public override string ToString() => $"    copy{Size} {Value} to *{Target}";
+		public override string ToString() => $"copy{Size} {Value} to *{Target}";
 	}
 }
