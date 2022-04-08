@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Compiler;
 using Compiler.Types;
+using Runtime.IR;
 using StandardLibraryExtensions;
 using IR = Runtime.IR;
 using IRExpr = Runtime.IR.Expressions;
@@ -236,6 +237,7 @@ namespace OfflineCompiler
 
 	public sealed partial class CodegenIR
 	{
+		public readonly BreakpointFactory BreakpointFactory = new();
 		public readonly GeneratorT Generator;
 		public readonly IR.PouId Id;
 
@@ -273,6 +275,9 @@ namespace OfflineCompiler
 			private int _nextTempId = 0;
 			private int _nextLabelId = 0;
 			public readonly IAddressable? ThisReference;
+
+			public int InstructionId => _statements.Count;
+
 			public IRStmt.Label DeclareLabel() => new($"{_nextLabelId++}");
 			public LocalVariable DeclareTemp(IR.Type type)
 			{
@@ -353,12 +358,19 @@ namespace OfflineCompiler
 			}
 		}
 
-		public IR.CompiledPou GetGeneratedCode() => new(
-			Id,
-			Generator.GetStatements(),
-			_stackAllocator.InputArgs,
-			_stackAllocator.OutputArgs,
-			_stackAllocator.TotalMemory);
+		public CompiledPou GetGeneratedCode(SourceMap? sourceMap)
+		{
+			var statments = Generator.GetStatements();
+			return new(
+				Id,
+				statments,
+				_stackAllocator.InputArgs,
+				_stackAllocator.OutputArgs,
+				_stackAllocator.TotalMemory)
+			{
+				BreakpointMap = sourceMap != null ? BreakpointFactory.ToBreakpointMap(sourceMap) : null
+			};
+		}
 
 		public void CompileInitials(OrderedSymbolSet<LocalVariableSymbol> localVariables)
 		{
@@ -372,5 +384,4 @@ namespace OfflineCompiler
 			}
 		}
 	}
-
 }

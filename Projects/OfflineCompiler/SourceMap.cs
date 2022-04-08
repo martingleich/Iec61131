@@ -39,10 +39,10 @@ namespace OfflineCompiler
 
 			}
 
-			private (int, int) GetLineCollumn(int offset)
+			public (int, int)? GetLineCollumn(int offset)
 			{
 				if (offset < 0)
-					return (-1, -1);
+					return null;
 				int pos = LineStarts.BinarySearch(offset);
 				if (pos > 0)
 					return (pos + 1, 0);
@@ -54,8 +54,8 @@ namespace OfflineCompiler
 			}
 			public string GetNameOf(int startOffset, int endOffset)
 			{
-				var (startLine, startCollumn) = GetLineCollumn(startOffset);
-				var (endLine, endCollumn) = GetLineCollumn(endOffset);
+				var (startLine, startCollumn) = GetLineCollumn(startOffset) ?? (-1, -1);
+				var (endLine, endCollumn) = GetLineCollumn(endOffset) ?? (-1, -1);
 				return $"{SourceFile}:{startLine}:{startCollumn}:{endLine}:{endCollumn}";
 			}
 		}
@@ -73,6 +73,13 @@ namespace OfflineCompiler
 				return file.GetNameOf(span.Start.Offset, span.End.Offset);
 			else
 				return span.Start.File;
+		}
+		public (int, int)? GetLineCollumn(SourcePoint point)
+		{
+			if (point.File is string filePath && Maps.TryGetValue(filePath, out var file))
+				return file.GetLineCollumn(point.Offset);
+			else
+				return null;
 		}
 	}
 }

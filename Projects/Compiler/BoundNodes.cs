@@ -13,18 +13,25 @@ namespace Compiler
 	{
 		public static SourceSpan GetSourcePosition(this IBoundNode node)
 		{
-			if (node.OriginalNode is INode original)
-				return original.SourceSpan;
+			if (TryGetSourcePosition(node) is SourceSpan span)
+				return span;
 			else
 				throw new InvalidOperationException();
 		}
 		public static SourceSpan GetSourcePositionOrDefault(this IBoundNode node) => GetSourcePositionOrDefault(node, SourceSpan.Null);
 		public static SourceSpan GetSourcePositionOrDefault(this IBoundNode node, SourceSpan def)
 		{
+			if (TryGetSourcePosition(node) is SourceSpan span)
+				return span;
+			else
+				return def;
+		}
+		public static SourceSpan? TryGetSourcePosition(this IBoundNode node)
+		{
 			if (node.OriginalNode is INode original)
 				return original.SourceSpan;
 			else
-				return def;
+				return null;
 		}
 	}
 	public interface IBoundExpression : IBoundNode

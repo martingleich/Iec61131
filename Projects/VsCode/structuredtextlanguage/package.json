@@ -85,6 +85,11 @@
                                 "type": "string",
                                 "description": "The entrypoint of the program",
                                 "default": "${command:AskForEntryPoint}"
+                            },
+                            "launchDebuggerAtStartup": {
+                                "type": "boolean",
+                                "description": "Should the runtime launch a debugger at startup.",
+                                "default": false
                             }
                         }
                     }

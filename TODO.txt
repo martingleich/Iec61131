@@ -17,11 +17,12 @@ Language-features:
 VsCode:
 	Clean up build directory.
 	DAP-Implementation
-		Implement logging for the DAP server
-		Unittests for parsing of IR-Code
-		Implement logging for debugging adapter
 		Create debug features:
+			Improve behaviour on exceptions in Debug Adapter. 
 			Breakpoints
+				Add breakpoints for initial values.
+				Add breakpoints for for loop.
+				Support breakpoints from debugger.
 			Catch panics
 			Show local variables
 			Callstack

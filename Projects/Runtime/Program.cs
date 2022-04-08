@@ -1,4 +1,5 @@
 ﻿using CmdParse;
+using Microsoft.Extensions.Logging;
 using Runtime.IR;
 using System;
 using System.Collections.Immutable;
@@ -25,9 +26,16 @@ namespace Runtime
 			[CmdName("runDebugAdapter")]
 			[CmdDefault(false)]
 			public bool RunDebugAdapter { get; init; }
+
+			[CmdName("launchDebuggerAtStartup")]
+			[CmdDefault(false)]
+			public bool LaunchDebuggerAtStartup { get; init; }
 		}
 		static int Main(string[] args)
 		{
+			if(args.Contains("--launchDebuggerAtStartup"))
+				System.Diagnostics.Debugger.Launch();
+
 			return CommandLineParser.Call<CmdArgs>(args, realArgs => RealMain(realArgs).GetAwaiter().GetResult());
 		}
 		static async Task<int> RealMain(CmdArgs args)
@@ -59,13 +67,21 @@ namespace Runtime
 
 			if (args.RunDebugAdapter)
 			{
-				System.Diagnostics.Debugger.Launch();
 				using var streamIn = Console.OpenStandardInput();
 				using var streamOut = Console.OpenStandardOutput();
-				using var logFile = File.OpenWrite("log.txt");
-				using var logStream = new StreamWriter(logFile, System.Text.Encoding.UTF8);
-				logStream.WriteLine($"Starting debug adpater at {DateTime.Now}.");
-				DebugAdapter.Run(streamIn, streamOut, runtime, logStream);
+				using (var logger = new SimpleFileLogger("log.txt"))
+				{
+					logger.Log(LogLevel.None, "Starting debug adpater");
+					try
+					{
+						DebugAdapter.Run(streamIn, streamOut, runtime, logger);
+					}
+					catch (Exception e)
+					{
+						logger.LogCritical(e, "DebugAdapter.Run: ");
+						return 1;
+					}
+				}
 			}
 			else
 			{

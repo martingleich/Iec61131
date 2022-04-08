@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Linq;
 using Compiler;
 using StandardLibraryExtensions;
@@ -14,18 +15,21 @@ namespace OfflineCompiler
 			private readonly CodegenIR CodeGen;
 			private readonly IRStmt.Label? _loopExitLabel;
 			private readonly IRStmt.Label? _loopContinueLabel;
+			private ImmutableArray<BreakpointId> _breakpointPredecessors;
 
-			public StatementVisitor(CodegenIR codeGen) : this(codeGen, null, null)
+			public StatementVisitor(CodegenIR codeGen) : this(codeGen, null, null, ImmutableArray<BreakpointId>.Empty)
 			{
 			}
-			private StatementVisitor(CodegenIR codeGen, IRStmt.Label? loopExitLabel, IRStmt.Label? loopContinueLabel)
+			private StatementVisitor(CodegenIR codeGen, IRStmt.Label? loopExitLabel, IRStmt.Label? loopContinueLabel, ImmutableArray<BreakpointId> breakpointPredecessors)
 			{
 				CodeGen = codeGen ?? throw new ArgumentNullException(nameof(codeGen));
 				_loopExitLabel = loopExitLabel;
 				_loopContinueLabel = loopContinueLabel;
+				_breakpointPredecessors = breakpointPredecessors;
 			}
 
-			private StatementVisitor GetInLoopVisitor(IRStmt.Label loopExitLabel, IRStmt.Label loopContinueLabel) => new (CodeGen, loopExitLabel, loopContinueLabel);
+			private StatementVisitor GetInLoopVisitor(IRStmt.Label loopExitLabel, IRStmt.Label loopContinueLabel) =>
+				new (CodeGen, loopExitLabel, loopContinueLabel, _breakpointPredecessors);
 
 			private void AddComment(IBoundNode boundNode)
 			{
@@ -49,65 +53,126 @@ namespace OfflineCompiler
 					st.Accept(this);
 			}
 
+			private readonly struct BreakpointScope : IDisposable
+			{
+				public static readonly BreakpointScope Null = default;
+				private readonly StatementVisitor? Self;
+				private readonly SourceSpan SourceSpan;
+				private readonly int InstructionBegin;
+
+				public BreakpointScope(StatementVisitor? self, SourceSpan sourceSpan, int instructionBegin)
+				{
+					Self = self;
+					SourceSpan = sourceSpan;
+					InstructionBegin = instructionBegin;
+				}
+
+				public void Dispose()
+				{
+					if (Self != null)
+					{
+						var newId = Self.CodeGen.BreakpointFactory.AddBreakpoint(
+							SourceSpan,
+							InstructionBegin,
+							Self.CodeGen.Generator.InstructionId);
+						foreach (var pred in Self._breakpointPredecessors)
+							Self.CodeGen.BreakpointFactory.SetPredecessor(newId, pred);
+						Self._breakpointPredecessors = ImmutableArray.Create(newId);
+					}
+				}
+			}
+
+			private BreakpointScope NewBreakpointScope(SourceSpan? maybeSourceSpan)
+			{
+				var instructionBegin = CodeGen.Generator.InstructionId;
+				if (maybeSourceSpan is SourceSpan sourceSpan)
+					return new BreakpointScope(this, sourceSpan, instructionBegin);
+				else
+					return BreakpointScope.Null;
+			}
+			private BreakpointScope NewBreakpointScope(IBoundNode owner) => NewBreakpointScope(owner.TryGetSourcePosition());
 			public void Visit(ExpressionBoundStatement expressionBoundStatement)
 			{
 				AddComment(expressionBoundStatement);
-				expressionBoundStatement.Expression.Accept(CodeGen._loadValueExpressionVisitor);
+				using (var _ = NewBreakpointScope(expressionBoundStatement))
+				{
+					expressionBoundStatement.Expression.Accept(CodeGen._loadValueExpressionVisitor);
+				}
 			}
 
 			public void Visit(AssignBoundStatement assignToExpressionBoundStatement)
 			{
 				AddComment(assignToExpressionBoundStatement);
-				var writable = CodeGen.LoadWritable(assignToExpressionBoundStatement.LeftSide);
-				Assign(writable, assignToExpressionBoundStatement.RightSide);
+
+				using (var _ = NewBreakpointScope(assignToExpressionBoundStatement))
+				{
+					var writable = CodeGen.LoadWritable(assignToExpressionBoundStatement.LeftSide);
+					Assign(writable, assignToExpressionBoundStatement.RightSide);
+				}
 			}
 			public void Visit(InitVariableBoundStatement initVariableBoundStatement)
 			{
 				AddComment(initVariableBoundStatement);
 				if (initVariableBoundStatement.RightSide is not null)
 				{
-					var writable = initVariableBoundStatement.LeftSide.Accept(CodeGen._variableAddressableVisitor).ToWritable(CodeGen);
-					Assign(writable, initVariableBoundStatement.RightSide);
+					using (var _ = NewBreakpointScope(initVariableBoundStatement))
+					{
+						var writable = initVariableBoundStatement.LeftSide.Accept(CodeGen._variableAddressableVisitor).ToWritable(CodeGen);
+						Assign(writable, initVariableBoundStatement.RightSide);
+					}
 				}
 			}
 
 			public void Visit(IfBoundStatement ifBoundStatement)
 			{
+				var allBranches = ImmutableArray.CreateBuilder<BreakpointId>();
 				var endLabel = CodeGen.Generator.DeclareLabel();
 				for (int i = 0; i < ifBoundStatement.Branches.Length; ++i)
 				{
 					var branch = ifBoundStatement.Branches[i];
 					if (i == ifBoundStatement.Branches.Length - 1)
 					{
+						// Last branch.
 						if (branch.Condition is IBoundExpression condition)
 						{
-							AddComment(condition);
-							var conditionValue = CodeGen.LoadValueAsVariable(condition);
-							CodeGen.Generator.IL_Jump_IfNot(conditionValue, endLabel);
+							using (var _ = NewBreakpointScope(condition))
+							{
+								AddComment(condition);
+								var conditionValue = CodeGen.LoadValueAsVariable(condition);
+								CodeGen.Generator.IL_Jump_IfNot(conditionValue, endLabel);
+							}
 						}
 						branch.Body.Accept(this);
 						CodeGen.Generator.IL_Label(endLabel);
+						allBranches.AddRange(_breakpointPredecessors);
 					}
 					else
 					{
 						var nextLabel = CodeGen.Generator.DeclareLabel();
 						if (branch.Condition is IBoundExpression condition)
 						{
-							AddComment(condition);
-							var conditionValue = CodeGen.LoadValueAsVariable(condition);
-							CodeGen.Generator.IL_Jump_IfNot(conditionValue, nextLabel);
+							using (var _ = NewBreakpointScope(condition))
+							{
+								AddComment(condition);
+								var conditionValue = CodeGen.LoadValueAsVariable(condition);
+								CodeGen.Generator.IL_Jump_IfNot(conditionValue, nextLabel);
+							}
 							branch.Body.Accept(this);
 							CodeGen.Generator.IL_Jump(endLabel);
 							CodeGen.Generator.IL_Label(nextLabel);
+							allBranches.AddRange(_breakpointPredecessors);
 						}
 						else
 						{
 							branch.Body.Accept(this);
 							CodeGen.Generator.IL_Label(endLabel);
+							allBranches.AddRange(_breakpointPredecessors);
 							break; // Code after this is unreachable.
 						}
 					}
 				}
+
+				_breakpointPredecessors = allBranches.ToImmutable();
 			}
 
 			public void Visit(ForLoopBoundStatement forLoopBoundStatement)
@@ -120,6 +185,24 @@ namespace OfflineCompiler
 				var upperBound = CodeGen.LoadValueAsVariable(forLoopBoundStatement.UpperBound);
 				if(forSyntax?.ByClause != null) AddComment(forSyntax.ByClause);
 				var step = CodeGen.LoadValueAsVariable(forLoopBoundStatement.Step);
+				GenerateForLoop(
+					forSyntax,
+					forLoopBoundStatement.IndexType.Code,
+					st => forLoopBoundStatement.Body.Accept(st),
+					indexPointer,
+					initialValue,
+					upperBound,
+					step);
+			}
+			public void GenerateForLoop(
+				ForStatementSyntax? forSyntax,
+				string indexTypeCode,
+				Action<StatementVisitor> generateBody,
+				LocalVariable indexPointer,
+				LocalVariable initialValue,
+				LocalVariable upperBound,
+				LocalVariable step)
+			{
 				// idxPointer := ADR(idx);
 				// IF NOT __System.ForLoopInit(initialValue, step, upperBound)
 				//    goto END;
@@ -131,25 +214,6 @@ namespace OfflineCompiler
 				// if NOT atEnd
 				//     goto START;
 				// EXIT:
-				GenerateForLoop(
-					forSyntax,
-					forLoopBoundStatement.IndexType.Code,
-					st => forLoopBoundStatement.Body.Accept(st),
-					indexPointer,
-					initialValue,
-					upperBound,
-					step);
-			}
-
-			public void GenerateForLoop(
-				ForStatementSyntax? forSyntax,
-				string indexTypeCode,
-				Action<StatementVisitor> generateBody,
-				LocalVariable indexPointer,
-				LocalVariable initialValue,
-				LocalVariable upperBound,
-				LocalVariable step)
-			{
 				if(forSyntax != null) AddComment(forSyntax.TokenDo);
 				var loopStart = CodeGen.Generator.DeclareLabel();
 				var loopExit = CodeGen.Generator.DeclareLabel();
@@ -183,13 +247,25 @@ namespace OfflineCompiler
 				if(whileSyntax != null) AddComment(whileSyntax.TokenWhile, whileSyntax.Condition, whileSyntax.TokenDo);
 				var startLabel = CodeGen.Generator.DeclareLabel();
 				var endLabel = CodeGen.Generator.DeclareLabel();
-				CodeGen.Generator.IL_Label(startLabel);
-				var value = CodeGen.LoadValueAsVariable(whileBoundStatement.Condition);
-				CodeGen.Generator.IL_Jump_IfNot(value, endLabel);
+				using (var _ = NewBreakpointScope(whileBoundStatement.Condition))
+				{
+					CodeGen.Generator.IL_Label(startLabel);
+					var value = CodeGen.LoadValueAsVariable(whileBoundStatement.Condition);
+					CodeGen.Generator.IL_Jump_IfNot(value, endLabel);
+				}
+				var breakpointCondition = _breakpointPredecessors;
 				whileBoundStatement.Body.Accept(GetInLoopVisitor(endLabel, startLabel));
 				if(whileSyntax != null) AddComment(whileSyntax.TokenEndWhile);
-				CodeGen.Generator.IL_Jump(startLabel);
-				CodeGen.Generator.IL_Label(endLabel);
+				using (var _ = NewBreakpointScope(whileSyntax?.TokenEndWhile?.SourceSpan))
+				{
+					CodeGen.Generator.IL_Jump(startLabel);
+					CodeGen.Generator.IL_Label(endLabel);
+				}
+
+				foreach(var endBreakpoint in _breakpointPredecessors)
+					foreach(var cond in breakpointCondition)
+						CodeGen.BreakpointFactory.SetSuccessor(endBreakpoint, cond);
+				_breakpointPredecessors = breakpointCondition;
 			}
 
 			public void Visit(ExitBoundStatement exitBoundStatement)
@@ -197,7 +273,10 @@ namespace OfflineCompiler
 				if (_loopExitLabel is null)
 					throw new InvalidOperationException();
 				AddComment(exitBoundStatement);
-				CodeGen.Generator.IL_Jump(_loopExitLabel);
+				using (var _ = NewBreakpointScope(exitBoundStatement))
+				{
+					CodeGen.Generator.IL_Jump(_loopExitLabel);
+				}
 			}
 
 			public void Visit(ContinueBoundStatement continueBoundStatement)
@@ -205,13 +284,19 @@ namespace OfflineCompiler
 				if (_loopContinueLabel is null)
 					throw new InvalidOperationException();
 				AddComment(continueBoundStatement);
-				CodeGen.Generator.IL_Jump(_loopContinueLabel);
+				using (var _ = NewBreakpointScope(continueBoundStatement))
+				{
+					CodeGen.Generator.IL_Jump(_loopContinueLabel);
+				}
 			}
 
 			public void Visit(ReturnBoundStatement returnBoundStatement)
 			{
 				AddComment(returnBoundStatement);
-				CodeGen.Generator.IL(IRStmt.Return.Instance);
+				using (var _ = NewBreakpointScope(returnBoundStatement))
+				{
+					CodeGen.Generator.IL(IRStmt.Return.Instance);
+				}
 			}
 		}
 	

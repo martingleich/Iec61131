@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Runtime": {
+      "commandName": "Project",
+      "commandLineArgs": "--folder C:\\Home\\source\\Iec361131\\dev\\test\\build --entrypoint \"TEST::PLC_PRG\""
+    }
+  }
+}

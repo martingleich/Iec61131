@@ -9,6 +9,7 @@ namespace Runtime.IR
 		public readonly ImmutableArray<(LocalVarOffset, int)> OutputArgs;
 		public readonly ImmutableArray<IStatement> Code;
 		public readonly int StackUsage;
+		public BreakpointMap? BreakpointMap { get; init; }
 
 		public CompiledPou(PouId id, ImmutableArray<IStatement> code, ImmutableArray<(LocalVarOffset, int)> inputArgs, ImmutableArray<(LocalVarOffset, int)> outputArgs, int stackUsage)
 		{

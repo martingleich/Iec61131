@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 
@@ -8,7 +10,7 @@ namespace Runtime
 {
 	public sealed class DebugAdapter : DebugAdapterBase
 	{
-		private readonly TextWriter _logger;
+		private readonly ILogger _logger;
 		private readonly Runtime _runtime;
 		private readonly BlockingCollection<Action> _runtimeRequests = new();
 		private bool _launch;
@@ -18,7 +20,7 @@ namespace Runtime
 			Stream streamIn,
 			Stream streamOut,
 			Runtime runtime,
-			TextWriter logger)
+			ILogger logger)
 		{
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
 			_runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
@@ -28,18 +30,22 @@ namespace Runtime
 
 		protected override ResponseBody HandleProtocolRequest(string requestType, object requestArgs)
 		{
-			_logger.WriteLine($"Request: {requestType}");
+			_logger.LogTrace($"Request: {requestType}");
 			return base.HandleProtocolRequest(requestType, requestArgs);
 		}
 		protected override void HandleProtocolError(Exception ex)
 		{
-			_logger.WriteLine($"Error: {ex}");
+			_logger.LogCritical(ex, "HandleProtocolError");
 			base.HandleProtocolError(ex);
 		}
 
-		protected override InitializeResponse HandleInitializeRequest(InitializeArguments arguments) => new ()
-			{
-			};
+		protected override InitializeResponse HandleInitializeRequest(InitializeArguments arguments) => new()
+		{
+			ExceptionBreakpointFilters = new List<ExceptionBreakpointsFilter>(),
+			SupportsExceptionFilterOptions = false,
+			SupportsExceptionOptions = false,
+			SupportsTerminateThreadsRequest = false,
+		};
 		protected override LaunchResponse HandleLaunchRequest(LaunchArguments arguments)
 		{
 			Send(() => _launch = true);
@@ -47,8 +53,31 @@ namespace Runtime
 		}
 		protected override TerminateResponse HandleTerminateRequest(TerminateArguments arguments)
 		{
+			if (arguments.Restart == true)
+				throw new NotSupportedException();
 			Send(() => _terminate = true);
 			return new TerminateResponse();
+		}
+		protected override DisconnectResponse HandleDisconnectRequest(DisconnectArguments arguments)
+		{
+			if (arguments.Restart == true || arguments.ResumableDisconnect == true || arguments.SuspendDebuggee == true || arguments.TerminateDebuggee == false)
+				throw new NotSupportedException();
+			Send(() => _terminate = true);
+			return new DisconnectResponse();
+		}
+
+		protected override SetExceptionBreakpointsResponse HandleSetExceptionBreakpointsRequest(SetExceptionBreakpointsArguments arguments)
+		{
+			// No-op: Not supported.
+			return new SetExceptionBreakpointsResponse();
+		}
+
+		protected override ThreadsResponse HandleThreadsRequest(ThreadsArguments arguments)
+		{
+			return new(new List<Thread>()
+			{
+				new Thread(0, "MainTask")
+			});
 		}
 
 		private void Send(Action action)
@@ -68,6 +97,9 @@ namespace Runtime
 				action();
 			}
 
+			// We are read to do things
+			Protocol.SendEvent(new InitializedEvent());
+
 			// Cycle until termination.
 			while (_launch && !_terminate)
 			{
@@ -79,7 +111,7 @@ namespace Runtime
 				}
 			}
 
-			Protocol.SendEvent(new ExitedEvent());
+			Protocol.SendEvent(new ExitedEvent(0));
 			Protocol.WaitForReader();
 		}
 
@@ -87,7 +119,7 @@ namespace Runtime
 			Stream streamIn,
 			Stream streamOut,
 			Runtime runtime,
-			TextWriter logger)
+			ILogger logger)
 		{
 			var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger);
 			debugAdapter.Run();

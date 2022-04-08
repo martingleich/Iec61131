@@ -9,6 +9,10 @@ namespace Runtime.IR
 {
 	using Statements;
 	using Expressions;
+	using System.IO;
+	using System.IO.Compression;
+	using System.ComponentModel.DataAnnotations;
+
 	public static class Parser
 	{
 		private static ImmutableArray<IStatement> FixLabels(ImmutableArray<IStatement> statements)
@@ -99,6 +103,22 @@ namespace Runtime.IR
 					return (new LocalVarOffset((ushort)Offset), Id);
 				}
 			}
+
+			[System.Xml.Serialization.XmlType("breakpoint")]
+			public sealed class XmlBreakpoint
+			{
+				[System.Xml.Serialization.XmlAttribute("id")]
+				public int Id;
+				[System.Xml.Serialization.XmlAttribute("startLine")]
+				public int StartLine;
+				[System.Xml.Serialization.XmlAttribute("startCollumn")]
+				public int StartCollumn;
+				[System.Xml.Serialization.XmlAttribute("endLine")]
+				public int EndLine;
+				[System.Xml.Serialization.XmlAttribute("endCollumn")]
+				public int EndCollumn;
+			}
+			
 			[System.Xml.Serialization.XmlAttribute("id")]
 			public string Id;
 			[System.Xml.Serialization.XmlArray("inputs")]
@@ -110,27 +130,62 @@ namespace Runtime.IR
 			[System.Xml.Serialization.XmlElement("code")]
 			public XmlCode Code;
 
-			public static XmlCompiledPou FromCompiledPou(CompiledPou compiled) => new()
+			[System.Xml.Serialization.XmlElement("breakpoints")]
+			public byte[]? Breakpoints;
+
+			private static byte[]? FromBreakpointsMap(BreakpointMap? breakpointMap)
 			{
-				Id = compiled.Id.Name,
-				Inputs = compiled.InputArgs.Select(XmlArg.FromTuple).ToList(),
-				Outputs = compiled.OutputArgs.Select(XmlArg.FromTuple).ToList(),
-				StackUsage = compiled.StackUsage,
-				Code = new XmlCode()
+				if (breakpointMap == null)
+					return null;
+				using (var memStream = new MemoryStream())
 				{
-					Encoding = "text",
-					Text = Environment.NewLine + compiled.Code.DelimitWith(Environment.NewLine) + Environment.NewLine
+					using (var zipStream = new GZipStream(memStream, CompressionMode.Compress, true))
+					{
+						breakpointMap.SerializeToStream(zipStream);
+					}
+					return memStream.ToArray();
 				}
-			};
+			}
+			private static BreakpointMap? ToBreakpointsMap(byte[]? bits)
+			{
+				if (bits == null)
+					return null;
+				using (var memStream = new MemoryStream(bits))
+				{
+					using (var zipStream = new GZipStream(memStream, CompressionMode.Decompress, true))
+					{
+						return BreakpointMap.DeserializeFromStream(zipStream);
+					}
+				}
+			}
+			public static XmlCompiledPou FromCompiledPou(CompiledPou compiled)
+			{
+				return new()
+				{
+					Id = compiled.Id.Name,
+					Inputs = compiled.InputArgs.Select(XmlArg.FromTuple).ToList(),
+					Outputs = compiled.OutputArgs.Select(XmlArg.FromTuple).ToList(),
+					StackUsage = compiled.StackUsage,
+					Code = new XmlCode()
+					{
+						Encoding = "text",
+						Text = Environment.NewLine + compiled.Code.DelimitWith(Environment.NewLine) + Environment.NewLine
+					},
+					Breakpoints = FromBreakpointsMap(compiled.BreakpointMap)
+				};
+			}
 
 			public CompiledPou ToCompiledPou()
 			{
-				return new CompiledPou(
+				return new(
 					new PouId(Id),
 					Code.ToCode(),
 					Inputs.Select(input => input.ToTuple()).ToImmutableArray(),
 					Outputs.Select(input => input.ToTuple()).ToImmutableArray(),
-					StackUsage);
+					StackUsage)
+				{
+					BreakpointMap = ToBreakpointsMap(Breakpoints)
+				};
 			}
 		}
 
