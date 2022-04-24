@@ -241,17 +241,17 @@ namespace OfflineCompiler
 		public readonly GeneratorT Generator;
 		public readonly IR.PouId Id;
 
-		public static IR.PouId PouIdFromSymbol(FunctionVariableSymbol variable)
+        public static IR.PouId PouIdFromSymbol(FunctionVariableSymbol variable)
 			=> new(variable.UniqueName.ToString().ToUpperInvariant());
 
 		public static IR.PouId PouIdFromSymbol(ICallableTypeSymbol callableSymbol)
 			=> new(callableSymbol.UniqueName.ToString().ToUpperInvariant());
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
-		public CodegenIR(BoundPou pou)
+		public CodegenIR(BoundPou pou, SystemScope systemScope)
 		{
 			Id = PouIdFromSymbol(pou.CallableSymbol);
-			_stackAllocator = new(pou.CallableSymbol);
+			_stackAllocator = new(pou.CallableSymbol, systemScope);
 
 			Generator = new(this);
 			_loadVariableExpressionVisitor = new(this);
@@ -259,7 +259,7 @@ namespace OfflineCompiler
 			_statementVisitor = new(this);
 			_variableAddressableVisitor = new(this);
 			_addressableVisitor = new(this);
-		}
+        }
 		
 		public sealed class GeneratorT
 		{
@@ -339,14 +339,12 @@ namespace OfflineCompiler
 
 			public LocalVariable LocalVariable(ILocalVariableSymbol localVariable)
 			{
-				var irType = CodegenIR.TypeFromIType(localVariable.Type);
-				var offset = CodeGen._stackAllocator.AllocStackLocal(localVariable.LocalId, irType);
+				var (offset, irType) = CodeGen._stackAllocator.AllocStackLocal(localVariable);
 				return new LocalVariable(localVariable.Name.Original, irType, offset);
 			}
 			public LocalVariable Parameter(ParameterVariableSymbol parameterVariable)
 			{
-				var irType = CodegenIR.TypeFromIType(parameterVariable.Type);
-				var offset = CodeGen._stackAllocator.AllocParameter(parameterVariable.ParameterId, irType);
+				var (offset, irType) = CodeGen._stackAllocator.AllocParameter(parameterVariable);
 				return new LocalVariable(parameterVariable.Name.Original, irType, offset);
 			}
 
@@ -361,16 +359,19 @@ namespace OfflineCompiler
 		public CompiledPou GetGeneratedCode(SourceMap.SingleFile? sourceMap)
 		{
 			var statments = Generator.GetStatements();
-			return new(
-				Id,
+            var breakpointMap = sourceMap != null ? BreakpointFactory.ToBreakpointMap(sourceMap) : null;
+			var variableTable = _stackAllocator.GetVariableTable();
+            return new(
+                Id,
 				statments,
-				_stackAllocator.InputArgs,
-				_stackAllocator.OutputArgs,
-				_stackAllocator.TotalMemory)
+                _stackAllocator.InputArgs,
+                _stackAllocator.OutputArgs,
+                _stackAllocator.TotalMemory)
 			{
-				BreakpointMap = sourceMap != null ? BreakpointFactory.ToBreakpointMap(sourceMap) : null,
+				BreakpointMap = breakpointMap,
 				OriginalPath = sourceMap?.FullPath,
-			};
+				VariableTable = variableTable
+            };
 		}
 
 		public void CompileInitials(OrderedSymbolSet<LocalVariableSymbol> localVariables)

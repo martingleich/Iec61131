@@ -8,6 +8,8 @@ namespace Compiler
 	public interface ISyntax : INode
 	{
 		IEnumerable<INode> GetChildren();
+		INode? FirstNonNullChild { get; }
+		INode? LastNonNullChild { get; }
 	}
 
 	public readonly struct SyntaxCommaSeparated<T> : ISyntax, IEnumerable<T> where T : INode
@@ -114,7 +116,10 @@ namespace Compiler
 				}
 			}
 		}
-	}
+
+        public INode? FirstNonNullChild => Head;
+        public INode? LastNonNullChild => Head;
+    }
 
 	public readonly struct SyntaxArray<T> : ISyntax, IReadOnlyList<T> where T : ISyntax
 	{
@@ -138,6 +143,8 @@ namespace Compiler
 		IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)Values).GetEnumerator();
 
 		public IEnumerable<INode> GetChildren() => Values.CastArray<INode>();
+		public INode? FirstNonNullChild => Values.Length > 0 ? Values[0] : null;
+		public INode? LastNonNullChild => Values.Length > 0 ? Values[^1] : null;
 	}
 
 	public static class SyntaxArray
@@ -153,5 +160,31 @@ namespace Compiler
 			=> new(self.ToSyntaxArray(defaultStartPosition));
 		public static StatementListSyntax ToStatementList(this ImmutableArray<IStatementSyntax>.Builder self, SourceSpan defaultStartPosition)
 			=> new(self.ToSyntaxArray(defaultStartPosition));
+	}
+	public static class TokenExt
+	{
+		public static SourcePoint GetFullEnd(this IToken token)
+		{
+			int totalLength = token.Length;
+			var cursor = token;
+			while(cursor.TrailingNonSyntax is IToken trailingSyntax)
+            {
+				totalLength += trailingSyntax.Length;
+				cursor = trailingSyntax;
+            }
+			return token.StartPosition + totalLength;
+		}
+	}
+	public static class SyntaxExt
+	{
+		public static SourcePoint GetFullEnd(this ISyntax syntax)
+		{
+			if (syntax.LastNonNullChild is ISyntax lastSyntax)
+				return GetFullEnd(lastSyntax);
+			else if (syntax.LastNonNullChild is IToken lastToken)
+				return lastToken.GetFullEnd();
+			else
+				return syntax.SourceSpan.End;
+		}
 	}
 }

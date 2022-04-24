@@ -45,6 +45,9 @@ namespace Compiler
 		public static bool operator >(SourcePoint left, SourcePoint right) => left.CompareTo(right) > 0;
 		public static bool operator >=(SourcePoint left, SourcePoint right) => left.CompareTo(right) >= 0;
 
+		public static SourcePoint operator +(SourcePoint point, int offset) => point.PlusOffset(offset);
+		public static SourcePoint operator -(SourcePoint point, int offset) => point.PlusOffset(-offset);
+
 		private static string? MergeFiles(string? a, string? b)
 		{
 			if (a != b)

@@ -34,14 +34,14 @@ namespace OfflineCompiler
 			if (build != null && isOkay)
 			{
 				build.Create();
-				foreach (var pou in project.BoundModule.FunctionPous)
+				foreach (var (symbol, bound) in project.BoundModule.FunctionPous)
 				{
-					var codegen = new CodegenIR(pou.Value);
-					codegen.CompileInitials(pou.Value.LocalVariables);
-					codegen.CompileStatement(pou.Value.BoundBody.Value);
-					var sourceFile = sourceMap.GetFile(pou.Value.CallableSymbol.DeclaringSpan.Start.File);
+					var codegen = new CodegenIR(bound, project.BoundModule.Interface.SystemScope);
+					codegen.CompileInitials(bound.LocalVariables);
+					codegen.CompileStatement(bound.BoundBody.Value);
+					var sourceFile = sourceMap.GetFile(bound.CallableSymbol.DeclaringSpan.Start.File);
 					var compiledPou = codegen.GetGeneratedCode(sourceFile);
-					var resultFile = build.FileInfo($"{pou.Key.Name}.ir");
+					var resultFile = build.FileInfo($"{symbol.Name}.ir");
 					File.WriteAllText(resultFile.FullName, Runtime.IR.Parser.ToXml(compiledPou), System.Text.Encoding.UTF8);
 				}
 			}

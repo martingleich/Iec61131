@@ -12,131 +12,194 @@ using Runtime.IR;
 
 namespace Runtime
 {
-	public sealed class DebugAdapter : DebugAdapterBase
-	{
-		private sealed class DebugRuntime
-		{
-			private bool _launch;
-			private bool _terminate;
-			private bool _stop;
-			private readonly List<Range<int>> _newTempBreakpoints = new();
+    public sealed class DebugRuntime
+    {
+        private bool _launch;
+        private bool _terminate;
+        private bool _pause;
+		private bool _ignoreBreak;
+		private bool _singleStep;
 
-			private readonly DebugAdapter _adapter;
-			private readonly Runtime _runtime;
-			private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
+        private readonly DebugAdapter _adapter;
+        private readonly Runtime _runtime;
 
-			public DebugRuntime(Runtime runtime, DebugAdapter adapter)
-			{
-				_runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-				_adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
-			}
-
-			public void Run()
-			{
-				// Wait for the initials command
-				while (true)
-				{
-					var action = _runtimeRequests.Take();
-					action(this);
-					if (this._launch)
-					{
-						this._launch = false;
-						break;
-					}
-					if (this._terminate)
-					{
-						this._terminate = false;
-						break;
-					}
-				}
-
-				// We are read to do things
-				_adapter.Protocol.SendEvent(new InitializedEvent());
-
-				// Cycle until termination.
-				bool isRunning = true;
-				while (true)
-				{
-					_runtime.Reset();
-					while (true)
-					{
-						if (isRunning)
-						{
-							var state = _runtime.Step();
-							if (state == Runtime.State.EndOfProgram)
-								break;
-							if (state == Runtime.State.Breakpoint)
-							{
-								isRunning = false;
-								_adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Breakpoint)
-								{
-									AllThreadsStopped = true,
-									ThreadId = 0,
-								});
-							}
-						}
-						if (_runtimeRequests.TryTake(out var action))
-						{
-							action(this);
-
-							if (this._terminate)
-							{
-								this._terminate = false;
-								goto TERMINATE;
-							}
-							if (this._stop)
-							{
-								this._stop = false;
-								isRunning = false;
-							}
-							if (this._launch)
-							{
-								this._launch = false;
-								isRunning = true;
-							}
-							if (this._newTempBreakpoints.Count > 0)
-							{
-								_runtime.SetTemporaryBreakpoints(this._newTempBreakpoints);
-								this._newTempBreakpoints.Clear();
-							}
-						}
-					}
-				}
-				TERMINATE:
-
-				_adapter.Protocol.SendEvent(new ExitedEvent(0));
-			}
-			public void Send(Action<DebugRuntime> action)
-			{
-				_runtimeRequests.Add(action);
-			}
-			public void SendNewTemporaryBreakpoints(List<Range<int>> breakpointLocations) => Send(dbg => dbg._newTempBreakpoints.AddRange(breakpointLocations));
-			public void SendLaunch() => Send(dbg => dbg._launch = true);
-			public void SendTerminate() => Send(dbg => dbg._terminate = true);
-			public void SendStop() => Send(dbg => dbg._stop = true);
-			public Task<ImmutableArray<(CompiledPou Cpou, int CurAddress)>> GetStacktrace()
-			{
-				var tcs = new TaskCompletionSource<ImmutableArray<(CompiledPou, int)>>();
-				Send(dbg =>
-				{
-					try
-					{
-						var stacktrace = dbg._runtime.GetStackTrace();
-						tcs.SetResult(stacktrace);
-					}
-					catch (Exception e)
-					{
-						tcs.SetException(e);
-					}
-				});
-				return tcs.Task;
-			}
-		}
-
-		private readonly ILogger _logger;
-		private readonly DebugRuntime _debugRuntime;
+        private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
 
 		private readonly ImmutableArray<CompiledPou> _allPous;
+
+        public DebugRuntime(DebugAdapter adapter, Runtime runtime, ImmutableArray<CompiledPou> allPous)
+		{
+            _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+            _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
+            _allPous = allPous;
+        }
+
+        public void Run()
+        {
+            // Wait for the initials command
+            while (true)
+            {
+                var action = _runtimeRequests.Take();
+                action(this);
+                if (_launch)
+                {
+                    _launch = false;
+                    break;
+                }
+                if (_terminate)
+                {
+                    _terminate = false;
+                    break;
+                }
+            }
+
+            // We are read to do things
+            _adapter.Protocol.SendEvent(new InitializedEvent());
+
+            // Cycle until termination.
+            bool isRunning = true;
+            while (true)
+            {
+                _runtime.Reset();
+                while (true)
+                {
+					Action<DebugRuntime>? nextAction;
+                    if (isRunning)
+                    {
+                        var state = _runtime.Step(_ignoreBreak);
+						_ignoreBreak = false;
+						if (_singleStep)
+						{
+							_singleStep = false;
+							isRunning = false;
+						}
+                        if (state == Runtime.State.EndOfProgram)
+                            break;
+                        if (state == Runtime.State.Breakpoint)
+                        {
+                            isRunning = false;
+                            _adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Breakpoint)
+                            {
+                                AllThreadsStopped = true,
+                                ThreadId = 0,
+                            });
+                        }
+						nextAction = _runtimeRequests.TryTake(out var na) ? na : null;
+                    }
+					else
+                    {
+						nextAction = _runtimeRequests.Take();
+                    }
+
+                    if (nextAction != null)
+                    {
+                        nextAction(this);
+
+                        if (_terminate)
+                        {
+                            _terminate = false;
+                            goto TERMINATE;
+                        }
+                        if (_pause)
+                        {
+                            _pause = false;
+							_adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Pause)
+                            {
+                                AllThreadsStopped = true,
+								ThreadId = 0
+                            });
+                            isRunning = false;
+                        }
+                        if (this._launch)
+                        {
+                            _launch = false;
+                            isRunning = true;
+                        }
+                    }
+                }
+            }
+            TERMINATE:
+
+            _adapter.Protocol.SendEvent(new ExitedEvent(0));
+        }
+        public void Send(Action<DebugRuntime> action)
+        {
+            _runtimeRequests.Add(action);
+        }
+        public void SendNewBreakpoints(List<Range<int>> breakpointLocations) => Send(dbg => dbg._runtime.SetBreakpoints(breakpointLocations));
+        public void SendLaunch() => Send(dbg => dbg._launch = true);
+        public void SendContinue() => SendContinue(ImmutableArray<Range<int>>.Empty);
+        public void SendContinue(ImmutableArray<Range<int>> nextLocations) => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; dbg._runtime.SetTemporaryBreakpoints(nextLocations); });
+        public void SendTerminate() => Send(dbg => dbg._terminate = true);
+        public void SendPause() => Send(dbg => dbg._pause = true);
+		public void SendStep() => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; dbg._singleStep = true; });
+
+        public Task<ImmutableArray<MyStackFrame>> GetStacktrace()
+        {
+            var tcs = new TaskCompletionSource<ImmutableArray<MyStackFrame>>();
+            Send(dbg =>
+            {
+                try
+                {
+                    var stacktrace = dbg._runtime.GetStackTrace();
+                    tcs.SetResult(stacktrace);
+                }
+                catch (Exception e)
+                {
+                    tcs.SetException(e);
+                }
+            });
+            return tcs.Task;
+        }
+		public Task<ImmutableArray<string>> LoadStackVariables(int frameId, ImmutableArray<(LocalVarOffset Offset, IDebugType DebugType)> variables)
+		{
+            var tcs = new TaskCompletionSource<ImmutableArray<string>>();
+			Send(dbg =>
+			{
+				try
+				{
+					var values = variables.Select(variable =>
+					{
+						try
+						{
+							var location = dbg._runtime.LoadEffectiveAddress(frameId, variable.Offset);
+							return variable.DebugType.ReadValue(location, _runtime);
+						}
+						catch (Exception e)
+						{
+							return e.Message;
+						}
+					}).ToImmutableArray();
+					tcs.SetResult(values);
+				}
+				catch (Exception e)
+				{
+					tcs.SetException(e);
+				}
+			});
+			return tcs.Task;
+		}
+
+		public CompiledPou? TryGetCompiledPou(string path)
+		{
+			var normalizedPath = NormalizePath(path);
+			foreach (var pou in _allPous)
+			{
+				if (pou.OriginalPath != null && normalizedPath == NormalizePath(pou.OriginalPath))
+				{
+					// TODO: Check if the file still matches, otherwise continue.
+					return pou;
+				}
+			}
+			return null;
+            static string NormalizePath(string input) => input.Replace('\\', '/').ToLowerInvariant();
+		}
+    }
+	
+	public sealed class DebugAdapter : DebugAdapterBase
+	{
+		private readonly ILogger _logger;
+		private readonly DebugRuntime _debugRuntime;
 
 		private DebugAdapter(
 			Stream streamIn,
@@ -146,8 +209,7 @@ namespace Runtime
 			ImmutableArray<CompiledPou> allPous)
 		{
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
-			_debugRuntime = new DebugRuntime(runtime, this);
-			_allPous = allPous;
+			_debugRuntime = new DebugRuntime(this, runtime, allPous);
 
 			InitializeProtocolClient(streamIn, streamOut);
 		}
@@ -163,13 +225,18 @@ namespace Runtime
 			base.HandleProtocolError(ex);
 		}
 
-		protected override InitializeResponse HandleInitializeRequest(InitializeArguments arguments) => new()
+		private InitializeArguments? _initializeArguments = null;
+		protected override InitializeResponse HandleInitializeRequest(InitializeArguments arguments)
 		{
-			ExceptionBreakpointFilters = new List<ExceptionBreakpointsFilter>(),
-			SupportsExceptionFilterOptions = false,
-			SupportsExceptionOptions = false,
-			SupportsTerminateThreadsRequest = false,
-		};
+			_initializeArguments = arguments;
+			return new()
+			{
+				ExceptionBreakpointFilters = new List<ExceptionBreakpointsFilter>(),
+				SupportsExceptionFilterOptions = false,
+				SupportsExceptionOptions = false,
+				SupportsTerminateThreadsRequest = false,
+			};
+		}
 		protected override LaunchResponse HandleLaunchRequest(LaunchArguments arguments)
 		{
 			_debugRuntime.SendLaunch();
@@ -203,25 +270,11 @@ namespace Runtime
 				new Thread(0, "MainTask")
 			});
 		}
-		private static string NormalizePath(string input) => input.Replace('\\', '/').ToLowerInvariant();
-		private CompiledPou? TryGetCompiledPou(string path)
-		{
-			var normalizedPath = NormalizePath(path);
-			foreach (var pou in _allPous)
-			{
-				if (pou.OriginalPath != null && normalizedPath == NormalizePath(pou.OriginalPath))
-				{
-					// TODO: Check if the file still matches, otherwise continue.
-					return pou;
-				}
-			}
-			return null;
-		}
 
 		protected override SetBreakpointsResponse HandleSetBreakpointsRequest(SetBreakpointsArguments arguments)
 		{
 			// Step 1: Find the matching debug data based on the path?
-			var pou = TryGetCompiledPou(arguments.Source.Path);
+			var pou = _debugRuntime.TryGetCompiledPou(arguments.Source.Path);
 			if (pou == null || pou.BreakpointMap == null)
 			{
 				return new SetBreakpointsResponse(arguments.Breakpoints
@@ -233,8 +286,8 @@ namespace Runtime
 			}
 
 			// Step 3: Find a breakpoints.
-			List<Breakpoint> result = new List<Breakpoint>();
-			List<Range<int>> breakpointLocations = new List<Range<int>>();
+			var result = new List<Breakpoint>();
+			var breakpointLocations = new List<Range<int>>();
 			foreach (var requestBreakpoint in arguments.Breakpoints)
 			{
 				int line = requestBreakpoint.Line;
@@ -260,13 +313,15 @@ namespace Runtime
 					});
 				}
 			}
-			_debugRuntime.SendNewTemporaryBreakpoints(breakpointLocations);
+			_debugRuntime.SendNewBreakpoints(breakpointLocations);
 			return new SetBreakpointsResponse(result);
 		}
 
+		private ImmutableArray<MyStackFrame> _curCallstack = default;
 		protected override StackTraceResponse HandleStackTraceRequest(StackTraceArguments arguments)
 		{
 			var trace = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+			_curCallstack = trace;
 			var frames = trace.Select((frame, id) =>
 			{
 				var compiledPou = frame.Cpou;
@@ -299,14 +354,125 @@ namespace Runtime
 
 		protected override ScopesResponse HandleScopesRequest(ScopesArguments arguments)
 		{
-			// TODO: Return variables here.
-			// Scope for the arguments of the current pou.
-			// Scope for the currently readable local variables of the current pou.
-			//new Scope(
-			return new ScopesResponse();
+			if (!_curCallstack.IsDefault && arguments.FrameId >= 0 && arguments.FrameId < _curCallstack.Length)
+			{
+				var frame = _curCallstack[arguments.FrameId];
+				var argScope = new Scope("Arguments", arguments.FrameId * 2, false)
+				{
+					PresentationHint = Scope.PresentationHintValue.Arguments,
+					NamedVariables = frame.Cpou.VariableTable?.CountArgs
+				};
+				var localScope = new Scope("Locals", arguments.FrameId * 2 + 1, false)
+				{
+					PresentationHint = Scope.PresentationHintValue.Locals,
+					NamedVariables = frame.Cpou.VariableTable?.CountLocals
+				};
+				return new ScopesResponse(new List<Scope>()
+				{
+					argScope,
+					localScope
+				});
+			}
+			else
+			{
+				return new ScopesResponse();
+			}
 		}
+        protected override VariablesResponse HandleVariablesRequest(VariablesArguments arguments)
+        {
+			var varRef = arguments.VariablesReference;
+			var frame = _curCallstack[varRef / 2];
+			var args = varRef % 2 == 0;
+			ImmutableArray<VariableTable.StackVariable> requests;
+			if (frame.Cpou.VariableTable != null)
+			{
+                IEnumerable<VariableTable.StackVariable> variables;
+				variables = args ? frame.Cpou.VariableTable.Args : frame.Cpou.VariableTable.Locals;
+				if (arguments.Start is int startVar)
+					variables = variables.Skip(startVar);
+				if (arguments.Count is int varCount)
+					variables = variables.Take(varCount);
+                requests = variables.ToImmutableArray();
+			}
+			else
+			{
+				requests = ImmutableArray<VariableTable.StackVariable>.Empty;
+			}
 
-		private void Run()
+			var valueRequests = requests.Select(v => (v.StackOffset, v.Type)).ToImmutableArray();
+			var values = _debugRuntime.LoadStackVariables(frame.FrameId, valueRequests).GetAwaiter().GetResult();
+			var resultVariables = new List<Variable>();
+			for (int i = 0; i < requests.Length; i++)
+			{
+				var resultVar = new Variable(requests[i].Name, values[i], 0)
+				{
+					EvaluateName = requests[i].Name,
+					Type = _initializeArguments?.SupportsVariableType == true ? requests[i].Type.Name : null,
+				};
+				resultVariables.Add(resultVar);
+			}
+			return new VariablesResponse(resultVariables);
+        }
+
+		protected override ContinueResponse HandleContinueRequest(ContinueArguments arguments)
+		{
+			_debugRuntime.SendContinue();
+            return new ContinueResponse() { AllThreadsContinued = arguments.ThreadId != 0 };
+        }
+        protected override PauseResponse HandlePauseRequest(PauseArguments arguments)
+        {
+			_debugRuntime.SendPause();
+			return new PauseResponse();
+        }
+        protected override NextResponse HandleNextRequest(NextArguments arguments)
+        {
+            switch (arguments.Granularity)
+            {
+                case SteppingGranularity.Instruction:
+                    _debugRuntime.SendStep();
+                    break;
+                default: // Unsupported values default to statement
+                {
+                    var curFrame = this._curCallstack[^1];
+                    var curBreakpoint = curFrame.Cpou.BreakpointMap?.FindBreakpointByInstruction(curFrame.CurAddress);
+                    if (curBreakpoint != null)
+                    {
+                        IEnumerable<BreakpointMap.Breakpoint> nextBreakpoints;
+                        if (arguments.Granularity == SteppingGranularity.Line)
+                        {
+                            HashSet<BreakpointMap.Breakpoint> checkedBreakpoints = new();
+                            Stack<BreakpointMap.Breakpoint> toVisit = new();
+                            toVisit.Push(curBreakpoint);
+                            List<BreakpointMap.Breakpoint> nextLineBreakpoints = new();
+                            while (toVisit.TryPop(out var popped))
+                            {
+                                if (checkedBreakpoints.Add(popped))
+                                {
+                                    foreach (var succ in popped.Successors)
+                                    {
+                                        if (succ.ContainsLine(curBreakpoint.StartLine))
+                                            toVisit.Push(succ);
+                                        else
+                                            nextLineBreakpoints.Add(succ);
+                                    }
+                                }
+                            }
+                            nextBreakpoints = nextLineBreakpoints;
+                        }
+                        else
+                        {
+                            nextBreakpoints = curBreakpoint.Successors;
+                        }
+                        var nextStatementPositions = nextBreakpoints.Select(b => new Range<int>(b.StartInstruction, b.EndInstruction)).ToImmutableArray();
+                        _debugRuntime.SendContinue(nextStatementPositions);
+                    }
+                }
+                break;
+            }
+            return new NextResponse();
+        }
+
+        private void Run()
 		{
 			Protocol.Run();
 			_debugRuntime.Run();
@@ -323,5 +489,5 @@ namespace Runtime
 			var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, allPous);
 			debugAdapter.Run();
 		}
-	}
+    }
 }

@@ -15,62 +15,78 @@ namespace OfflineCompiler
 			private ushort _cursor;
 			public readonly IR.LocalVarOffset? ThisVariableOffset;
 			public ushort TotalMemory => _cursor;
-			public readonly ImmutableArray<(IR.LocalVarOffset, int)> InputArgs;
+
+
+            public readonly ImmutableArray<(IR.LocalVarOffset, int)> InputArgs;
 			public readonly ImmutableArray<(IR.LocalVarOffset, int)> OutputArgs;
 
-			public StackAllocator(ICallableTypeSymbol calleeType)
+			private readonly ImmutableArray<IR.VariableTable.StackVariable>.Builder _debugVariables = ImmutableArray.CreateBuilder<IR.VariableTable.StackVariable>();
+            public IR.VariableTable GetVariableTable() => new(_debugVariables.ToImmutable());
+
+            private readonly SystemScope SystemScope;
+
+            public StackAllocator(ICallableTypeSymbol calleeType, SystemScope systemScope)
 			{
+                this.SystemScope = systemScope;
+
 				if (calleeType is FunctionBlockSymbol)
-					ThisVariableOffset = AllocParameter(-1, IR.Type.Pointer);
+					ThisVariableOffset = _paramVarOffsets[-1] = AllocTemp(IR.Type.Pointer);
 				else
 					ThisVariableOffset = null;
 
 				var inputArgs = ImmutableArray.CreateBuilder<(IR.LocalVarOffset, int)>();
 				foreach (var param in calleeType.Parameters)
 				{
-					IR.Type type;
-					if (param.Kind == ParameterKind.Input)
+					if (param.Kind == ParameterKind.Input || param.Kind == ParameterKind.InOut)
 					{
-						type = CodegenIR.TypeFromIType(param.Type);
-						inputArgs.Add((AllocParameter(param.ParameterId, type), type.Size));
-					}
-					else if (param.Kind == ParameterKind.InOut)
-					{
-						type = IR.Type.Pointer;
-						inputArgs.Add((AllocParameter(param.ParameterId, type), type.Size));
+						var (offset, type) = AllocParameter(param);
+						inputArgs.Add((offset, type.Size));
 					}
 				}
 				InputArgs = inputArgs.ToImmutable();
 				var outputArgs = ImmutableArray.CreateBuilder<(IR.LocalVarOffset, int)>();
 				foreach (var param in calleeType.Parameters)
 				{
-					IR.Type type;
 					if (param.Kind == ParameterKind.Output)
 					{
-						type = CodegenIR.TypeFromIType(param.Type);
-						outputArgs.Add((AllocParameter(param.ParameterId, type), type.Size));
+						var (offset, type) = AllocParameter(param);
+						outputArgs.Add((offset, type.Size));
 					}
 				}
 				OutputArgs = outputArgs.ToImmutable();
+            }
+
+			public (IR.LocalVarOffset, IR.Type) AllocStackLocal(ILocalVariableSymbol localVariable)
+			{
+				var irType = TypeFromIType(localVariable.Type);
+				if (!_stackLocalVarOffsets.TryGetValue(localVariable.LocalId, out var offset))
+				{
+					offset = AllocTemp(irType);
+					_stackLocalVarOffsets.Add(localVariable.LocalId, offset);
+					_debugVariables.Add(new IR.VariableTable.LocalStackVariable(localVariable.Name.Original, offset, GetDebugType(localVariable.Type)));
+				}
+
+				return (offset, irType);
 			}
 
-			public IR.LocalVarOffset AllocStackLocal(int localId, IR.Type type)
+            private IR.IDebugType GetDebugType(IType type)
+            {
+				if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Int))
+					return IR.DebugTypeINT.Instance;
+				else
+					return new IR.DebugTypeUnknown(type.Code);
+            }
+
+            public (IR.LocalVarOffset, IR.Type) AllocParameter(ParameterVariableSymbol symbol)
 			{
-				if (!_stackLocalVarOffsets.TryGetValue(localId, out var offset))
+                var type = symbol.Kind.Equals(ParameterKind.InOut) ? IR.Type.Pointer : TypeFromIType(symbol.Type);
+				if (!_paramVarOffsets.TryGetValue(symbol.ParameterId, out var offset))
 				{
 					offset = AllocTemp(type);
-					_stackLocalVarOffsets.Add(localId, offset);
+					_paramVarOffsets.Add(symbol.ParameterId, offset);
+					_debugVariables.Add(new IR.VariableTable.ArgStackVariable(symbol.Name.Original, offset, GetDebugType(symbol.Type)));
 				}
-				return offset;
-			}
-			public IR.LocalVarOffset AllocParameter(int paramId, IR.Type type)
-			{
-				if (!_paramVarOffsets.TryGetValue(paramId, out var offset))
-				{
-					offset = AllocTemp(type);
-					_paramVarOffsets.Add(paramId, offset);
-				}
-				return offset;
+				return (offset, type);
 			}
 			public IR.LocalVarOffset AllocTemp(IR.Type type)
 			{

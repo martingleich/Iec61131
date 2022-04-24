@@ -20,9 +20,10 @@ namespace Runtime
 		}
 
 		private int _instructionCursor;
-		private readonly Stack<CallFrame> _callStack = new();
-		private CallFrame CurrentFrame => _callStack.Peek();
+		private readonly List<CallFrame> _callStack = new();
+		private CallFrame CurrentFrame => _callStack[^1];
 		private readonly HashSet<int> _temporaryBreakpoints = new();
+		private readonly HashSet<int> _breakpoints = new();
 
 		private readonly ImmutableArray<byte[]> _memory;
 		public readonly ImmutableDictionary<PouId, CompiledPou> _code;
@@ -48,14 +49,15 @@ namespace Runtime
 		}
 
 		private const int STACK_AREA = 1;
-		public Runtime(int[] areas, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
+		public Runtime(int[] areaSizes, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
 		{
-			_memory = areas.Select(size => new byte[size]).ToImmutableArray();
+			_memory = areaSizes.Select(size => new byte[size]).ToImmutableArray();
 			_code = code;
 			_entryPoint = entryPoint;
 		}
 
-		public MemoryLocation LoadEffectiveAddress(LocalVarOffset offset) => new(STACK_AREA, (ushort)(CurrentFrame.Base + offset.Offset));
+		public MemoryLocation LoadEffectiveAddress(int frameId, LocalVarOffset offset) => new(STACK_AREA, (ushort)(_callStack[frameId].Base + offset.Offset));
+		public MemoryLocation LoadEffectiveAddress(LocalVarOffset offset) => LoadEffectiveAddress(_callStack.Count - 1, offset);
 		public void Copy(MemoryLocation from, MemoryLocation to, int size)
 		{
 			Array.Copy(_memory[from.Area], from.Offset, _memory[to.Area], to.Offset, size);
@@ -251,13 +253,14 @@ namespace Runtime
 				var to = new MemoryLocation(STACK_AREA, (ushort)(newBase + argOffset.Offset));
 				Copy(from, to, argSize);
 			}
-			_callStack.Push(new CallFrame(newBase, _instructionCursor, outputs, compiled));
+			_callStack.Add(new CallFrame(newBase, _instructionCursor, outputs, compiled));
 			return 0;
 		}
 
 		public int Return()
 		{
-			var callFrame = _callStack.Pop();
+			var callFrame = _callStack[^1];
+			_callStack.RemoveAt(_callStack.Count - 1);
 			if (callFrame.OutputsToCopy.Length > 0)
 			{
 				for (int i = 0; i < callFrame.OutputsToCopy.Length; ++i)
@@ -279,14 +282,13 @@ namespace Runtime
 			EndOfProgram,
 			Breakpoint,
 		}
-		public State Step()
+		public State Step(bool ignoreBreak=false)
 		{
-			if (_temporaryBreakpoints.Contains(_instructionCursor))
+			if (!ignoreBreak && (_temporaryBreakpoints.Contains(_instructionCursor) || _breakpoints.Contains(_instructionCursor)))
 			{
 				_temporaryBreakpoints.Clear();
 				return State.Breakpoint;
 			}
-
 			if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
 				_instructionCursor = nextInstruction;
 			else
@@ -297,7 +299,9 @@ namespace Runtime
 		}
 		public void Reset()
 		{
-			_callStack.Push(new CallFrame(0, 0, ImmutableArray<LocalVarOffset>.Empty, _code[_entryPoint]));
+			foreach (var area in _memory)
+				Array.Fill<byte>(area, 0);
+			_callStack.Add(new CallFrame(0, 0, ImmutableArray<LocalVarOffset>.Empty, _code[_entryPoint]));
 		}
 		public void RunOnce()
 		{
@@ -305,22 +309,33 @@ namespace Runtime
 			while (Step() != State.EndOfProgram)
 				;
 		}
-		public void SetTemporaryBreakpoints(IEnumerable<Range<int>> newTemporaryBreakpoints)
+		public void SetTemporaryBreakpoints(ImmutableArray<Range<int>> newTemporaryBreakpoints)
 		{
+			_temporaryBreakpoints.Clear();
 			foreach (var range in newTemporaryBreakpoints)
 				for (int i = range.Start; i < range.End; ++i)
 					_temporaryBreakpoints.Add(i);
 		}
-		public ImmutableArray<(CompiledPou, int)> GetStackTrace()
+		public void SetBreakpoints(IEnumerable<Range<int>> newBreakpoints)
 		{
-			var builder = ImmutableArray.CreateBuilder<(CompiledPou, int)>(_callStack.Count);
+			_temporaryBreakpoints.Clear();
+			_breakpoints.Clear();
+			foreach (var range in newBreakpoints)
+				for (int i = range.Start; i < range.End; ++i)
+					_breakpoints.Add(i);
+		}
+		public ImmutableArray<MyStackFrame> GetStackTrace()
+		{
+			var builder = ImmutableArray.CreateBuilder<MyStackFrame>(_callStack.Count);
 			int curInstr = _instructionCursor;
-			foreach (var frame in _callStack)
+            for(int i = _callStack.Count - 1; i >= 0; --i)
 			{
-				builder.Add((frame.Compiled, curInstr));
+				var frame = _callStack[i];
+				builder.Add(new MyStackFrame(frame.Compiled, curInstr, i));
 				curInstr = frame.ReturnAddress;
 			}
 			return builder.MoveToImmutable();
 		}
 	}
+    public record struct MyStackFrame(CompiledPou Cpou, int CurAddress, int FrameId) { }
 }

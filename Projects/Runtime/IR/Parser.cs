@@ -7,13 +7,14 @@ using Superpower;
 
 namespace Runtime.IR
 {
-	using Statements;
-	using Expressions;
+    using global::Runtime.IR.Xml;
+    using Statements;
 	using System.IO;
 	using System.IO.Compression;
-	using System.ComponentModel.DataAnnotations;
+    using System.Text;
+    using System.Xml;
 
-	public static class Parser
+    public static class Parser
 	{
 		private static ImmutableArray<IStatement> FixLabels(ImmutableArray<IStatement> statements)
 		{
@@ -106,20 +107,6 @@ namespace Runtime.IR
 				}
 			}
 
-			[System.Xml.Serialization.XmlType("breakpoint")]
-			public sealed class XmlBreakpoint
-			{
-				[System.Xml.Serialization.XmlAttribute("id")]
-				public int Id;
-				[System.Xml.Serialization.XmlAttribute("startLine")]
-				public int StartLine;
-				[System.Xml.Serialization.XmlAttribute("startCollumn")]
-				public int StartCollumn;
-				[System.Xml.Serialization.XmlAttribute("endLine")]
-				public int EndLine;
-				[System.Xml.Serialization.XmlAttribute("endCollumn")]
-				public int EndCollumn;
-			}
 			
 			[System.Xml.Serialization.XmlAttribute("id")]
 			[System.Diagnostics.CodeAnalysis.AllowNull]
@@ -140,6 +127,8 @@ namespace Runtime.IR
 			public string? OriginalPath;
 			[System.Xml.Serialization.XmlElement("breakpoints")]
 			public byte[]? Breakpoints;
+			[System.Xml.Serialization.XmlArray("variables")]
+			public List<XmlVariable>? VariableTable;
 
 			private static byte[]? FromBreakpointsMap(BreakpointMap? breakpointMap)
 			{
@@ -181,6 +170,7 @@ namespace Runtime.IR
 					},
 					Breakpoints = FromBreakpointsMap(compiled.BreakpointMap),
 					OriginalPath = compiled.OriginalPath,
+					VariableTable = XmlVariables.FromVariableTable(compiled.VariableTable)
 				};
 			}
 
@@ -194,6 +184,7 @@ namespace Runtime.IR
 					StackUsage)
 				{
 					BreakpointMap = ToBreakpointsMap(Breakpoints),
+					VariableTable = XmlVariables.ToTable(VariableTable),
 					OriginalPath = OriginalPath
 				};
 			}
@@ -204,10 +195,15 @@ namespace Runtime.IR
 
 		public static string ToXml(CompiledPou pou)
 		{
+			var sb = new StringBuilder();
+			using var writer = XmlWriter.Create(sb, new()
+			{
+				Encoding = Encoding.UTF8,
+				Indent = true,
+			});
 			var xml = XmlCompiledPou.FromCompiledPou(pou);
-			using var textStream = new System.IO.StringWriter();
-			_serializer.Serialize(textStream, xml);
-			return textStream.ToString();
+			_serializer.Serialize(writer, xml);
+			return sb.ToString();
 		}
 	}
 }

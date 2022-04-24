@@ -54,37 +54,42 @@ namespace Runtime.IR
 	}
 	public sealed class BreakpointMap
 	{
-		public sealed class Breakpoint
+		public sealed class Breakpoint : IEquatable<Breakpoint>
 		{
 			private readonly BreakpointMap _map;
-			private readonly int _id;
+			public readonly int Id;
 
 			public Breakpoint(BreakpointMap map, int id)
 			{
-				_map = map ?? throw new System.ArgumentNullException(nameof(map));
-				_id = id;
+				_map = map ?? throw new ArgumentNullException(nameof(map));
+				Id = id;
 			}
 
 			public IEnumerable<Breakpoint> Successors
 			{
 				get
 				{
-					for (int i = _map._successorsIds[_id].Start; i < _map._successorsIds[_id].End; ++i)
+					for (int i = _map._successorsIds[Id].Start; i < _map._successorsIds[Id].End; ++i)
 						yield return new Breakpoint(_map, _map._successors[i]);
 				}
 			}
-			public int StartLine => _map._sourceTable[_id].Key.Start.Line;
-			public int EndLine => _map._sourceTable[_id].Key.End.Line;
-			public int StartCollumn => _map._sourceTable[_id].Key.Start.Collumn;
-			public int EndCollumn => _map._sourceTable[_id].Key.End.Collumn;
-			public int StartInstruction => _map._instructionTable[_id].Key.Start;
-			public int EndInstruction => _map._instructionTable[_id].Key.End;
-		}
+			public int StartLine => _map._sourceTable[Id].Key.Start.Line;
+			public int EndLine => _map._sourceTable[Id].Key.End.Line;
+			public int StartCollumn => _map._sourceTable[Id].Key.Start.Collumn;
+			public int EndCollumn => _map._sourceTable[Id].Key.End.Collumn;
+			public int StartInstruction => _map._instructionTable[Id].Key.Start;
+			public int EndInstruction => _map._instructionTable[Id].Key.End;
+            public bool ContainsLine(int line) => StartLine <= line && line <= EndLine;
 
-		private ImmutableArray<KeyValuePair<Range<SourceLC>, int>> _sourceTable;
-		private ImmutableArray<KeyValuePair<Range<int>, int>> _instructionTable;
-		private ImmutableArray<Range<int>> _successorsIds;
-		private ImmutableArray<int> _successors;
+            public override bool Equals(object? obj) => throw new NotImplementedException();
+			public bool Equals(Breakpoint? other) => other != null && other.Id == Id;
+			public override int GetHashCode() => Id.GetHashCode();
+        }
+
+		private readonly ImmutableArray<KeyValuePair<Range<SourceLC>, int>> _sourceTable;
+		private readonly ImmutableArray<KeyValuePair<Range<int>, int>> _instructionTable;
+		private readonly ImmutableArray<Range<int>> _successorsIds;
+		private readonly ImmutableArray<int> _successors;
 
 		public BreakpointMap(
 			ImmutableArray<KeyValuePair<Range<SourceLC>, int>> sourceTable,
@@ -109,19 +114,20 @@ namespace Runtime.IR
 			=> BinarySearchRanges(_instructionTable, instruction) is int idx
 				? new Breakpoint(this, idx)
 				: null;
-		private static int? BinarySearchRanges<T>(ImmutableArray<KeyValuePair<Range<T>, int>> ranges, T value) where T:IComparable<T>
+		private static int? BinarySearchRanges<T>(ImmutableArray<KeyValuePair<Range<T>, int>> ranges, T value) where T : IComparable<T>
 		{
 			var idx = ranges.BinarySearch(KeyValuePair.Create(Range.Create(value, value), 0), RangeKeyArrayComparer<T, int>.Instance);
 			if (idx >= 0)
 				return idx;
-			
+
 			int next = ~idx;
 			int previous = next - 1;
-			for (int i = Math.Max(0, previous); i <= Math.Min(next, ranges.Length); ++i)
+			for (int i = Math.Max(0, previous); i <= Math.Min(next, ranges.Length - 1); ++i)
 			{
-				if (ranges[i].Key.Start.CompareTo(value) >= 0 && ranges[i].Key.End.CompareTo(value) < 0)
-					return ranges[i].Value;
-			}
+                Range<T> range = ranges[i].Key;
+                if (range.Start.CompareTo(value) <= 0 && (ranges.Length - 1 != i || value.CompareTo(range.End) < 0))
+                    return ranges[i].Value;
+            }
 
 			return null;
 		}

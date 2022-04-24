@@ -28,6 +28,13 @@ namespace OfflineCompiler
 				_breakpointPredecessors = breakpointPredecessors;
 			}
 
+			public void AddTrailingReturn(IBoundStatement boundSt)
+			{
+				SourceSpan? span =  boundSt.OriginalNode is ISyntax originalSyntax ? originalSyntax.GetFullEnd().WithLength(0) : null;
+				using (var _ = NewBreakpointScope(span))
+                    CodeGen.Generator.IL(IRStmt.Return.Instance);
+			}
+
 			private StatementVisitor GetInLoopVisitor(IRStmt.Label loopExitLabel, IRStmt.Label loopContinueLabel) =>
 				new (CodeGen, loopExitLabel, loopContinueLabel, _breakpointPredecessors);
 
@@ -304,7 +311,7 @@ namespace OfflineCompiler
 		public void CompileStatement(IBoundStatement statement)
 		{
 			statement.Accept(_statementVisitor);
-			Generator.IL(IRStmt.Return.Instance);
+			_statementVisitor.AddTrailingReturn(statement);
 		}
 	}
 }
