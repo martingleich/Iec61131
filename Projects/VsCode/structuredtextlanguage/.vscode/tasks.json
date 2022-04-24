@@ -11,13 +11,32 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"dependsOn": "buildCSharpProjects"
+			"dependsOn": [
+				"buildOfflineCompiler",
+				"buildRuntime"
+			]
 		},
 		{
-			"type":"process",
-			"label": "buildCSharpProjects",
+			"type": "process",
+			"label": "buildOfflineCompiler",
 			"command": "dotnet",
-			"args": ["build", "--output", "bin", "..//..//..//Iec361131.sln"]
+			"args": [
+				"build",
+				"--output",
+				"bin/OfflineCompiler/",
+				"..//..//OfflineCompiler//OfflineCompiler.csproj"
+			]
+		},
+		{
+			"type": "process",
+			"label": "buildRuntime",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"--output",
+				"bin/Runtime/",
+				"..//..//Runtime//Runtime.csproj"
+			]
 		}
 	]
 }

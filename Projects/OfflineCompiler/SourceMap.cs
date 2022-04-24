@@ -2,6 +2,7 @@
 using Compiler;
 using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfflineCompiler
 {
@@ -9,16 +10,18 @@ namespace OfflineCompiler
 	{
 		public sealed class SingleFile
 		{
-			public readonly string SourceFile;
+			public readonly string FullPath;
+			public readonly string FileName;
 			private readonly ImmutableArray<int> LineStarts;
 
-			public SingleFile(string sourceFile, ImmutableArray<int> lineStarts)
+			public SingleFile(string fullSourceFile, string sourceFile, ImmutableArray<int> lineStarts)
 			{
-				SourceFile = sourceFile ?? throw new ArgumentNullException(nameof(sourceFile));
+				FullPath = fullSourceFile;
+				FileName = sourceFile ?? throw new ArgumentNullException(nameof(sourceFile));
 				LineStarts = lineStarts;
 			}
 
-			public static SingleFile Create(string sourceFile, string fileContent)
+			public static SingleFile Create(FileInfo fileInfo, string fileContent)
 			{
 				var offsets = ImmutableArray.CreateBuilder<int>();
 				int i;
@@ -35,7 +38,7 @@ namespace OfflineCompiler
 						offsets.Add(i + 1);
 					}
 				}
-				return new(sourceFile, offsets.ToImmutable());
+				return new(fileInfo.FullName, fileInfo.Name, offsets.ToImmutable());
 
 			}
 
@@ -56,14 +59,21 @@ namespace OfflineCompiler
 			{
 				var (startLine, startCollumn) = GetLineCollumn(startOffset) ?? (-1, -1);
 				var (endLine, endCollumn) = GetLineCollumn(endOffset) ?? (-1, -1);
-				return $"{SourceFile}:{startLine}:{startCollumn}:{endLine}:{endCollumn}";
+				return $"{FileName}:{startLine}:{startCollumn}:{endLine}:{endCollumn}";
 			}
+		}
+
+		public SingleFile? GetFile(string? file)
+		{
+			if (file == null)
+				return null;
+			return Maps[file];
 		}
 
 		private readonly Dictionary<string, SingleFile> Maps = new();
 		public void Add(SingleFile file)
 		{
-			Maps.Add(file.SourceFile, file);
+			Maps.Add(file.FileName, file);
 		}
 		public string GetNameOf(SourceSpan span)
 		{

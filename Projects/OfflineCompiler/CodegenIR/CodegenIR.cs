@@ -358,7 +358,7 @@ namespace OfflineCompiler
 			}
 		}
 
-		public CompiledPou GetGeneratedCode(SourceMap? sourceMap)
+		public CompiledPou GetGeneratedCode(SourceMap.SingleFile? sourceMap)
 		{
 			var statments = Generator.GetStatements();
 			return new(
@@ -368,7 +368,8 @@ namespace OfflineCompiler
 				_stackAllocator.OutputArgs,
 				_stackAllocator.TotalMemory)
 			{
-				BreakpointMap = sourceMap != null ? BreakpointFactory.ToBreakpointMap(sourceMap) : null
+				BreakpointMap = sourceMap != null ? BreakpointFactory.ToBreakpointMap(sourceMap) : null,
+				OriginalPath = sourceMap?.FullPath,
 			};
 		}
 

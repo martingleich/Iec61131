@@ -3,8 +3,8 @@ import { StructuredTextTaskProvider } from './structuredTextBuildTaskProvider';
 import { DebugAdapterDescriptorFactory } from './debug/DebugAdapterDescriptorFactory';
 
 export function activate(_context: vscode.ExtensionContext): void {
-	const compilerPath = _context.asAbsolutePath("bin//OfflineCompiler.exe");
-	const runtimePath = _context.asAbsolutePath("bin//Runtime.exe");
+	const compilerPath = _context.asAbsolutePath("bin//OfflineCompiler//OfflineCompiler.exe");
+	const runtimePath = _context.asAbsolutePath("bin//Runtime//Runtime.exe");
 
 	const buildTaskProvider = vscode.tasks.registerTaskProvider(
 		StructuredTextTaskProvider.Type,

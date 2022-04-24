@@ -74,7 +74,7 @@ namespace Runtime
 					logger.Log(LogLevel.None, "Starting debug adpater");
 					try
 					{
-						DebugAdapter.Run(streamIn, streamOut, runtime, logger);
+						DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray());
 					}
 					catch (Exception e)
 					{

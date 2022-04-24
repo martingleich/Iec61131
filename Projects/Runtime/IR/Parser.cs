@@ -52,7 +52,7 @@ namespace Runtime.IR
 			{
 				try
 				{
-					using (var textStream = new System.IO.StringReader(input.ToStringValue()))
+					using (var textStream = new StringReader(input.ToStringValue()))
 					{
 						var value = (XmlCompiledPou?)_serializer.Deserialize(textStream);
 						if(value == null)
@@ -72,8 +72,10 @@ namespace Runtime.IR
 			public sealed class XmlCode
 			{
 				[System.Xml.Serialization.XmlAttribute("encoding")]
+				[System.Diagnostics.CodeAnalysis.AllowNull]
 				public string Encoding;
 				[System.Xml.Serialization.XmlText]
+				[System.Diagnostics.CodeAnalysis.AllowNull]
 				public string Text;
 
 				internal ImmutableArray<IStatement> ToCode()
@@ -120,16 +122,22 @@ namespace Runtime.IR
 			}
 			
 			[System.Xml.Serialization.XmlAttribute("id")]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public string Id;
 			[System.Xml.Serialization.XmlArray("inputs")]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public List<XmlArg> Inputs;
 			[System.Xml.Serialization.XmlArray("outputs")]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public List<XmlArg> Outputs;
 			[System.Xml.Serialization.XmlElement("stackusage")]
 			public int StackUsage;
 			[System.Xml.Serialization.XmlElement("code")]
+			[System.Diagnostics.CodeAnalysis.AllowNull]
 			public XmlCode Code;
 
+			[System.Xml.Serialization.XmlElement("originalPath")]
+			public string? OriginalPath;
 			[System.Xml.Serialization.XmlElement("breakpoints")]
 			public byte[]? Breakpoints;
 
@@ -171,7 +179,8 @@ namespace Runtime.IR
 						Encoding = "text",
 						Text = Environment.NewLine + compiled.Code.DelimitWith(Environment.NewLine) + Environment.NewLine
 					},
-					Breakpoints = FromBreakpointsMap(compiled.BreakpointMap)
+					Breakpoints = FromBreakpointsMap(compiled.BreakpointMap),
+					OriginalPath = compiled.OriginalPath,
 				};
 			}
 
@@ -184,7 +193,8 @@ namespace Runtime.IR
 					Outputs.Select(input => input.ToTuple()).ToImmutableArray(),
 					StackUsage)
 				{
-					BreakpointMap = ToBreakpointsMap(Breakpoints)
+					BreakpointMap = ToBreakpointsMap(Breakpoints),
+					OriginalPath = OriginalPath
 				};
 			}
 		}

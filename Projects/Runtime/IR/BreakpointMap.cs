@@ -98,7 +98,7 @@ namespace Runtime.IR
 			_successors = successors;
 		}
 
-		public Breakpoint? FindBreakpointBySource(int line, int? collumn)
+		public Breakpoint? TryGetBreakpointBySource(int line, int? collumn)
 		{
 			var sourcelc = new SourceLC(line, collumn ?? -1);
 			return BinarySearchRanges(_sourceTable, sourcelc) is int idx
@@ -173,7 +173,7 @@ namespace Runtime.IR
 			}
 			using (var br = new BinaryReader(stream, System.Text.Encoding.UTF8, true))
 			{
-				int sourceTableLength = br.ReadInt32();
+				var sourceTableLength = br.ReadInt32();
 				var sourceTable = ImmutableArray.CreateBuilder<KeyValuePair<Range<SourceLC>, int>>(sourceTableLength);
 				for (int i = 0; i < sourceTableLength; ++i)
 				{

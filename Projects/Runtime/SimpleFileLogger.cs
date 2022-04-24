@@ -11,7 +11,7 @@ namespace Runtime
 		private StreamWriter? _stream;
 		public SimpleFileLogger(string path)
 		{
-			var fileStream = new FileStream(path, FileMode.Truncate, FileAccess.Write, FileShare.Read);
+			var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
 			_stream = new StreamWriter(fileStream, System.Text.Encoding.UTF8);
 			_stream.AutoFlush = true;
 		}

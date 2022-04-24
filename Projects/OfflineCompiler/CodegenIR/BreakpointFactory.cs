@@ -49,7 +49,7 @@ namespace OfflineCompiler
 			_breakpoints[breakpoint.Id].Successors.Add(successor.Id);
 		}
 
-		public BreakpointMap ToBreakpointMap(SourceMap sourceMap)
+		public BreakpointMap ToBreakpointMap(SourceMap.SingleFile sourceMap)
 		{
 			var sourceRanges = ImmutableArray.CreateBuilder<KeyValuePair<Range<SourceLC>, int>>();
 			var instructionRanges = ImmutableArray.CreateBuilder<KeyValuePair<Range<int>, int>>();
@@ -57,8 +57,8 @@ namespace OfflineCompiler
 			foreach (var breakpoint in _breakpoints)
 			{
 				breakpoint.Deconstruct(out var sourceSpan, out var instructionBegin, out var instructionEnd, out var breakpointSuccessors);
-				var startPos = sourceMap.GetLineCollumn(sourceSpan.Start);
-				var endPos = sourceMap.GetLineCollumn(sourceSpan.End);
+				var startPos = sourceMap.GetLineCollumn(sourceSpan.Start.Offset);
+				var endPos = sourceMap.GetLineCollumn(sourceSpan.End.Offset);
 				if (!startPos.HasValue || !endPos.HasValue)
 					throw new InvalidOperationException();
 				var startPosLC = new SourceLC(startPos.Value.Item1, startPos.Value.Item2);

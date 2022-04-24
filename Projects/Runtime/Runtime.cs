@@ -6,7 +6,6 @@ using System.Linq;
 namespace Runtime
 {
 	using IR;
-	using System.Collections.Concurrent;
 
 	public sealed partial class Runtime
 	{
@@ -23,9 +22,10 @@ namespace Runtime
 		private int _instructionCursor;
 		private readonly Stack<CallFrame> _callStack = new();
 		private CallFrame CurrentFrame => _callStack.Peek();
+		private readonly HashSet<int> _temporaryBreakpoints = new();
 
 		private readonly ImmutableArray<byte[]> _memory;
-		private readonly ImmutableDictionary<PouId, CompiledPou> _code;
+		public readonly ImmutableDictionary<PouId, CompiledPou> _code;
 		private readonly PouId _entryPoint;
 
 		private readonly struct CallFrame
@@ -190,6 +190,7 @@ namespace Runtime
 				result |= ((long)area[effective.Offset + i]) << (8 * (7 - i));
 			return result;
 		}
+
 		public void WriteREAL(LocalVarOffset offset, float value)
 		{
 			var intValue = BitConverter.SingleToInt32Bits(value);
@@ -272,13 +273,27 @@ namespace Runtime
 
 		public PanicException Panic(string message) => new(message, _instructionCursor);
 
-		public bool Step()
+		public enum State
 		{
+			Running,
+			EndOfProgram,
+			Breakpoint,
+		}
+		public State Step()
+		{
+			if (_temporaryBreakpoints.Contains(_instructionCursor))
+			{
+				_temporaryBreakpoints.Clear();
+				return State.Breakpoint;
+			}
+
 			if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
 				_instructionCursor = nextInstruction;
 			else
 				++_instructionCursor;
-			return _callStack.Count == 0;
+			if (_callStack.Count == 0)
+				return State.EndOfProgram;
+			return State.Running;
 		}
 		public void Reset()
 		{
@@ -287,8 +302,25 @@ namespace Runtime
 		public void RunOnce()
 		{
 			Reset();
-			while (Step())
+			while (Step() != State.EndOfProgram)
 				;
+		}
+		public void SetTemporaryBreakpoints(IEnumerable<Range<int>> newTemporaryBreakpoints)
+		{
+			foreach (var range in newTemporaryBreakpoints)
+				for (int i = range.Start; i < range.End; ++i)
+					_temporaryBreakpoints.Add(i);
+		}
+		public ImmutableArray<(CompiledPou, int)> GetStackTrace()
+		{
+			var builder = ImmutableArray.CreateBuilder<(CompiledPou, int)>(_callStack.Count);
+			int curInstr = _instructionCursor;
+			foreach (var frame in _callStack)
+			{
+				builder.Add((frame.Compiled, curInstr));
+				curInstr = frame.ReturnAddress;
+			}
+			return builder.MoveToImmutable();
 		}
 	}
 }

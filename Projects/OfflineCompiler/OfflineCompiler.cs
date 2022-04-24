@@ -39,7 +39,8 @@ namespace OfflineCompiler
 					var codegen = new CodegenIR(pou.Value);
 					codegen.CompileInitials(pou.Value.LocalVariables);
 					codegen.CompileStatement(pou.Value.BoundBody.Value);
-					var compiledPou = codegen.GetGeneratedCode(sourceMap);
+					var sourceFile = sourceMap.GetFile(pou.Value.CallableSymbol.DeclaringSpan.Start.File);
+					var compiledPou = codegen.GetGeneratedCode(sourceFile);
 					var resultFile = build.FileInfo($"{pou.Key.Name}.ir");
 					File.WriteAllText(resultFile.FullName, Runtime.IR.Parser.ToXml(compiledPou), System.Text.Encoding.UTF8);
 				}
@@ -92,7 +93,7 @@ namespace OfflineCompiler
 		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource2(FileInfo info, Func<FileInfo, string, ILanguageSource> creator)
 		{
 			var content = File.ReadAllText(info.FullName, System.Text.Encoding.UTF8);
-			var sourceMap = SourceMap.SingleFile.Create(info.Name, content);
+			var sourceMap = SourceMap.SingleFile.Create(info, content);
 			return (creator(info, content), sourceMap);
 		}
 	}
