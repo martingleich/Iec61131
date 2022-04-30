@@ -2,11 +2,12 @@
 using System.Collections.Immutable;
 using Compiler;
 using Compiler.Types;
+using Runtime.IR.RuntimeTypes;
 using IR = Runtime.IR;
 
 namespace OfflineCompiler
 {
-	public sealed partial class CodegenIR
+    public sealed partial class CodegenIR
 	{
 		public sealed class StackAllocator
 		{
@@ -17,8 +18,8 @@ namespace OfflineCompiler
 			public ushort TotalMemory => _cursor;
 
 
-            public readonly ImmutableArray<(IR.LocalVarOffset, int)> InputArgs;
-			public readonly ImmutableArray<(IR.LocalVarOffset, int)> OutputArgs;
+            public readonly ImmutableArray<IR.CompiledArgument> InputArgs;
+			public readonly ImmutableArray<IR.CompiledArgument> OutputArgs;
 
 			private readonly ImmutableArray<IR.VariableTable.StackVariable>.Builder _debugVariables = ImmutableArray.CreateBuilder<IR.VariableTable.StackVariable>();
             public IR.VariableTable GetVariableTable() => new(_debugVariables.ToImmutable());
@@ -34,23 +35,23 @@ namespace OfflineCompiler
 				else
 					ThisVariableOffset = null;
 
-				var inputArgs = ImmutableArray.CreateBuilder<(IR.LocalVarOffset, int)>();
+				var inputArgs = ImmutableArray.CreateBuilder<IR.CompiledArgument>();
 				foreach (var param in calleeType.Parameters)
 				{
 					if (param.Kind == ParameterKind.Input || param.Kind == ParameterKind.InOut)
 					{
-						var (offset, type) = AllocParameter(param);
-						inputArgs.Add((offset, type.Size));
+						var arg = AllocParameter(param);
+						inputArgs.Add(arg);
 					}
 				}
 				InputArgs = inputArgs.ToImmutable();
-				var outputArgs = ImmutableArray.CreateBuilder<(IR.LocalVarOffset, int)>();
+				var outputArgs = ImmutableArray.CreateBuilder<IR.CompiledArgument>();
 				foreach (var param in calleeType.Parameters)
 				{
 					if (param.Kind == ParameterKind.Output)
 					{
-						var (offset, type) = AllocParameter(param);
-						outputArgs.Add((offset, type.Size));
+						var arg = AllocParameter(param);
+						outputArgs.Add(arg);
 					}
 				}
 				OutputArgs = outputArgs.ToImmutable();
@@ -69,15 +70,27 @@ namespace OfflineCompiler
 				return (offset, irType);
 			}
 
-            private IR.IDebugType GetDebugType(IType type)
+            private IRuntimeType GetDebugType(IType type)
             {
-				if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Int))
-					return IR.DebugTypeINT.Instance;
+				if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.SInt))
+					return RuntimeTypeSINT.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Int))
+					return RuntimeTypeINT.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.DInt))
+					return RuntimeTypeDINT.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.LInt))
+					return RuntimeTypeLINT.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Real))
+					return RuntimeTypeREAL.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.LReal))
+					return RuntimeTypeLREAL.Instance;
+				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Bool))
+					return RuntimeTypeBOOL.Instance;
 				else
-					return new IR.DebugTypeUnknown(type.Code);
+					return new RuntimeTypeUnknown(type.Code);
             }
 
-            public (IR.LocalVarOffset, IR.Type) AllocParameter(ParameterVariableSymbol symbol)
+            public IR.CompiledArgument AllocParameter(ParameterVariableSymbol symbol)
 			{
                 var type = symbol.Kind.Equals(ParameterKind.InOut) ? IR.Type.Pointer : TypeFromIType(symbol.Type);
 				if (!_paramVarOffsets.TryGetValue(symbol.ParameterId, out var offset))
@@ -86,7 +99,7 @@ namespace OfflineCompiler
 					_paramVarOffsets.Add(symbol.ParameterId, offset);
 					_debugVariables.Add(new IR.VariableTable.ArgStackVariable(symbol.Name.Original, offset, GetDebugType(symbol.Type)));
 				}
-				return (offset, type);
+				return new (offset, type);
 			}
 			public IR.LocalVarOffset AllocTemp(IR.Type type)
 			{

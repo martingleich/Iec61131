@@ -1,4 +1,5 @@
-﻿using Superpower;
+﻿using Runtime.IR.Expressions;
+using Superpower;
 using Superpower.Parsers;
 using System;
 
@@ -9,6 +10,9 @@ namespace Runtime.IR.Statements
 		public readonly IExpression Value;
 		public readonly LocalVarOffset Target;
 		public readonly int Size;
+
+		public static WriteValue WriteLiteral(ulong bits, LocalVarOffset target, int size) => new (new LiteralExpression(bits), target, size);
+		public static WriteValue WriteLocal(LocalVarOffset source, LocalVarOffset target, int size) => new (new LoadValueExpression(source), target, size);
 
 		public WriteValue(IExpression value, LocalVarOffset offset, int size)
 		{

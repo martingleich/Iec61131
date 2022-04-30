@@ -89,23 +89,21 @@ namespace Runtime.IR
 			[System.Xml.Serialization.XmlType("arg")]
 			public sealed class XmlArg
 			{
-				[System.Xml.Serialization.XmlAttribute("id")]
-				public int Id;
 				[System.Xml.Serialization.XmlAttribute("offset")]
-				public int Offset;
+				public ushort Offset;
+				[System.Xml.Serialization.XmlAttribute("size")]
+				public int Size;
 
-				internal static XmlArg FromTuple((LocalVarOffset, int) arg)
-					=> new()
+				internal static XmlArg FromTuple(CompiledArgument arg) =>
+					new()
 					{
-						Id = arg.Item2,
-						Offset = arg.Item1.Offset
+						Offset = arg.Offset.Offset,
+						Size = arg.Type.Size
 					};
 
-				internal (LocalVarOffset, int) ToTuple()
-				{
-					return (new LocalVarOffset((ushort)Offset), Id);
-				}
-			}
+                internal CompiledArgument ToTuple() =>
+					new (new LocalVarOffset(Offset), new Type(Size));
+            }
 
 			
 			[System.Xml.Serialization.XmlAttribute("id")]
@@ -177,12 +175,12 @@ namespace Runtime.IR
 			public CompiledPou ToCompiledPou()
 			{
 				return new(
-					new PouId(Id),
-					Code.ToCode(),
-					Inputs.Select(input => input.ToTuple()).ToImmutableArray(),
-					Outputs.Select(input => input.ToTuple()).ToImmutableArray(),
-					StackUsage)
-				{
+                    new PouId(Id),
+                    StackUsage,
+                    Inputs.Select(input => input.ToTuple()).ToImmutableArray(),
+                    Outputs.Select(input => input.ToTuple()).ToImmutableArray(),
+                    Code.ToCode())
+                {
 					BreakpointMap = ToBreakpointsMap(Breakpoints),
 					VariableTable = XmlVariables.ToTable(VariableTable),
 					OriginalPath = OriginalPath

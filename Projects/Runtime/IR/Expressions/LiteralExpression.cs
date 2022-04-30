@@ -13,7 +13,7 @@ namespace Runtime.IR.Expressions
 			Bits = bits;
 		}
 
-		public void LoadTo(Runtime runtime, MemoryLocation location, int size) => runtime.Copy(Bits, location, size);
+		public void LoadTo(Runtime runtime, MemoryLocation location, int size) => runtime.WriteBits(Bits, location, size);
 
 		public static LiteralExpression FromMemoryLocation(MemoryLocation location) => new(BitsFor(location));
 		public static ulong BitsFor(MemoryLocation location) => ((uint)location.Area << 16) | location.Offset;

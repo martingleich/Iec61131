@@ -18,7 +18,7 @@ namespace Runtime.IR.Statements
 		public int? Execute(Runtime runtime)
 		{
 			var control = runtime.LoadBOOL(Control);
-			return control ? Target.StatementId : null;
+			return control ? null : Target.StatementId;
 		}
 		public override string ToString() => $"if not {Control} jump to {Target.Name}";
 		public static readonly TextParser<IStatement> Parser =

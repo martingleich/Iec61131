@@ -80,8 +80,7 @@ namespace OfflineCompiler
 					{
 						var newId = Self.CodeGen.BreakpointFactory.AddBreakpoint(
 							SourceSpan,
-							InstructionBegin,
-							Self.CodeGen.Generator.InstructionId);
+							IR.Range.Create(InstructionBegin, Self.CodeGen.Generator.InstructionId));
 						foreach (var pred in Self._breakpointPredecessors)
 							Self.CodeGen.BreakpointFactory.SetPredecessor(newId, pred);
 						Self._breakpointPredecessors = ImmutableArray.Create(newId);

@@ -22,7 +22,7 @@ namespace Runtime.IR.Expressions
 			var address = Base.GetValue(runtime);
 			foreach (var elem in Elements)
 				address = elem.Add(runtime, address);
-			runtime.Copy(LiteralExpression.BitsFor(address), location, size);
+			runtime.WriteBits(LiteralExpression.BitsFor(address), location, size);
 		}
 
 		public interface IBase

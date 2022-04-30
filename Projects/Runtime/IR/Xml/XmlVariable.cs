@@ -1,4 +1,7 @@
-﻿namespace Runtime.IR.Xml
+﻿using Runtime.IR.RuntimeTypes;
+using Superpower;
+
+namespace Runtime.IR.Xml
 {
     [System.Xml.Serialization.XmlType("variable")]
     public sealed class XmlVariable
@@ -26,7 +29,7 @@
         }
         public VariableTable.StackVariable ToVariable()
         {
-            IDebugType type = Type == "INT" ? DebugTypeINT.Instance : new DebugTypeUnknown(Type);
+            var type = IRuntimeType.Parser.Parse(Type);
             var offset = new LocalVarOffset(LocalOffset);
             if (IsLocal)
                 return new VariableTable.LocalStackVariable(Name, offset, type);

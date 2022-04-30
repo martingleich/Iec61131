@@ -5,54 +5,7 @@ using System.IO;
 
 namespace Runtime.IR
 {
-	public readonly struct SourceLC : IComparable<SourceLC>
-	{
-		public readonly int Line;
-		public readonly int Collumn;
-
-		public SourceLC(int line, int collumn)
-		{
-			Line = line;
-			Collumn = collumn;
-		}
-
-		public int CompareTo(SourceLC other)
-		{
-			int x;
-			x = Line.CompareTo(other.Line);
-			if (x != 0)
-				return x;
-			if (Collumn < 0 || other.Collumn < 0)
-				return 0;
-			return Collumn.CompareTo(other.Collumn);
-		}
-		public override string ToString() => $"{Line}:{Collumn}";
-	}
-
-	public readonly struct Range<T> where T : IComparable<T>
-	{
-		public readonly T Start;
-		public readonly T End;
-
-		public Range(T start, T end)
-		{
-			Start = start;
-			End = end;
-		}
-		public override string ToString() => $"{Start}..{End}";
-	}
-
-	public sealed class RangeKeyArrayComparer<TKey, TValue> : IComparer<KeyValuePair<Range<TKey>, TValue>> where TKey:IComparable<TKey>
-	{
-		public static readonly RangeKeyArrayComparer<TKey, TValue> Instance = new();
-		public int Compare(KeyValuePair<Range<TKey>, TValue> x, KeyValuePair<Range<TKey>, TValue> y) => x.Key.Start.CompareTo(y.Key.Start);
-	}
-
-	public static class Range
-	{
-		public static Range<T> Create<T>(T start, T end) where T : IComparable<T> => new(start, end);
-	}
-	public sealed class BreakpointMap
+    public sealed class BreakpointMap
 	{
 		public sealed class Breakpoint : IEquatable<Breakpoint>
 		{
@@ -73,13 +26,11 @@ namespace Runtime.IR
 						yield return new Breakpoint(_map, _map._successors[i]);
 				}
 			}
-			public int StartLine => _map._sourceTable[Id].Key.Start.Line;
-			public int EndLine => _map._sourceTable[Id].Key.End.Line;
-			public int StartCollumn => _map._sourceTable[Id].Key.Start.Collumn;
-			public int EndCollumn => _map._sourceTable[Id].Key.End.Collumn;
-			public int StartInstruction => _map._instructionTable[Id].Key.Start;
-			public int EndInstruction => _map._instructionTable[Id].Key.End;
-            public bool ContainsLine(int line) => StartLine <= line && line <= EndLine;
+
+			public Range<SourceLC> Txt => _map._sourceTable[Id].Key;
+			public Range<int> Instruction => _map._instructionTable[Id].Key;
+
+            public bool ContainsLine(int line) => Txt.Start.Line <= line && line <= Txt.End.Line;
 
             public override bool Equals(object? obj) => throw new NotImplementedException();
 			public bool Equals(Breakpoint? other) => other != null && other.Id == Id;

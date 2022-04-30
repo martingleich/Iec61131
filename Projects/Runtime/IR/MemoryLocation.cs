@@ -10,6 +10,7 @@
 			Area = area;
 			Offset = offset;
 		}
+		[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 		public override string ToString() => $"{Area}:{Offset}";
 	}
 }

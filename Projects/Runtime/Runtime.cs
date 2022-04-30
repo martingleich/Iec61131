@@ -26,76 +26,68 @@ namespace Runtime
 		private readonly HashSet<int> _breakpoints = new();
 
 		private readonly ImmutableArray<byte[]> _memory;
-		public readonly ImmutableDictionary<PouId, CompiledPou> _code;
+		private readonly ImmutableDictionary<PouId, CompiledPou> _code;
 		private readonly PouId _entryPoint;
 
-		private readonly struct CallFrame
+		private record struct CallFrame(
+			CompiledPou Compiled,
+			ImmutableArray<LocalVarOffset> OutputsToCopy,
+			int CallAddress,
+			ushort Base)
 		{
-			public readonly CompiledPou Compiled;
-			public readonly ImmutableArray<LocalVarOffset> OutputsToCopy;
-			public readonly int ReturnAddress;
-			public readonly ushort Base;
-
 			public ImmutableArray<IStatement> Code => Compiled.Code;
 			public readonly int StackSize => Compiled.StackUsage;
 
-			public CallFrame(ushort @base, int returnAddress, ImmutableArray<LocalVarOffset> outputsToCopy, CompiledPou compiled)
-			{
-				Base = @base;
-				ReturnAddress = returnAddress;
-				OutputsToCopy = outputsToCopy;
-				Compiled = compiled;
-			}
+			public MemoryLocation this[LocalVarOffset offset] => new (STACK_AREA, (ushort)(Base + offset.Offset));
 		}
 
 		private const int STACK_AREA = 1;
-		public Runtime(int[] areaSizes, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
+		public Runtime(ImmutableArray<int> areaSizes, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
 		{
 			_memory = areaSizes.Select(size => new byte[size]).ToImmutableArray();
 			_code = code;
 			_entryPoint = entryPoint;
 		}
 
-		public MemoryLocation LoadEffectiveAddress(int frameId, LocalVarOffset offset) => new(STACK_AREA, (ushort)(_callStack[frameId].Base + offset.Offset));
+		public MemoryLocation LoadEffectiveAddress(int frameId, LocalVarOffset offset) => _callStack[frameId][offset];
 		public MemoryLocation LoadEffectiveAddress(LocalVarOffset offset) => LoadEffectiveAddress(_callStack.Count - 1, offset);
-		public void Copy(MemoryLocation from, MemoryLocation to, int size)
+
+        #region MemoryAccess
+        public void Copy(MemoryLocation from, MemoryLocation to, int size)
 		{
 			Array.Copy(_memory[from.Area], from.Offset, _memory[to.Area], to.Offset, size);
 		}
-		public void Copy(ulong bits, MemoryLocation to, int size)
+		public void WriteBits(ulong bits, MemoryLocation to, int size)
 		{
-			var area = _memory[to.Area];
 			switch (size)
 			{
 				case 0:
+					break;
 				case 1:
-					area[0] = (byte)(bits & 0xFF);
+					WriteSINT(to, unchecked((sbyte)bits));
 					break;
 				case 2:
-					area[0] = (byte)((bits >> 8) & 0xFF);
-					area[1] = (byte)((bits >> 0) & 0xFF);
+					WriteINT(to, unchecked((short)bits));
 					break;
 				case 4:
-					area[0] = (byte)((bits >> 24) & 0xFF);
-					area[1] = (byte)((bits >> 16) & 0xFF);
-					area[2] = (byte)((bits >> 8) & 0xFF);
-					area[3] = (byte)((bits >> 0) & 0xFF);
+					WriteDINT(to, unchecked((int)bits));
 					break;
 				case 8:
-					area[0] = (byte)((bits >> 56) & 0xFF);
-					area[1] = (byte)((bits >> 48) & 0xFF);
-					area[2] = (byte)((bits >> 40) & 0xFF);
-					area[3] = (byte)((bits >> 32) & 0xFF);
-					area[4] = (byte)((bits >> 24) & 0xFF);
-					area[5] = (byte)((bits >> 16) & 0xFF);
-					area[6] = (byte)((bits >> 8) & 0xFF);
-					area[7] = (byte)((bits >> 0) & 0xFF);
+					WriteLINT(to, unchecked((long)bits));
 					break;
-				default: throw new InvalidOperationException();
+				default: throw new ArgumentException($"{nameof(size)}({size}) must be either 1,2,4 or 8.");
 			}
 		}
+        public ulong LoadBits(MemoryLocation from, int size) => size switch
+        {
+            1 => unchecked((ulong)LoadSINT(from)),
+            2 => unchecked((ulong)LoadINT(from)),
+            4 => unchecked((ulong)LoadDINT(from)),
+            8 => unchecked((ulong)LoadLINT(from)),
+            _ => throw new ArgumentException($"{nameof(size)}({size}) must be either 1,2,4 or 8."),
+        };
 
-		public MemoryLocation LoadPointer(LocalVarOffset offset)
+        public MemoryLocation LoadPointer(LocalVarOffset offset)
 		{
 			var effective = LoadEffectiveAddress(offset);
 			var area = _memory[effective.Area];
@@ -105,10 +97,11 @@ namespace Runtime
 			ushort b3 = area[effective.Offset + 3];
 			return new MemoryLocation((ushort)(b0 | b1), (ushort)(b2 | b3));
 		}
+		
 		public sbyte LoadSINT(MemoryLocation location)
 		{
 			var area = _memory[location.Area];
-			return unchecked((sbyte)(area[location.Offset]));
+			return unchecked((sbyte)area[location.Offset]);
 		}
 		public sbyte LoadSINT(LocalVarOffset offset)
 		{
@@ -120,13 +113,12 @@ namespace Runtime
 			var effective = LoadEffectiveAddress(offset);
 			WriteSINT(effective, value);
 		}
-
 		private void WriteSINT(MemoryLocation effective, sbyte value)
 		{
 			var area = _memory[effective.Area];
-			area[effective.Offset] = unchecked((byte)value);
+            area[effective.Offset + 0] = (byte)(value & 0xFF);
 		}
-
+		
 		public short LoadINT(LocalVarOffset offset)
 		{
 			var effective = LoadEffectiveAddress(offset);
@@ -145,16 +137,15 @@ namespace Runtime
 		public void WriteINT(MemoryLocation effective, short value)
 		{
 			var area = _memory[effective.Area];
-			for (int i = 0; i < 2; ++i)
-				area[effective.Offset + i] = (byte)((value >> (8 * (1 - i))) & 0xFF);
+            area[effective.Offset + 0] = (byte)((value >> 8) & 0xFF);
+            area[effective.Offset + 1] = (byte)((value >> 0) & 0xFF);
 		}
 		public int LoadDINT(LocalVarOffset offset)
 		{
 			var effective = LoadEffectiveAddress(offset);
 			return LoadDINT(effective);
 		}
-
-		private int LoadDINT(MemoryLocation effective)
+		public int LoadDINT(MemoryLocation effective)
 		{
 			var area = _memory[effective.Area];
 			int result = 0;
@@ -162,37 +153,50 @@ namespace Runtime
 				result |= ((int)area[effective.Offset + i]) << (8 * (3 - i));
 			return result;
 		}
-
 		public void WriteDINT(LocalVarOffset offset, int value)
 		{
 			var effective = LoadEffectiveAddress(offset);
 			WriteDINT(effective, value);
 		}
-
-		private void WriteDINT(MemoryLocation effective, int value)
+		public void WriteDINT(MemoryLocation effective, int bits)
 		{
 			var area = _memory[effective.Area];
-			for (int i = 0; i < 4; ++i)
-				area[effective.Offset + i] = (byte)((value >> (8 * (3 - i))) & 0xFF);
+            area[effective.Offset + 0] = (byte)((bits >> 24) & 0xFF);
+            area[effective.Offset + 1] = (byte)((bits >> 16) & 0xFF);
+            area[effective.Offset + 2] = (byte)((bits >> 8) & 0xFF);
+            area[effective.Offset + 3] = (byte)((bits >> 0) & 0xFF);
 		}
-
 		public void WriteLINT(LocalVarOffset offset, long value)
 		{
 			var effective = LoadEffectiveAddress(offset);
+			WriteLINT(effective, value);
+		}
+		public void WriteLINT(MemoryLocation effective, long value)
+		{
 			var area = _memory[effective.Area];
-			for (int i = 0; i < 8; ++i)
-				area[effective.Offset + i] = (byte)((value >> (8 * (7 - i))) & 0xFF);
+            area[effective.Offset + 0] = (byte)((value >> 56) & 0xFF);
+            area[effective.Offset + 1] = (byte)((value >> 48) & 0xFF);
+            area[effective.Offset + 2] = (byte)((value >> 40) & 0xFF);
+            area[effective.Offset + 3] = (byte)((value >> 32) & 0xFF);
+            area[effective.Offset + 4] = (byte)((value >> 24) & 0xFF);
+            area[effective.Offset + 5] = (byte)((value >> 16) & 0xFF);
+            area[effective.Offset + 6] = (byte)((value >> 8) & 0xFF);
+            area[effective.Offset + 7] = (byte)((value >> 0) & 0xFF);
 		}
 		public long LoadLINT(LocalVarOffset offset)
 		{
 			var effective = LoadEffectiveAddress(offset);
+			return LoadLINT(effective);
+		}
+		public long LoadLINT(MemoryLocation effective)
+		{
 			var area = _memory[effective.Area];
 			long result = 0;
 			for (int i = 0; i < 8; ++i)
 				result |= ((long)area[effective.Offset + i]) << (8 * (7 - i));
 			return result;
 		}
-
+		
 		public void WriteREAL(LocalVarOffset offset, float value)
 		{
 			var intValue = BitConverter.SingleToInt32Bits(value);
@@ -200,7 +204,12 @@ namespace Runtime
 		}
 		public float LoadREAL(LocalVarOffset offset)
 		{
-			var intValue = LoadDINT(offset);
+			var effective = LoadEffectiveAddress(offset);
+			return LoadREAL(effective);
+		}
+		public float LoadREAL(MemoryLocation effective)
+		{
+			var intValue = LoadDINT(effective);
 			return BitConverter.Int32BitsToSingle(intValue);
 		}
 		public void WriteLREAL(LocalVarOffset offset, double value)
@@ -210,28 +219,39 @@ namespace Runtime
 		}
 		public double LoadLREAL(LocalVarOffset offset)
 		{
-			var lintValue = LoadLINT(offset);
+			var effective = LoadEffectiveAddress(offset);
+			return LoadLREAL(effective);
+		}
+		public double LoadLREAL(MemoryLocation effective)
+		{
+			var lintValue = LoadLINT(effective);
 			return BitConverter.Int64BitsToDouble(lintValue);
 		}
 		public bool LoadBOOL(LocalVarOffset offset)
 		{
 			var effective = LoadEffectiveAddress(offset);
-			var area = _memory[effective.Area];
-			if (area[effective.Offset] == 0)
+			return LoadBOOL(effective);
+		}
+		public bool LoadBOOL(MemoryLocation effective)
+		{
+			var value = LoadSINT(effective);
+			if (value == 0)
 				return false;
-			else if (area[effective.Offset] == 0xFF)
+			else if (value == -1)
 				return true;
 			else
-				throw Panic($"Invalid boolean value at {offset}: {area[effective.Offset]}.");
+				throw Panic($"Invalid boolean value at {effective}: {value:2X}.");
 		}
 		public void WriteBOOL(LocalVarOffset offset, bool value)
 		{
-			var effective = LoadEffectiveAddress(offset);
-			var area = _memory[effective.Area];
-			area[offset.Offset] = value ? (byte)0xFF : (byte)0;
+			WriteSINT(offset, value ? (sbyte)-1 : (sbyte)0);
 		}
+		public ImmutableArray<byte> ReadMemory(int area, int start, int length)
+            => ImmutableArray.Create(_memory[area], start, length);
+        #endregion
 
-		public int? Call(
+        #region Calls
+        public int? Call(
 			PouId callee,
 			ImmutableArray<LocalVarOffset> inputs,
 			ImmutableArray<LocalVarOffset> outputs)
@@ -240,41 +260,57 @@ namespace Runtime
 				return null;
 
 			return RealCall(callee, inputs, outputs);
+
+            int RealCall(PouId callee, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
+            {
+                var compiled = _code[callee];
+				var newBase = (ushort)(CurrentFrame.Base + CurrentFrame.StackSize);
+                _callStack.Add(new CallFrame(compiled, outputs, _instructionCursor, newBase));
+                for (int i = 0; i < inputs.Length; ++i)
+                {
+                    var (argOffset, argType) = compiled.InputArgs[i];
+                    var from = LoadEffectiveAddress(_callStack.Count - 2, inputs[i]);
+                    var to = LoadEffectiveAddress(_callStack.Count - 1, argOffset);
+                    Copy(from, to, argType.Size);
+                }
+                return 0;
+            }
 		}
 
-		private int RealCall(PouId callee, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
-		{
-			var compiled = _code[callee];
-			var newBase = (ushort)(CurrentFrame.Base + CurrentFrame.StackSize);
-			for (int i = 0; i < inputs.Length; ++i)
-			{
-				var (argOffset, argSize) = compiled.InputArgs[i];
-				var from = LoadEffectiveAddress(inputs[i]);
-				var to = new MemoryLocation(STACK_AREA, (ushort)(newBase + argOffset.Offset));
-				Copy(from, to, argSize);
-			}
-			_callStack.Add(new CallFrame(newBase, _instructionCursor, outputs, compiled));
-			return 0;
-		}
-
+		private CallFrame PopFrame()
+        {
+            var frame = _callStack[^1];
+			_callStack.RemoveAt(_callStack.Count - 1);
+			return frame;
+        }
 		public int Return()
 		{
-			var callFrame = _callStack[^1];
-			_callStack.RemoveAt(_callStack.Count - 1);
-			if (callFrame.OutputsToCopy.Length > 0)
-			{
-				for (int i = 0; i < callFrame.OutputsToCopy.Length; ++i)
-				{
-					var (argOffset, argSize) = callFrame.Compiled.OutputArgs[i];
-					var from = new MemoryLocation(STACK_AREA, (ushort)(callFrame.Base + callFrame.OutputsToCopy[i].Offset));
-					var to = LoadEffectiveAddress(argOffset);
-					Copy(from, to, argSize);
-				}
-			}
-			return callFrame.ReturnAddress;
+			var callFrame = PopFrame();
+            for (int i = 0; i < callFrame.OutputsToCopy.Length; ++i)
+            {
+                var (argOffset, argType) = callFrame.Compiled.OutputArgs[i];
+                var from = callFrame[argOffset];
+                var to = LoadEffectiveAddress(callFrame.OutputsToCopy[i]);
+                Copy(from, to, argType.Size);
+            }
+			return callFrame.CallAddress + 1;
 		}
+		public ImmutableArray<StackFrame> GetStackTrace()
+		{
+			var builder = ImmutableArray.CreateBuilder<StackFrame>(_callStack.Count);
+			var curInstr = _instructionCursor;
+            for(int i = _callStack.Count - 1; i >= 0; --i)
+			{
+				var frame = _callStack[i];
+				builder.Add(new StackFrame(frame.Compiled, curInstr, i));
+				curInstr = frame.CallAddress;
+			}
+			builder.Reverse();
+			return builder.MoveToImmutable();
+		}
+        #endregion
 
-		public PanicException Panic(string message) => new(message, _instructionCursor);
+        public PanicException Panic(string message) => new(message, _instructionCursor);
 
 		public enum State
 		{
@@ -301,7 +337,7 @@ namespace Runtime
 		{
 			foreach (var area in _memory)
 				Array.Fill<byte>(area, 0);
-			_callStack.Add(new CallFrame(0, 0, ImmutableArray<LocalVarOffset>.Empty, _code[_entryPoint]));
+			_callStack.Add(new CallFrame(_code[_entryPoint], ImmutableArray<LocalVarOffset>.Empty, 0, 0));
 		}
 		public void RunOnce()
 		{
@@ -309,33 +345,20 @@ namespace Runtime
 			while (Step() != State.EndOfProgram)
 				;
 		}
-		public void SetTemporaryBreakpoints(ImmutableArray<Range<int>> newTemporaryBreakpoints)
+		public IEnumerable<int> TemporaryBreakpoints => _temporaryBreakpoints;
+		public void SetTemporaryBreakpoints(ImmutableArray<int> newTemporaryBreakpoints)
 		{
 			_temporaryBreakpoints.Clear();
-			foreach (var range in newTemporaryBreakpoints)
-				for (int i = range.Start; i < range.End; ++i)
-					_temporaryBreakpoints.Add(i);
+			foreach (var i in newTemporaryBreakpoints)
+                _temporaryBreakpoints.Add(i);
 		}
-		public void SetBreakpoints(IEnumerable<Range<int>> newBreakpoints)
+		public IEnumerable<int> Breakpoints => _breakpoints;
+		public void SetBreakpoints(IEnumerable<int> newBreakpoints)
 		{
-			_temporaryBreakpoints.Clear();
 			_breakpoints.Clear();
-			foreach (var range in newBreakpoints)
-				for (int i = range.Start; i < range.End; ++i)
-					_breakpoints.Add(i);
-		}
-		public ImmutableArray<MyStackFrame> GetStackTrace()
-		{
-			var builder = ImmutableArray.CreateBuilder<MyStackFrame>(_callStack.Count);
-			int curInstr = _instructionCursor;
-            for(int i = _callStack.Count - 1; i >= 0; --i)
-			{
-				var frame = _callStack[i];
-				builder.Add(new MyStackFrame(frame.Compiled, curInstr, i));
-				curInstr = frame.ReturnAddress;
-			}
-			return builder.MoveToImmutable();
+			foreach (var i in newBreakpoints)
+                _breakpoints.Add(i);
 		}
 	}
-    public record struct MyStackFrame(CompiledPou Cpou, int CurAddress, int FrameId) { }
+    public record struct StackFrame(CompiledPou Cpou, int CurAddress, int FrameId) { }
 }

@@ -1,4 +1,6 @@
 ﻿using Runtime.IR;
+using Superpower;
+using System;
 using System.Collections.Immutable;
 
 namespace Runtime
@@ -14,18 +16,64 @@ namespace Runtime
 			{
 				return TryBuiltInCall_Unsafe(callee, inputs, outputs);
 			}
-			catch(System.ArithmeticException e)
+			catch(ArithmeticException e)
 			{
 				throw Panic(e.Message);
 			}
 		}
-		private bool TryBuiltInCall_Unsafe(
+
+        private static Func<int, bool>? GetComparer(string op) => op switch
+        {
+            "EQUAL" => x => x == 0,
+            "NOT_EQUAL" => x => x != 0,
+            "LESS" => x => x < 0,
+            "LESS_EQUAL" => x => x <= 0,
+            "GREATER" => x => x > 0,
+            "GREATER_EQUAL" => x => x >= 0,
+            _ => null,
+        };
+        private static Func<bool, bool>? GetEquatable(string op) => op switch
+        {
+            "EQUAL" => x => x,
+            "NOT_EQUAL" => x => !x,
+            _ => null,
+        };
+        private bool TryBuiltInCall_Unsafe(
 			PouId callee,
 			ImmutableArray<LocalVarOffset> inputs,
 			ImmutableArray<LocalVarOffset> outputs)
 		{
 			if (outputs.Length != 1)
 				return false;
+			if (callee.Name.StartsWith("__SYSTEM::") && inputs.Length == 2)
+			{
+				var name = callee.Name["__SYSTEM::".Length..];
+				var lastUnderscore = name.IndexOf('_');
+				var op = name[..(lastUnderscore - 1)];
+				var type = name[(lastUnderscore + 1)..];
+				var maybeType = IR.RuntimeTypes.IRuntimeType.ParserDefinite.TryParse(type);
+				if (maybeType.HasValue)
+				{
+					if (maybeType.Value is IR.RuntimeTypes.IComparableRuntimeType runtimeComparer && GetComparer(op) is Func<int, bool> resultComparer)
+					{
+						var arg0 = LoadEffectiveAddress(inputs[0]);
+						var arg1 = LoadEffectiveAddress(inputs[1]);
+						var compareResult = runtimeComparer.Compare(arg0, arg1, this);
+						var result = resultComparer(compareResult);
+						WriteBOOL(outputs[0], result);
+						return true;
+					}
+					else if (maybeType.Value is IR.RuntimeTypes.IEquatableRuntimeType runtimeEquatable && GetEquatable(op) is Func<bool, bool> resultEquals)
+					{
+						var arg0 = LoadEffectiveAddress(inputs[0]);
+						var arg1 = LoadEffectiveAddress(inputs[1]);
+						var equalsResult = runtimeEquatable.Equals(arg0, arg1, this);
+						var result = resultEquals(equalsResult);
+						WriteBOOL(outputs[0], result);
+						return true;
+					}
+				}
+            }
 			var returnLocation = outputs[0];
 			switch (callee.Name)
 			{
@@ -47,24 +95,6 @@ namespace Runtime
 					return true;
 				case "__SYSTEM::NEG_SINT":
 					WriteSINT(returnLocation, checked((sbyte)-LoadSINT(inputs[0])));
-					return true;
-				case "__SYSTEM::EQUAL_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) == LoadSINT(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) != LoadSINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) < LoadSINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_EQUAL_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) <= LoadSINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) > LoadSINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_EQUAL_SINT":
-					WriteBOOL(returnLocation, LoadSINT(inputs[0]) >= LoadSINT(inputs[1]));
 					return true;
 				case "__SYSTEM::FOR_LOOP_INIT_SINT":
 					{
@@ -114,24 +144,6 @@ namespace Runtime
 				case "__SYSTEM::NEG_INT":
 					WriteINT(returnLocation, checked((short)-LoadINT(inputs[0])));
 					return true;
-				case "__SYSTEM::EQUAL_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) == LoadINT(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) != LoadINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) < LoadINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_EQUAL_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) <= LoadINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) > LoadINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_EQUAL_INT":
-					WriteBOOL(returnLocation, LoadINT(inputs[0]) >= LoadINT(inputs[1]));
-					return true;
 				case "__SYSTEM::FOR_LOOP_INIT_INT":
 					{
 						var idx = LoadINT(inputs[0]);
@@ -180,24 +192,6 @@ namespace Runtime
 				case "__SYSTEM::NEG_DINT":
 					WriteDINT(returnLocation, checked((int)-LoadDINT(inputs[0])));
 					return true;
-				case "__SYSTEM::EQUAL_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) == LoadDINT(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) != LoadDINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) < LoadDINT(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_EQUAL_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) <= LoadDINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) > LoadDINT(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_EQUAL_DINT":
-					WriteBOOL(returnLocation, LoadDINT(inputs[0]) >= LoadDINT(inputs[1]));
-					return true;
 				case "__SYSTEM::FOR_LOOP_INIT_DINT":
 					{
 						var idx = LoadDINT(inputs[0]);
@@ -227,6 +221,54 @@ namespace Runtime
 						WriteBOOL(returnLocation, result);
 						return true;
 					}
+				// LINT
+				case "__SYSTEM::ADD_LINT":
+					WriteLINT(returnLocation, checked((long)(LoadLINT(inputs[0]) + LoadLINT(inputs[1]))));
+					return true;
+				case "__SYSTEM::SUB_LINT":
+					WriteLINT(returnLocation, checked((long)(LoadLINT(inputs[0]) - LoadLINT(inputs[1]))));
+					return true;
+				case "__SYSTEM::MUL_LINT":
+					WriteLINT(returnLocation, checked((long)(LoadLINT(inputs[0]) * LoadLINT(inputs[1]))));
+					return true;
+				case "__SYSTEM::DIV_LINT":
+					WriteLINT(returnLocation, checked((long)(LoadLINT(inputs[0]) / LoadLINT(inputs[1]))));
+					return true;
+				case "__SYSTEM::MOD_LINT":
+					WriteLINT(returnLocation, checked((long)(LoadLINT(inputs[0]) % LoadLINT(inputs[1]))));
+					return true;
+				case "__SYSTEM::NEG_LINT":
+					WriteLINT(returnLocation, checked((long)-LoadLINT(inputs[0])));
+					return true;
+				case "__SYSTEM::FOR_LOOP_INIT_LINT":
+					{
+						var idx = LoadLINT(inputs[0]);
+						var step = LoadLINT(inputs[1]);
+						var upperBound = LoadLINT(inputs[2]);
+						if (step == 0)
+							throw Panic("Loop step is zero.");
+						bool result = step > 0 ? idx <= upperBound : idx >= upperBound;
+						WriteBOOL(returnLocation, result);
+						return true;
+					}
+				case "__SYSTEM::FOR_LOOP_NEXT_LINT":
+					{
+						var idxPointer = LoadPointer(inputs[0]);
+						var idx = LoadLINT(idxPointer);
+						var step = LoadLINT(inputs[1]);
+						var upperBound = LoadLINT(inputs[2]);
+						idx += step;
+						bool result;
+						var next = unchecked((int)(idx + step));
+						if (step > 0)
+							result = next > idx && next <= upperBound;
+						else
+							result = next < idx && next >= upperBound;
+						if(result)
+							WriteLINT(idxPointer, next);
+						WriteBOOL(returnLocation, result);
+						return true;
+					}
 				// REAL
 				case "__SYSTEM::ADD_REAL":
 					WriteREAL(returnLocation, checked(LoadREAL(inputs[0]) + LoadREAL(inputs[1])));
@@ -245,24 +287,6 @@ namespace Runtime
 					return true;
 				case "__SYSTEM::NEG_REAL":
 					WriteREAL(returnLocation, checked(-LoadREAL(inputs[0])));
-					return true;
-				case "__SYSTEM::EQUAL_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) == LoadREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) != LoadREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) < LoadREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_EQUAL_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) <= LoadREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) > LoadREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_EQUAL_REAL":
-					WriteBOOL(returnLocation, LoadREAL(inputs[0]) >= LoadREAL(inputs[1]));
 					return true;
 				// LREAL
 				case "__SYSTEM::ADD_LREAL":
@@ -283,24 +307,6 @@ namespace Runtime
 				case "__SYSTEM::NEG_LREAL":
 					WriteLREAL(returnLocation, checked(-LoadLREAL(inputs[0])));
 					return true;
-				case "__SYSTEM::EQUAL_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) == LoadLREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) != LoadLREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) < LoadLREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::LESS_EQUAL_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) <= LoadLREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) > LoadLREAL(inputs[1]));
-					return true;
-				case "__SYSTEM::GREATER_EQUAL_LREAL":
-					WriteBOOL(returnLocation, LoadLREAL(inputs[0]) >= LoadLREAL(inputs[1]));
-					return true;
 				// BOOL
 				case "__SYSTEM::AND_BOOL":
 					WriteBOOL(returnLocation, LoadBOOL(inputs[0]) & LoadBOOL(inputs[1]));
@@ -313,12 +319,6 @@ namespace Runtime
 					return true;
 				case "__SYSTEM::NOT_BOOL":
 					WriteBOOL(returnLocation, !LoadBOOL(inputs[0]));
-					return true;
-				case "__SYSTEM::EQUAL_BOOL":
-					WriteBOOL(returnLocation, LoadBOOL(inputs[0]) == LoadBOOL(inputs[1]));
-					return true;
-				case "__SYSTEM::NOT_EQUAL_BOOL":
-					WriteBOOL(returnLocation, LoadBOOL(inputs[0]) != LoadBOOL(inputs[1]));
 					return true;
 				// POINTER
 				case "__SYSTEM::SUB_POINTER":

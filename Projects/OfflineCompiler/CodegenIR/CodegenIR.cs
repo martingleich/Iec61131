@@ -237,7 +237,7 @@ namespace OfflineCompiler
 
 	public sealed partial class CodegenIR
 	{
-		public readonly BreakpointFactory BreakpointFactory = new();
+		public readonly BreakpointMapBuilder BreakpointFactory = new();
 		public readonly GeneratorT Generator;
 		public readonly IR.PouId Id;
 
@@ -363,11 +363,11 @@ namespace OfflineCompiler
 			var variableTable = _stackAllocator.GetVariableTable();
             return new(
                 Id,
-				statments,
+                _stackAllocator.TotalMemory,
                 _stackAllocator.InputArgs,
                 _stackAllocator.OutputArgs,
-                _stackAllocator.TotalMemory)
-			{
+                statments)
+            {
 				BreakpointMap = breakpointMap,
 				OriginalPath = sourceMap?.FullPath,
 				VariableTable = variableTable

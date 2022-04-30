@@ -63,7 +63,7 @@ namespace Runtime
                 return 2;
             }
 
-            var runtime = new Runtime(new[] { 0, args.StackSize }, pous.ToImmutable(), entrypoint);
+            var runtime = new Runtime(ImmutableArray.Create(0, args.StackSize), pous.ToImmutable(), entrypoint);
 
             if (args.RunDebugAdapter)
             {

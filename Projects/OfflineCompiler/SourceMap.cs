@@ -3,6 +3,7 @@ using Compiler;
 using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.IO;
+using Runtime.IR;
 
 namespace OfflineCompiler
 {
@@ -42,24 +43,24 @@ namespace OfflineCompiler
 
 			}
 
-			public (int, int)? GetLineCollumn(int offset)
+			public SourceLC? GetLineCollumn(int offset)
 			{
 				if (offset < 0)
 					return null;
 				int pos = LineStarts.BinarySearch(offset);
 				if (pos > 0)
-					return (pos + 1, 0);
+					return new SourceLC(pos + 1, 0);
 				int line = ~pos - 1;
 				int lineStart = LineStarts[line];
 				int collumn = offset - lineStart;
-				return (line + 1, collumn + 1);
+				return new SourceLC(line + 1, collumn + 1);
 
 			}
 			public string GetNameOf(int startOffset, int endOffset)
 			{
-				var (startLine, startCollumn) = GetLineCollumn(startOffset) ?? (-1, -1);
-				var (endLine, endCollumn) = GetLineCollumn(endOffset) ?? (-1, -1);
-				return $"{FileName}:{startLine}:{startCollumn}:{endLine}:{endCollumn}";
+				var start = GetLineCollumn(startOffset).GetValueOrDefault();
+				var end= GetLineCollumn(endOffset).GetValueOrDefault();
+				return $"{FileName}:{start.Line}:{start.Collumn}:{end.Line}:{end.Collumn}";
 			}
 		}
 
@@ -84,7 +85,7 @@ namespace OfflineCompiler
 			else
 				return span.Start.File;
 		}
-		public (int, int)? GetLineCollumn(SourcePoint point)
+		public SourceLC? GetLineCollumn(SourcePoint point)
 		{
 			if (point.File is string filePath && Maps.TryGetValue(filePath, out var file))
 				return file.GetLineCollumn(point.Offset);

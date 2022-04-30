@@ -1,4 +1,6 @@
-﻿namespace Runtime.IR
+﻿using System;
+
+namespace Runtime.IR
 {
 	public readonly struct Type
 	{
@@ -12,6 +14,8 @@
 
 		public Type(int size)
 		{
+			if (size < 0)
+				throw new ArgumentException($"{nameof(size)}({size}) must be non-negative.");
 			Size = size;
 		}
 

@@ -11,6 +11,10 @@ namespace Runtime.IR.Statements
 		public readonly ImmutableArray<LocalVarOffset> Inputs;
 		public readonly ImmutableArray<LocalVarOffset> Outputs;
 
+		public static StaticCall Func(PouId callee, LocalVarOffset result, params LocalVarOffset[] args) => new(
+			callee,
+			args.ToImmutableArray(),
+			ImmutableArray.Create(result));
 		public StaticCall(PouId callee, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
 		{
 			Callee = callee;
