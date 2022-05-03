@@ -27,7 +27,7 @@
         ["'", "'"]
     ],
     "indentationRules": {
-        "increaseIndentPattern": "^.*(THEN|STRUCT|DO|(VAR_(INPUT|OUT|IN_OUT|TEMP|INST))|ELSE|ELSIF)",
+        "increaseIndentPattern": "^.*(THEN|STRUCT|DO|(VAR_(INPUT|OUTPUT|IN_OUT|TEMP|INST))|ELSE|ELSIF)",
         "decreaseIndentPattern": "^\\s*END_(IF|FOR|WHILE|VAR|STRUCT;)$",
     },
 }

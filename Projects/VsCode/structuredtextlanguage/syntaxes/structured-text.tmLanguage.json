@@ -43,7 +43,7 @@
 				},
 				{ 
 					"name": "keyword.other.structured-text",
-					"match": "\\b(?i)(constant|type|end_type|struct|end_struct|union|end_union|function|end_function|function_block|end_function_block|var_input|var_global|var_out|var_in_out|var_temp|var_inst|var|end_var)\\b"
+					"match": "\\b(?i)(constant|type|end_type|struct|end_struct|union|end_union|function|end_function|function_block|end_function_block|var_input|var_global|var_output|var_in_out|var_temp|var_inst|var|end_var)\\b"
 				}
 
 			]
