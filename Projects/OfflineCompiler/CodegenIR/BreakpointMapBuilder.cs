@@ -2,6 +2,7 @@
 using Runtime.IR;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Range = Runtime.IR.Range;
 
 namespace OfflineCompiler
@@ -41,19 +42,23 @@ namespace OfflineCompiler
 			}
 			sourceRanges.Sort((a, b) => a.Key.Start.CompareTo(b.Key.Start));
 			instructionRanges.Sort((a, b) => a.Key.Start.CompareTo(b.Key.Start));
+			var sourceRangeIndices = sourceRanges.Select((v, i) => KeyValuePair.Create(v.Value, i)).ToImmutableDictionary();
+			var instructionRangeIndices = instructionRanges.Select((v, i) => KeyValuePair.Create(v.Value, i)).ToImmutableDictionary();
 
-			var successorRanges = ImmutableArray.CreateBuilder<Range<int>>();
+			var data = ImmutableArray.CreateBuilder<(Range<int>, int, int)>();
 			var successors = ImmutableArray.CreateBuilder<int>();
+			index = 0;
 			foreach (var breakpoint in _breakpoints)
 			{
 				int start = successors.Count;
 				successors.AddRange(breakpoint.Successors);
-				successorRanges.Add(Range.Create(start, successors.Count));
+				data.Add((Range.Create(start, successors.Count), sourceRangeIndices[index], instructionRangeIndices[index]));
+				++index;
 			}
 			return new BreakpointMap(
 				sourceRanges.ToImmutable(),
 				instructionRanges.ToImmutable(),
-				successorRanges.ToImmutable(),
+				data.ToImmutable(),
 				successors.ToImmutable());
 		}
 	}

@@ -80,7 +80,7 @@ namespace OfflineCompiler
 					{
 						var newId = Self.CodeGen.BreakpointFactory.AddBreakpoint(
 							SourceSpan,
-							IR.Range.Create(InstructionBegin, Self.CodeGen.Generator.InstructionId));
+							IR.Range.Create(InstructionBegin, Self.CodeGen.Generator.InstructionId)); // The End is exclusive
 						foreach (var pred in Self._breakpointPredecessors)
 							Self.CodeGen.BreakpointFactory.SetPredecessor(newId, pred);
 						Self._breakpointPredecessors = ImmutableArray.Create(newId);
@@ -99,30 +99,29 @@ namespace OfflineCompiler
 			private BreakpointScope NewBreakpointScope(IBoundNode owner) => NewBreakpointScope(owner.TryGetSourcePosition());
 			public void Visit(ExpressionBoundStatement expressionBoundStatement)
 			{
-				AddComment(expressionBoundStatement);
 				using (var _ = NewBreakpointScope(expressionBoundStatement))
 				{
+                    AddComment(expressionBoundStatement);
 					expressionBoundStatement.Expression.Accept(CodeGen._loadValueExpressionVisitor);
 				}
 			}
 
 			public void Visit(AssignBoundStatement assignToExpressionBoundStatement)
 			{
-				AddComment(assignToExpressionBoundStatement);
-
 				using (var _ = NewBreakpointScope(assignToExpressionBoundStatement))
 				{
+                    AddComment(assignToExpressionBoundStatement);
 					var writable = CodeGen.LoadWritable(assignToExpressionBoundStatement.LeftSide);
 					Assign(writable, assignToExpressionBoundStatement.RightSide);
 				}
 			}
 			public void Visit(InitVariableBoundStatement initVariableBoundStatement)
 			{
-				AddComment(initVariableBoundStatement);
 				if (initVariableBoundStatement.RightSide is not null)
 				{
 					using (var _ = NewBreakpointScope(initVariableBoundStatement))
 					{
+                        AddComment(initVariableBoundStatement);
 						var writable = initVariableBoundStatement.LeftSide.Accept(CodeGen._variableAddressableVisitor).ToWritable(CodeGen);
 						Assign(writable, initVariableBoundStatement.RightSide);
 					}

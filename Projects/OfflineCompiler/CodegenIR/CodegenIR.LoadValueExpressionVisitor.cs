@@ -150,12 +150,21 @@ namespace OfflineCompiler
 				if (calleeInfo.TakesSelf(out var selfId))
 					inputs[selfId] = CodeGen.LoadAddressAsVariable(callBoundExpression.Callee);
 
-				var returnType = calleeInfo.ReturnParam is ParameterVariableSymbol returnParam ? TypeFromIType(returnParam.Type) : IR.Type.Bits0;
-				var returnVar = CodeGen.Generator.DeclareTemp(returnType);
+				IR.Type? maybeReturnType = calleeInfo.ReturnParam is ParameterVariableSymbol returnParam ? TypeFromIType(returnParam.Type) : null;
+				LocalVariable returnVariable;
+				if (maybeReturnType is IR.Type returnType)
+				{
+					returnVariable = CodeGen.Generator.DeclareTemp(returnType);
+					intermediateOutputs = intermediateOutputs.Prepend(returnVariable).ToArray();
+				}
+				else
+				{
+					returnVariable = CodeGen.Generator.DeclareTemp(IR.Type.Bits0);
+				}
 				CodeGen.Generator.IL(new IRStmt.StaticCall(
 					CodegenIR.PouIdFromSymbol(staticCallee),
 					inputs.Select(x => x.Offset).ToImmutableArray(),
-					intermediateOutputs.Prepend(returnVar).Select(x => x.Offset).ToImmutableArray()));
+					intermediateOutputs.Select(x => x.Offset).ToImmutableArray()));
 
 				for (int i = 0; i < finalOutputs.Length; ++i)
 				{
@@ -166,7 +175,7 @@ namespace OfflineCompiler
 					}
 				}
 
-				return returnVar;
+				return returnVariable;
 			}
 
 			public IReadable Visit(InitializerBoundExpression initializerBoundExpression)

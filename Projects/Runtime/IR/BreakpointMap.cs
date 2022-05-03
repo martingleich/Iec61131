@@ -22,13 +22,37 @@ namespace Runtime.IR
 			{
 				get
 				{
-					for (int i = _map._successorsIds[Id].Start; i < _map._successorsIds[Id].End; ++i)
+					for (int i = _map._breakpointData[Id].Successors.Start; i < _map._breakpointData[Id].Successors.End; ++i)
 						yield return new Breakpoint(_map, _map._successors[i]);
 				}
 			}
+			public IEnumerable<Breakpoint> NextLineBreakpoints
+			{
+				get
+				{
+					HashSet<Breakpoint> checkedBreakpoints = new();
+					Stack<Breakpoint> toVisit = new();
+					toVisit.Push(this);
+					List<Breakpoint> nextLineBreakpoints = new();
+					while (toVisit.TryPop(out var popped))
+					{
+						if (checkedBreakpoints.Add(popped))
+						{
+							foreach (var succ in popped.Successors)
+							{
+								if (succ.ContainsLine(Txt.Start.Line))
+									toVisit.Push(succ);
+								else
+									nextLineBreakpoints.Add(succ);
+							}
+						}
+					}
+					return nextLineBreakpoints;
+				}
+			}
 
-			public Range<SourceLC> Txt => _map._sourceTable[Id].Key;
-			public Range<int> Instruction => _map._instructionTable[Id].Key;
+			public Range<SourceLC> Txt => _map._sourceIndex[_map._breakpointData[Id].Source].Key;
+			public Range<int> Instruction => _map._instructionIndex[_map._breakpointData[Id].Instructions].Key;
 
             public bool ContainsLine(int line) => Txt.Start.Line <= line && line <= Txt.End.Line;
 
@@ -37,32 +61,32 @@ namespace Runtime.IR
 			public override int GetHashCode() => Id.GetHashCode();
         }
 
-		private readonly ImmutableArray<KeyValuePair<Range<SourceLC>, int>> _sourceTable;
-		private readonly ImmutableArray<KeyValuePair<Range<int>, int>> _instructionTable;
-		private readonly ImmutableArray<Range<int>> _successorsIds;
-		private readonly ImmutableArray<int> _successors;
+		private readonly ImmutableArray<KeyValuePair<Range<SourceLC>, int>> _sourceIndex;
+		private readonly ImmutableArray<KeyValuePair<Range<int>, int>> _instructionIndex; // breakpointId -> instruction -> breakpointId
+		private readonly ImmutableArray<(Range<int> Successors, int Instructions, int Source)> _breakpointData; // breakpointId -> SuccessorsIdRange
+		private readonly ImmutableArray<int> _successors; // successorId -> breakpointId
 
 		public BreakpointMap(
 			ImmutableArray<KeyValuePair<Range<SourceLC>, int>> sourceTable,
 			ImmutableArray<KeyValuePair<Range<int>, int>> instructionTable,
-			ImmutableArray<Range<int>> successorsIds,
+			ImmutableArray<(Range<int> Successors, int Instructions, int Source)> data,
 			ImmutableArray<int> successors)
 		{
-			_sourceTable = sourceTable;
-			_instructionTable = instructionTable;
-			_successorsIds = successorsIds;
+			_sourceIndex = sourceTable;
+			_instructionIndex = instructionTable;
+			_breakpointData = data;
 			_successors = successors;
 		}
 
 		public Breakpoint? TryGetBreakpointBySource(int line, int? collumn)
 		{
 			var sourcelc = new SourceLC(line, collumn ?? -1);
-			return BinarySearchRanges(_sourceTable, sourcelc) is int idx
+			return BinarySearchRanges(_sourceIndex, sourcelc) is int idx
 				? new Breakpoint(this, idx)
 				: null;
 		}
 		public Breakpoint? FindBreakpointByInstruction(int instruction)
-			=> BinarySearchRanges(_instructionTable, instruction) is int idx
+			=> BinarySearchRanges(_instructionIndex, instruction) is int idx
 				? new Breakpoint(this, idx)
 				: null;
 		private static int? BinarySearchRanges<T>(ImmutableArray<KeyValuePair<Range<T>, int>> ranges, T value) where T : IComparable<T>
@@ -92,25 +116,27 @@ namespace Runtime.IR
 			}
 			using (var bw = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
 			{
-				bw.Write(_sourceTable.Length);
-				foreach (var x in _sourceTable)
+				bw.Write(_sourceIndex.Length);
+				foreach (var x in _sourceIndex)
 				{
 					Write(bw, x.Key.Start);
 					Write(bw, x.Key.End);
 					bw.Write(x.Value);
 				}
-				bw.Write(_instructionTable.Length);
-				foreach (var x in _instructionTable)
+				bw.Write(_instructionIndex.Length);
+				foreach (var x in _instructionIndex)
 				{
 					bw.Write(x.Key.Start);
 					bw.Write(x.Key.End);
 					bw.Write(x.Value);
 				}
-				bw.Write(_successorsIds.Length);
-				foreach (var x in _successorsIds)
+				bw.Write(_breakpointData.Length);
+				foreach (var x in _breakpointData)
 				{
-					bw.Write(x.Start);
-					bw.Write(x.End);
+					bw.Write(x.Successors.Start);
+					bw.Write(x.Successors.End);
+					bw.Write(x.Instructions);
+					bw.Write(x.Source);
 				}
 				bw.Write(_successors.Length);
 				foreach (var x in _successors)
@@ -150,13 +176,15 @@ namespace Runtime.IR
 					instructionTable.Add(KeyValuePair.Create(Range.Create(start, end), value));
 				}
 
-				int successorIdsLength = br.ReadInt32();
-				var successorIds = ImmutableArray.CreateBuilder<Range<int>>(successorIdsLength);
-				for (int i = 0; i < successorIdsLength; ++i)
+				int dataLength = br.ReadInt32();
+				var data = ImmutableArray.CreateBuilder<(Range<int>, int, int)>(dataLength);
+				for (int i = 0; i < dataLength; ++i)
 				{
 					var start = br.ReadInt32();
 					var end = br.ReadInt32();
-					successorIds.Add(Range.Create(start, end));
+					var instructions = br.ReadInt32();
+					var source = br.ReadInt32();
+					data.Add((Range.Create(start, end), instructions, source));
 				}
 
 				int successorsLength = br.ReadInt32();
@@ -170,7 +198,7 @@ namespace Runtime.IR
 				return new BreakpointMap(
 					sourceTable.MoveToImmutable(),
 					instructionTable.MoveToImmutable(),
-					successorIds.MoveToImmutable(),
+					data.MoveToImmutable(),
 					successors.MoveToImmutable());
 			}
 		}

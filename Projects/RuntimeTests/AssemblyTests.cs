@@ -97,16 +97,17 @@ namespace RuntimeTests
         [Fact]
         public void TemporaryBreakpoints()
         {
+            var mainId = new PouId("Main");
             var rt = MakeRt(32,
-                CompiledPou.Action(new PouId("Main"), 0,
+                CompiledPou.Action(mainId, 0,
                     WriteValue.WriteLiteral(123, Off0, 2),
                     WriteValue.WriteLiteral(321, Off0, 2),
                     Return.Instance));
             Assert.Empty(rt.TemporaryBreakpoints); // Start out empty
-            rt.SetTemporaryBreakpoints(ImmutableArray.Create(55));
-            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<int>() { 55 });
-            rt.SetTemporaryBreakpoints(ImmutableArray.Create(0, 1));
-            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<int>() { 0, 1 }); // Old temp breakpoins are cleared
+            rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 55)));
+            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 55) });
+            rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 0), (mainId, 1)));
+            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0), (mainId, 1) }); // Old temp breakpoins are cleared
             Assert.Equal(Runtime.State.Breakpoint, rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
             var frame = Assert.Single(rt.GetStackTrace());
@@ -115,36 +116,38 @@ namespace RuntimeTests
         [Fact]
         public void TemporaryBreakpoints_KeepsNormalBreakpoint()
         {
+            var mainId = new PouId("Main");
             var rt = MakeRt(32,
-                CompiledPou.Action(new PouId("Main"), 0,
+                CompiledPou.Action(mainId, 0,
                     WriteValue.WriteLiteral(123, Off0, 2),
                     WriteValue.WriteLiteral(321, Off0, 2),
                     Return.Instance));
-            rt.SetTemporaryBreakpoints(ImmutableArray.Create(0));
-            rt.SetBreakpoints(ImmutableArray.Create(1));
-            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<int>() { 0 });
-            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<int>() { 1 });
+            rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 0)));
+            rt.SetBreakpoints(ImmutableArray.Create((mainId, 1)));
+            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
+            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
             Assert.Equal(Runtime.State.Breakpoint, rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
-            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<int>() { 1 });
+            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
             var frame = Assert.Single(rt.GetStackTrace());
             Assert.Equal(0, frame.CurAddress);
         }
         [Fact]
         public void NormalBreakpoins_RemovesTemporaryBreakpoints()
         {
+            var mainId = new PouId("Main");
             var rt = MakeRt(32,
-                CompiledPou.Action(new PouId("Main"), 0,
+                CompiledPou.Action(mainId, 0,
                     WriteValue.WriteLiteral(123, Off0, 2),
                     WriteValue.WriteLiteral(321, Off0, 2),
                     Return.Instance));
-            rt.SetBreakpoints(ImmutableArray.Create(0));
-            rt.SetTemporaryBreakpoints(ImmutableArray.Create(1));
-            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<int>() { 1 });
-            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<int>() { 0 });
+            rt.SetBreakpoints(ImmutableArray.Create((mainId, 0)));
+            rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 1)));
+            Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
+            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
             Assert.Equal(Runtime.State.Breakpoint, rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
-            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<int>() { 0 });
+            Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
             var frame = Assert.Single(rt.GetStackTrace());
             Assert.Equal(0, frame.CurAddress);
         }

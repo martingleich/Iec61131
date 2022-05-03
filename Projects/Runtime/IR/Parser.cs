@@ -94,8 +94,7 @@ namespace Runtime.IR
 				[System.Xml.Serialization.XmlAttribute("size")]
 				public int Size;
 
-				internal static XmlArg FromTuple(CompiledArgument arg) =>
-					new()
+				internal static XmlArg FromTuple(CompiledArgument arg) => new()
 					{
 						Offset = arg.Offset.Offset,
 						Size = arg.Type.Size

@@ -34,7 +34,7 @@ namespace Runtime.IR.Xml
             if (IsLocal)
                 return new VariableTable.LocalStackVariable(Name, offset, type);
             else
-                return new VariableTable.LocalStackVariable(Name, offset, type);
+                return new VariableTable.ArgStackVariable(Name, offset, type);
         }
     }
 }

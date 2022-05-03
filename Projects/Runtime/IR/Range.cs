@@ -16,6 +16,7 @@ namespace Runtime.IR
 			End = end;
 		}
 		public override string ToString() => $"{Start}..{End}";
+		public bool Contains(T value) => Start.CompareTo(value) <= 0 && End.CompareTo(value) > 0;
 	}
     public static class Range
 	{
@@ -24,7 +25,7 @@ namespace Runtime.IR
 		public static IEnumerable<T> ToEnumerable<T>(this Range<T> values, Func<T, T> next) where T : IComparable<T>
 		{
 			var cur = values.Start;
-			while (values.Start.CompareTo(values.End) < 0)
+			while (cur.CompareTo(values.End) < 0)
 			{
 				yield return cur;
 				cur = next(cur);
