@@ -1,214 +1,15 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 using Runtime.IR;
-using Runtime.IR.RuntimeTypes;
-using static Runtime.Runtime;
 
 namespace Runtime
 {
-    public sealed class DebugRuntime
-    {
-        private bool _launch;
-        private bool _terminate;
-        private bool _pause;
-        private bool _ignoreBreak;
-        private bool _singleStep;
-
-        private readonly DebugAdapter _adapter;
-        private readonly Runtime _runtime;
-
-        private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
-
-        private readonly ImmutableArray<CompiledPou> _allPous;
-
-        private ImmutableArray<StackFrame>? _cachedStackframe;
-
-        public DebugRuntime(DebugAdapter adapter, Runtime runtime, ImmutableArray<CompiledPou> allPous)
-        {
-            _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-            _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
-            _allPous = allPous;
-        }
-
-        public void Run()
-        {
-            WaitForInitialLaunch();
-            _adapter.Protocol.SendEvent(new InitializedEvent());
-            CycleMain();
-            _adapter.Protocol.SendEvent(new ExitedEvent(0));
-
-            void WaitForInitialLaunch()
-            {
-                while (true)
-                {
-                    var action = _runtimeRequests.Take();
-                    action(this);
-                    if (_launch)
-                    {
-                        _launch = false;
-                        break;
-                    }
-                    if (_terminate)
-                    {
-                        _terminate = false;
-                        break;
-                    }
-                }
-            }
-
-            void CycleMain()
-            {
-                bool isCycling = true;
-                while (isCycling)
-                {
-                    _runtime.Reset();
-                    bool isRunning = true;
-                    while (isCycling)
-                    {
-                        Action<DebugRuntime>? nextAction;
-                        if (isRunning)
-                        {
-                            try
-                            {
-                                _cachedStackframe = null;
-                                State state = _runtime.Step(_ignoreBreak);
-                                _ignoreBreak = false;
-                                if (_singleStep)
-                                {
-                                    _singleStep = false;
-                                    isRunning = false;
-                                }
-                                if (state == Runtime.State.EndOfProgram)
-                                    break;
-                                if (state == Runtime.State.Breakpoint)
-                                {
-                                    isRunning = false;
-                                    _adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Breakpoint)
-                                    {
-                                        AllThreadsStopped = true,
-                                        ThreadId = 0,
-                                    });
-                                }
-                            }
-                            catch (PanicException pe)
-                            {
-                                isRunning = false;
-                                _adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Exception)
-                                {
-                                    AllThreadsStopped = true,
-                                    ThreadId = 0,
-                                    Text = pe.Message,
-                                });
-                            }
-                            nextAction = _runtimeRequests.TryTake(out var na) ? na : null;
-                        }
-                        else
-                        {
-                            nextAction = _runtimeRequests.Take();
-                        }
-
-                        if (nextAction != null)
-                        {
-                            nextAction(this);
-
-                            if (_terminate)
-                            {
-                                _terminate = false;
-                                isCycling = false;
-                            }
-                            if (_pause)
-                            {
-                                _pause = false;
-                                _adapter.Protocol.SendEvent(new StoppedEvent(StoppedEvent.ReasonValue.Pause)
-                                {
-                                    AllThreadsStopped = true,
-                                    ThreadId = 0
-                                });
-                                isRunning = false;
-                            }
-                            if (_launch)
-                            {
-                                _launch = false;
-                                isRunning = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void Send(Action<DebugRuntime> action)
-        {
-            _runtimeRequests.Add(action);
-        }
-        private Task<T> SendCompute<T>(Func<DebugRuntime, T> func)
-        {
-            var tcs = new TaskCompletionSource<T>();
-            Send(dbg =>
-            {
-                try
-                {
-                    var result = func(dbg);
-                    tcs.SetResult(result);
-                }
-                catch (Exception ex)
-                {
-                    tcs.SetException(ex);
-                }
-            });
-            return tcs.Task;
-        }
-
-        public void SendNewBreakpoints(List<(PouId, int)> breakpointLocations) => Send(dbg => dbg._runtime.SetBreakpoints(breakpointLocations));
-        public void SendLaunch() => Send(dbg => dbg._launch = true);
-        public void SendContinue() => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; });
-        public void SendStep(ImmutableArray<(PouId, int)> nextLocations) => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; dbg._runtime.SetTemporaryBreakpoints(nextLocations); });
-        public void SendStepIn(ImmutableArray<(PouId, int)> nextLocations, int frameId, PouId? callee) => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; dbg._runtime.SetTemporaryStepInBreakpoint(nextLocations, frameId, callee); });
-        public void SendTerminate() => Send(dbg => dbg._terminate = true);
-        public void SendPause() => Send(dbg => dbg._pause = true);
-        public void SendStep() => Send(dbg => { dbg._launch = true; dbg._ignoreBreak = true; dbg._singleStep = true; });
-
-        public Task<ImmutableArray<StackFrame>> GetStacktrace() => SendCompute(dbg => _cachedStackframe ??= dbg._runtime.GetStackTrace());
-        public Task<ImmutableArray<string>> GetVariableValues(int frameId, ImmutableArray<(LocalVarOffset Offset, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
-        {
-            return ImmutableArray.CreateRange(variables, variable =>
-            {
-                try
-                {
-                    var location = dbg._runtime.LoadEffectiveAddress(frameId, variable.Offset);
-                    return variable.DebugType.ReadValue(location, _runtime);
-                }
-                catch (Exception e)
-                {
-                    return $"Exception: {e.Message}";
-                }
-            });
-        });
-
-        public CompiledPou? TryGetCompiledPou(string path)
-        {
-            var normalizedPath = NormalizePath(path);
-            foreach (var pou in _allPous)
-            {
-                if (pou.OriginalPath != null && normalizedPath == NormalizePath(pou.OriginalPath))
-                {
-                    // TODO: Check if the file still matches, otherwise continue.
-                    return pou;
-                }
-            }
-            return null;
-            static string NormalizePath(string input) => input.Replace('\\', '/').ToLowerInvariant();
-        }
-    }
-
     public sealed class DebugAdapter : DebugAdapterBase
     {
         private readonly ILogger _logger;
@@ -326,7 +127,7 @@ namespace Runtime
         }
         protected override StackTraceResponse HandleStackTraceRequest(StackTraceArguments arguments)
         {
-            var trace = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+            var trace = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var frames = trace.Select(ConvertStackFrame).ToList();
             frames.Reverse();
             return new StackTraceResponse(frames)
@@ -364,7 +165,7 @@ namespace Runtime
         }
         protected override ScopesResponse HandleScopesRequest(ScopesArguments arguments)
         {
-            var curCallstack = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             if (!curCallstack.IsDefault && arguments.FrameId >= 0 && arguments.FrameId < curCallstack.Length)
             {
                 var frame = curCallstack[arguments.FrameId];
@@ -391,7 +192,7 @@ namespace Runtime
         }
         protected override VariablesResponse HandleVariablesRequest(VariablesArguments arguments)
         {
-            var curCallstack = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var varRef = arguments.VariablesReference;
             var frame = curCallstack[varRef / 2];
             var args = varRef % 2 == 0;
@@ -412,7 +213,7 @@ namespace Runtime
             }
 
             var valueRequests = requests.Select(v => (v.StackOffset, v.Type)).ToImmutableArray();
-            var values = _debugRuntime.GetVariableValues(frame.FrameId, valueRequests).GetAwaiter().GetResult();
+            var values = _debugRuntime.SendGetVariableValues(frame.FrameId, valueRequests).GetAwaiter().GetResult();
             var resultVariables = new List<Variable>();
             for (int i = 0; i < requests.Length; i++)
             {
@@ -438,7 +239,7 @@ namespace Runtime
 
         protected override StepInTargetsResponse HandleStepInTargetsRequest(StepInTargetsArguments arguments)
         {
-            var curCallstack = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var curFrame = curCallstack[arguments.FrameId];
             var curBreakpoint = curFrame.Cpou.BreakpointMap?.FindBreakpointByInstruction(curFrame.CurAddress);
             if (curBreakpoint != null)
@@ -468,7 +269,7 @@ namespace Runtime
         }
         protected override StepInResponse HandleStepInRequest(StepInArguments arguments)
         {
-            var curCallstack = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var curFrame = curCallstack[^1];
             var curBreakpoint = curFrame.Cpou.BreakpointMap?.FindBreakpointByInstruction(curFrame.CurAddress);
             if (curBreakpoint != null)
@@ -484,11 +285,11 @@ namespace Runtime
             switch (arguments.Granularity)
             {
                 case SteppingGranularity.Instruction:
-                    _debugRuntime.SendStep();
+                    _debugRuntime.SendStepSingle();
                     break;
                 default: // Unsupported values default to statement
                     {
-                        var curCallstack = _debugRuntime.GetStacktrace().GetAwaiter().GetResult();
+                        var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
                         var curFrame = curCallstack[^1];
                         var curBreakpoint = curFrame.Cpou.BreakpointMap?.FindBreakpointByInstruction(curFrame.CurAddress);
                         if (curBreakpoint != null)

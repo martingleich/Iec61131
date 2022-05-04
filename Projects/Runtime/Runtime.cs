@@ -314,11 +314,21 @@ namespace Runtime
 
         public PanicException Panic(string message) => new(message, _instructionCursor);
 
-        public enum State
+        public abstract class State
         {
-            Running,
-            EndOfProgram,
-            Breakpoint,
+            protected State() { }
+            public sealed class Running : State { public readonly static Running Instance = new(); }
+            public sealed class EndOfProgram : State { public readonly static EndOfProgram Instance = new(); }
+            public sealed class Breakpoint : State { public readonly static Breakpoint Instance = new(); }
+            public sealed class Panic : State
+            {
+                public readonly PanicException Exception;
+
+                public Panic(PanicException exception)
+                {
+                    Exception = exception ?? throw new ArgumentNullException(nameof(exception));
+                }
+            }
         }
         public State Step(bool ignoreBreak = false)
         {
@@ -327,22 +337,29 @@ namespace Runtime
                 _stepInFrameId = null;
                 _stepInCallee = null;
                 _temporaryBreakpoints.Clear();
-                return State.Breakpoint;
+                return State.Breakpoint.Instance;
             }
-            if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
-                _instructionCursor = nextInstruction;
-            else
-                ++_instructionCursor;
+            try
+            {
+                if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
+                    _instructionCursor = nextInstruction;
+                else
+                    ++_instructionCursor;
+            }
+            catch (PanicException pe)
+            {
+                return new State.Panic(pe);
+            }
             if (_callStack.Count - 1 == _stepInFrameId && (_stepInCallee == null || _callStack[^1].Compiled.Id == _stepInCallee))
             {
                 _stepInFrameId = null;
                 _stepInCallee = null;
                 _temporaryBreakpoints.Clear();
-                return State.Breakpoint;
+                return State.Breakpoint.Instance;
             }
             if (_callStack.Count == 0)
-                return State.EndOfProgram;
-            return State.Running;
+                return State.EndOfProgram.Instance;
+            return State.Running.Instance;
         }
         public void Reset()
         {
@@ -354,7 +371,7 @@ namespace Runtime
         public void RunOnce()
         {
             Reset();
-            while (Step() != State.EndOfProgram)
+            while (Step() is State.Running)
                 ;
         }
         public IEnumerable<(PouId, int)> TemporaryBreakpoints => _temporaryBreakpoints;
