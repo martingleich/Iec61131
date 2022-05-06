@@ -1,3 +1,3 @@
-dotnet test .\Projects\Tests\Tests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=..\..\coverage\Tests\OpenCover.xml /p:SkipAutoProps=true # Relative to Test.csproj
+dotnet test .\Projects\CompilerTests\CompilerTests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=..\..\coverage\CompilerTests\OpenCover.xml /p:SkipAutoProps=true # Relative to Test.csproj
 dotnet test .\Projects\RuntimeTests\RuntimeTests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=..\..\coverage\RuntimeTests\OpenCover.xml /p:SkipAutoProps=true # Relative to Test.csproj
 reportgenerator -reports:".\coverage\**\OpenCover.xml" -targetdir:"report" # Relative to cover.ps1

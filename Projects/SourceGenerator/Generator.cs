@@ -12,16 +12,8 @@ namespace SourceGenerator
 	[Generator]
 	public class Generator : ISourceGenerator
 	{
-		[Conditional("DEBUG")]
-		private void AttachDebuggerIfDebug()
-		{
-            if (!Debugger.IsAttached)
-                Debugger.Launch();
-		}
-
 		public void Execute(GeneratorExecutionContext context)
 		{
-			AttachDebuggerIfDebug();
 			var config = LoadConfig(context);
 			try
 			{
