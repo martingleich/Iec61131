@@ -18,9 +18,8 @@ namespace RuntimeTests
         {
             var rt = new Runtime(
                 ImmutableArray.Create(0, memSize),
-                pous.ToImmutableDictionary(k => k.Id),
-                pous[0].Id);
-            rt.Reset();
+                pous.ToImmutableDictionary(k => k.Id));
+            rt.Call(pous[0].Id);
             return rt;
         }
         private static readonly LocalVarOffset Off0 = new(0);
@@ -291,6 +290,7 @@ namespace RuntimeTests
                 Assert.IsType<Runtime.State.Running>(rt.Step());
             }
         }
+        
         [Fact]
         public void ConditionalJump_Taken()
         {
@@ -306,6 +306,7 @@ namespace RuntimeTests
                 Assert.IsType<Runtime.State.Running>(rt.Step());
             }
         }
+        
         [Fact]
         public void ConditionalJump_NonTaken()
         {

@@ -7,7 +7,7 @@ using Range = Runtime.IR.Range;
 
 namespace OfflineCompiler
 {
-	public readonly record struct BreakpointId(int Id) { }
+    public readonly record struct BreakpointId(int Id) { }
 	public sealed class BreakpointMapBuilder
 	{
 		private record BreakpointData(SourceSpan SourceSpan, Range<int> Instructions, List<int> Successors) { }

@@ -20,10 +20,12 @@ namespace Runtime
             Stream streamOut,
             Runtime runtime,
             ILogger logger,
-            ImmutableArray<CompiledPou> allPous)
+            ImmutableArray<CompiledPou> allPous,
+            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            PouId entryPoint)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _debugRuntime = new DebugRuntime(this, runtime, allPous);
+            _debugRuntime = new DebugRuntime(this, runtime, allPous, allGvls, entryPoint);
 
             InitializeProtocolClient(streamIn, streamOut);
         }
@@ -125,10 +127,12 @@ namespace Runtime
             _debugRuntime.SendNewBreakpoints(breakpointLocations);
             return new SetBreakpointsResponse(result);
         }
+        private VarReferenceManager? _varReferenceManager;
         protected override StackTraceResponse HandleStackTraceRequest(StackTraceArguments arguments)
         {
             var trace = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var frames = trace.Select(ConvertStackFrame).ToList();
+            _varReferenceManager = new VarReferenceManager(frames.Count);
             frames.Reverse();
             return new StackTraceResponse(frames)
             {
@@ -166,23 +170,29 @@ namespace Runtime
         protected override ScopesResponse HandleScopesRequest(ScopesArguments arguments)
         {
             var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
-            if (!curCallstack.IsDefault && arguments.FrameId >= 0 && arguments.FrameId < curCallstack.Length)
+            if (!curCallstack.IsDefault && arguments.FrameId >= 0 && arguments.FrameId < curCallstack.Length && _varReferenceManager != null)
             {
                 var frame = curCallstack[arguments.FrameId];
-                var argScope = new Scope("Arguments", arguments.FrameId * 2, false)
+                var argScope = new Scope("Arguments", _varReferenceManager.ArgumentsFrame(arguments.FrameId).Id, false)
                 {
                     PresentationHint = Scope.PresentationHintValue.Arguments,
                     NamedVariables = frame.Cpou.VariableTable?.CountArgs
                 };
-                var localScope = new Scope("Locals", arguments.FrameId * 2 + 1, false)
+                var localScope = new Scope("Locals", _varReferenceManager.LocalsFrame(arguments.FrameId).Id, false)
                 {
                     PresentationHint = Scope.PresentationHintValue.Locals,
                     NamedVariables = frame.Cpou.VariableTable?.CountLocals
                 };
+                var globalScope = new Scope("Globals", _varReferenceManager.Globals.Id, false)
+                {
+                    NamedVariables = _debugRuntime.AllGvls.Length,
+                };
+
                 return new ScopesResponse(new List<Scope>()
                 {
                     argScope,
-                    localScope
+                    localScope,
+                    globalScope,
                 });
             }
             else
@@ -190,41 +200,81 @@ namespace Runtime
                 return new ScopesResponse();
             }
         }
+
         protected override VariablesResponse HandleVariablesRequest(VariablesArguments arguments)
         {
-            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
-            var varRef = arguments.VariablesReference;
-            var frame = curCallstack[varRef / 2];
-            var args = varRef % 2 == 0;
-            ImmutableArray<VariableTable.StackVariable> requests;
-            if (frame.Cpou.VariableTable != null)
+            if (_varReferenceManager == null)
+                return new VariablesResponse();
+
+            var varRef = _varReferenceManager.Get(arguments.VariablesReference);
+            if (varRef.IsStack(out var frameId, out var isArgs))
             {
-                IEnumerable<VariableTable.StackVariable> variables;
-                variables = args ? frame.Cpou.VariableTable.Args : frame.Cpou.VariableTable.Locals;
-                if (arguments.Start is int startVar)
-                    variables = variables.Skip(startVar);
-                if (arguments.Count is int varCount)
-                    variables = variables.Take(varCount);
-                requests = variables.ToImmutableArray();
+                var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
+                var frame = curCallstack[frameId];
+                if (frame.Cpou.VariableTable == null)
+                    return new VariablesResponse();
+
+                var availableVariables = isArgs ? frame.Cpou.VariableTable.Args : frame.Cpou.VariableTable.Locals;
+                var requestedVariables = Subrange(availableVariables, arguments.Start, arguments.Count).ToImmutableArray();
+                var valueRequests = requestedVariables.Select(v => (v.StackOffset, v.Type)).ToImmutableArray();
+                var values = _debugRuntime.SendGetStackVariableValues(frame.FrameId, valueRequests).GetAwaiter().GetResult();
+                var resultVariables = requestedVariables.Zip(values, (request, value) =>
+                    new Variable(request.Name, value, -1)
+                    {
+                        EvaluateName = request.Name,
+                        Type = _initializeArguments?.SupportsVariableType == true ? request.Type.Name : null
+                    })
+                    .ToList();
+                return new VariablesResponse(resultVariables);
+            }
+            else if (varRef.IsGlobal)
+            {
+                int start = arguments.Start ?? 0;
+                int count = arguments.Count ?? _debugRuntime.AllGvls.Length;
+                var childReferences = _varReferenceManager.AllocateChildren(varRef, start, count);
+                var resultVariables = childReferences.Select((vr, i) =>
+                {
+                    var gvl = _debugRuntime.AllGvls[i];
+                    return new Variable(gvl.Name, "", vr.Id)
+                    {
+                        NamedVariables = gvl.VariableTable?.Length ?? 0,
+                    };
+                }).ToList();
+                return new VariablesResponse(resultVariables);
+            }
+            else if (varRef.IsChild(out var parentRef, out int childIndex))
+            {
+                if (parentRef.IsGlobal)
+                {
+                    var gvl = _debugRuntime.AllGvls[childIndex];
+                    if (gvl.VariableTable is ImmutableArray<CompiledGlobalVariableList.Variable> availableVariables)
+                    {
+                        var requestedVariables = Subrange(availableVariables, arguments.Start, arguments.Count).ToImmutableArray();
+                        var valueRequests = requestedVariables.Select(v => (new MemoryLocation(gvl.Area, v.Offset), v.Type)).ToImmutableArray();
+                        var values = _debugRuntime.SendGetVariableValues(valueRequests).GetAwaiter().GetResult();
+                        var resultVariables = requestedVariables.Zip(values, (request, value) =>
+                            new Variable(request.Name, value, -1)
+                            {
+                                EvaluateName = $"{gvl.Name}::{request.Name}",
+                                Type = _initializeArguments?.SupportsVariableType == true ? request.Type.Name : null
+                            })
+                            .ToList();
+                        return new VariablesResponse(resultVariables);
+                    }
+                    else
+                    {
+                        return new VariablesResponse();
+                    }
+                }
+                else
+                {
+                    return new VariablesResponse();
+                }
             }
             else
             {
-                requests = ImmutableArray<VariableTable.StackVariable>.Empty;
+                return new VariablesResponse();
             }
-
-            var valueRequests = requests.Select(v => (v.StackOffset, v.Type)).ToImmutableArray();
-            var values = _debugRuntime.SendGetVariableValues(frame.FrameId, valueRequests).GetAwaiter().GetResult();
-            var resultVariables = new List<Variable>();
-            for (int i = 0; i < requests.Length; i++)
-            {
-                var resultVar = new Variable(requests[i].Name, values[i], 0)
-                {
-                    EvaluateName = requests[i].Name,
-                    Type = _initializeArguments?.SupportsVariableType == true ? requests[i].Type.Name : null,
-                };
-                resultVariables.Add(resultVar);
-            }
-            return new VariablesResponse(resultVariables);
         }
         protected override ContinueResponse HandleContinueRequest(ContinueArguments arguments)
         {
@@ -325,10 +375,21 @@ namespace Runtime
             Stream streamOut,
             Runtime runtime,
             ILogger logger,
-            ImmutableArray<CompiledPou> allPous)
+            ImmutableArray<CompiledPou> allPous,
+            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            PouId entryPoint)
         {
-            var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, allPous);
+            var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, allPous, allGvls, entryPoint);
             debugAdapter.Run();
+        }
+
+        private static IEnumerable<T> Subrange<T>(IEnumerable<T> values, int? start, int? count)
+        {
+            if (start is int s)
+                values = values.Skip(s);
+            if (count is int c)
+                values = values.Take(c);
+            return values;
         }
     }
 }

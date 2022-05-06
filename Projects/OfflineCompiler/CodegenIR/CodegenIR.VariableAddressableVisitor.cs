@@ -27,9 +27,9 @@ namespace OfflineCompiler
 				else
 					return parameter;
 			}
-			public IAddressable Visit(GlobalVariableSymbol globalVariableSymbol) => new GlobalVariable(globalVariableSymbol);
+			public IAddressable Visit(GlobalVariableSymbol globalVariableSymbol) =>	Generator.GlobalVariable(globalVariableSymbol);
 			public IAddressable Visit(FieldVariableSymbol fieldVariableSymbol) => Generator.GetElementAddressableField(CodeGen.Generator.ThisReference!, fieldVariableSymbol);
-			public IAddressable Visit(FunctionVariableSymbol functionVariableSymbol) => new GlobalVariable(functionVariableSymbol);
+			public IAddressable Visit(FunctionVariableSymbol functionVariableSymbol) => throw new NotImplementedException("Cannot read FunctionVariableSymbol");
 
 			#region Not addressable
 			public IAddressable Visit(ErrorVariableSymbol errorVariableSymbol) => throw new InvalidOperationException();

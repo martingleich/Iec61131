@@ -3,6 +3,8 @@ using System.Collections.Immutable;
 
 namespace Runtime.IR
 {
+
+
     public sealed class CompiledPou
 	{
 		public readonly PouId Id;
@@ -35,7 +37,5 @@ namespace Runtime.IR
 		public override string ToString() => $"{Id}";
 	}
 
-    public record struct CompiledArgument(LocalVarOffset Offset, Type Type)
-    {
-    }
+    public record struct CompiledArgument(LocalVarOffset Offset, Type Type) { }
 }

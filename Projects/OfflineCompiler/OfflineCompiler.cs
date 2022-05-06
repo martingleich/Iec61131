@@ -34,18 +34,27 @@ namespace OfflineCompiler
 			if (build != null && isOkay)
 			{
 				build.Create();
+				var globals = GlobalVariableAllocationTable.Generate(2, project.BoundModule);
+				foreach (var global in globals.ToCompiledGvls())
+				{
+					var str = Runtime.IR.Xml.XmlGlobalVariableList.ToXml(global);
+					var resultFile = build.FileInfo($"{global.Name}.gvl.ir.xml");
+					File.WriteAllText(resultFile.FullName, str, System.Text.Encoding.UTF8);
+				}
+
 				foreach (var (symbol, bound) in project.BoundModule.FunctionPous)
 				{
-					var codegen = new CodegenIR(bound, project.BoundModule.Interface.SystemScope);
+					var codegen = new CodegenIR(bound, project.BoundModule.Interface.SystemScope, globals);
 					codegen.CompileInitials(bound.LocalVariables);
 					codegen.CompileStatement(bound.BoundBody.Value);
 					var sourceFile = sourceMap.GetFile(bound.CallableSymbol.DeclaringSpan.Start.File);
 					var compiledPou = codegen.GetGeneratedCode(sourceFile);
-					var resultFile = build.FileInfo($"{symbol.Name}.ir");
+					var resultFile = build.FileInfo($"{symbol.Name}.pou.ir.xml");
 					File.WriteAllText(resultFile.FullName, Runtime.IR.Parser.ToXml(compiledPou), System.Text.Encoding.UTF8);
 				}
 			}
 		}
+
 		static string GetMessageText(IMessage msg, SourceMap sourceMap)
 		{
 			var kind = msg.Critical ? "Error" : "Warning";
@@ -97,4 +106,6 @@ namespace OfflineCompiler
 			return (creator(info, content), sourceMap);
 		}
 	}
+
+
 }

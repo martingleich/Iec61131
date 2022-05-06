@@ -29,7 +29,6 @@ namespace Runtime
 
         private readonly ImmutableArray<byte[]> _memory;
         private readonly ImmutableDictionary<PouId, CompiledPou> _code;
-        private readonly PouId _entryPoint;
 
         private record struct CallFrame(
             CompiledPou Compiled,
@@ -44,11 +43,10 @@ namespace Runtime
         }
 
         private const int STACK_AREA = 1;
-        public Runtime(ImmutableArray<int> areaSizes, ImmutableDictionary<PouId, CompiledPou> code, PouId entryPoint)
+        public Runtime(ImmutableArray<int> areaSizes, ImmutableDictionary<PouId, CompiledPou> code)
         {
             _memory = areaSizes.Select(size => new byte[size]).ToImmutableArray();
             _code = code;
-            _entryPoint = entryPoint;
         }
 
         public MemoryLocation LoadEffectiveAddress(int frameId, LocalVarOffset offset) => _callStack[frameId][offset];
@@ -253,6 +251,7 @@ namespace Runtime
         #endregion
 
         #region Calls
+        public int? Call(PouId callee) => Call(callee, ImmutableArray<LocalVarOffset>.Empty, ImmutableArray<LocalVarOffset>.Empty);
         public int? Call(
             PouId callee,
             ImmutableArray<LocalVarOffset> inputs,
@@ -266,7 +265,7 @@ namespace Runtime
             int RealCall(PouId callee, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
             {
                 var compiled = _code[callee];
-                var newBase = (ushort)(CurrentFrame.Base + CurrentFrame.StackSize);
+                var newBase = _callStack.Count > 0 ? (ushort)(CurrentFrame.Base + CurrentFrame.StackSize) : (ushort)0;
                 _callStack.Add(new CallFrame(compiled, outputs, _instructionCursor, newBase));
                 for (int i = 0; i < inputs.Length; ++i)
                 {
@@ -365,12 +364,11 @@ namespace Runtime
         {
             foreach (var area in _memory)
                 Array.Fill<byte>(area, 0);
-            _callStack.Add(new CallFrame(_code[_entryPoint], ImmutableArray<LocalVarOffset>.Empty, 0, 0));
-            _instructionCursor = 0;
         }
-        public void RunOnce()
+
+        public void RunOnce(PouId pou)
         {
-            Reset();
+            Call(pou);
             while (Step() is State.Running)
                 ;
         }

@@ -2,10 +2,10 @@
 using Microsoft.Extensions.Logging;
 using Runtime.IR;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Runtime
 {
@@ -38,14 +38,37 @@ namespace Runtime
 
 			return CommandLineParser.Call<CmdArgs>(args, realArgs => RealMain(realArgs));
 		}
+        private static IEnumerable<T> IndexedValuesToEnumerable<T>(IEnumerable<KeyValuePair<int, T>> indexedSet, T defaultValue)
+        {
+            int i = 0;
+            foreach (var x in indexedSet.OrderBy(x => x.Key))
+            {
+                while (i < x.Key)
+                {
+                    yield return defaultValue;
+                    ++i;
+                }
+                if (i != x.Key)
+                    throw new ArgumentException();
+                yield return x.Value;
+                ++i;
+            }
+        }
         static int RealMain(CmdArgs args)
         {
             var pous = ImmutableDictionary.CreateBuilder<PouId, CompiledPou>();
-            foreach (var file in args.Folder.GetFiles("*.ir"))
+            foreach (var file in args.Folder.GetFiles("*.pou.ir.xml"))
             {
                 var text = File.ReadAllText(file.FullName);
                 var pou = Parser.ParsePou(text);
                 pous.Add(pou.Id, pou);
+            }
+            var gvls = ImmutableDictionary.CreateBuilder<string, CompiledGlobalVariableList>();
+            foreach (var file in args.Folder.GetFiles("*.gvl.ir.xml"))
+            {
+                var text = File.ReadAllText(file.FullName);
+                var gvl = IR.Xml.XmlGlobalVariableList.Parse(text);
+                gvls.Add(gvl.Name, gvl);
             }
             PouId entrypoint = pous.Keys.FirstOrDefault(p => p.Name.Equals(args.Entrypoint, StringComparison.InvariantCultureIgnoreCase));
             if (entrypoint.Name == null)
@@ -63,7 +86,8 @@ namespace Runtime
                 return 2;
             }
 
-            var runtime = new Runtime(ImmutableArray.Create(0, args.StackSize), pous.ToImmutable(), entrypoint);
+            var areaSizes = new int[] { 0, args.StackSize }.Concat(IndexedValuesToEnumerable(gvls.Select(g => KeyValuePair.Create((int)g.Value.Area, (int)g.Value.Size)), 0)).ToImmutableArray();
+            var runtime = new Runtime(areaSizes, pous.ToImmutable());
 
             if (args.RunDebugAdapter)
             {
@@ -74,7 +98,7 @@ namespace Runtime
                     logger.Log(LogLevel.None, "Starting debug adpater");
                     try
                     {
-                        DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray());
+                        DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray(), gvls.Values.ToImmutableArray(), entrypoint);
                     }
                     catch (Exception e)
                     {
@@ -85,7 +109,7 @@ namespace Runtime
             }
             else
             {
-                runtime.RunOnce();
+                runtime.RunOnce(entrypoint);
             }
 
             return 0;

@@ -8,14 +8,14 @@ namespace Runtime.IR.Xml
     public sealed class XmlVariables
     {
         [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("table")]
-        public static List<XmlVariable>? FromVariableTable(VariableTable? table)
+        public static List<XmlStackVariable>? FromVariableTable(VariableTable? table)
         {
             if (table == null)
                 return null;
-            return table.Variables.Select(XmlVariable.FromVariable).ToList();
+            return table.Variables.Select(XmlStackVariable.FromVariable).ToList();
         }
         [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("variables")]
-        public static VariableTable? ToTable(List<XmlVariable>? variables)
+        public static VariableTable? ToTable(List<XmlStackVariable>? variables)
         {
             if(variables == null)
                 return null;

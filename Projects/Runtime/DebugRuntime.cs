@@ -25,6 +25,10 @@ namespace Runtime
         private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
 
         private readonly ImmutableArray<CompiledPou> _allPous;
+        private readonly ImmutableArray<CompiledGlobalVariableList> _allGvls;
+        private readonly PouId _entryPoint;
+
+        public ImmutableArray<CompiledGlobalVariableList> AllGvls => _allGvls;
 
         private ImmutableArray<StackFrame>? _cachedStacktrace;
 
@@ -34,11 +38,18 @@ namespace Runtime
         private bool _ignoreBreak = true;
         private bool _singleStep = true;
 
-        public DebugRuntime(DebugAdapter adapter, Runtime runtime, ImmutableArray<CompiledPou> allPous)
+        public DebugRuntime(
+            DebugAdapter adapter,
+            Runtime runtime,
+            ImmutableArray<CompiledPou> allPous,
+            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            PouId entryPoint)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
             _allPous = allPous;
+            _allGvls = allGvls;
+            _entryPoint = entryPoint;
         }
 
         private void Launch()
@@ -129,7 +140,7 @@ namespace Runtime
                                     }
                                     break;
                                 case Runtime.State.EndOfProgram:
-                                    _runtime.Reset();
+                                    _runtime.Call(_entryPoint);
                                     break;
                                 case Runtime.State.Breakpoint:
                                     Stop(new StoppedEvent(StoppedEvent.ReasonValue.Breakpoint)
@@ -189,7 +200,7 @@ namespace Runtime
         public void SendStepSingle() => Send(dbg => dbg.StepSingle());
 
         public Task<ImmutableArray<StackFrame>> SendGetStacktrace() => SendCompute(dbg => _cachedStacktrace ??= dbg._runtime.GetStackTrace());
-        public Task<ImmutableArray<string>> SendGetVariableValues(int frameId, ImmutableArray<(LocalVarOffset Offset, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
+        public Task<ImmutableArray<string>> SendGetStackVariableValues(int frameId, ImmutableArray<(LocalVarOffset Offset, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
         {
             return ImmutableArray.CreateRange(variables, variable =>
             {
@@ -204,7 +215,20 @@ namespace Runtime
                 }
             });
         });
-
+        public Task<ImmutableArray<string>> SendGetVariableValues(ImmutableArray<(MemoryLocation Location, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
+        {
+            return ImmutableArray.CreateRange(variables, variable =>
+            {
+                try
+                {
+                    return variable.DebugType.ReadValue(variable.Location, _runtime);
+                }
+                catch (Exception e)
+                {
+                    return $"Exception: {e.Message}";
+                }
+            });
+        });
         public CompiledPou? TryGetCompiledPou(string path)
         {
             var normalizedPath = NormalizePath(path);

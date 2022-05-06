@@ -2,7 +2,6 @@
 using System.Collections.Immutable;
 using Compiler;
 using Compiler.Types;
-using Runtime.IR.RuntimeTypes;
 using IR = Runtime.IR;
 
 namespace OfflineCompiler
@@ -24,11 +23,11 @@ namespace OfflineCompiler
 			private readonly ImmutableArray<IR.VariableTable.StackVariable>.Builder _debugVariables = ImmutableArray.CreateBuilder<IR.VariableTable.StackVariable>();
             public IR.VariableTable GetVariableTable() => new(_debugVariables.ToImmutable());
 
-            private readonly SystemScope SystemScope;
+            private readonly CodegenIR CodeGen;
 
-            public StackAllocator(ICallableTypeSymbol calleeType, SystemScope systemScope)
+            public StackAllocator(CodegenIR codeGen, ICallableTypeSymbol calleeType)
 			{
-                this.SystemScope = systemScope;
+                CodeGen = codeGen ?? throw new System.ArgumentNullException(nameof(codeGen));
 
 				if (calleeType is FunctionBlockSymbol)
 					ThisVariableOffset = _paramVarOffsets[-1] = AllocTemp(IR.Type.Pointer);
@@ -57,38 +56,19 @@ namespace OfflineCompiler
 				OutputArgs = outputArgs.ToImmutable();
             }
 
-			public (IR.LocalVarOffset, IR.Type) AllocStackLocal(ILocalVariableSymbol localVariable)
+			public (IR.LocalVarOffset, IR.Type) AllocStackLocal(ILocalVariableSymbol symbol)
 			{
-				var irType = TypeFromIType(localVariable.Type);
-				if (!_stackLocalVarOffsets.TryGetValue(localVariable.LocalId, out var offset))
+				var irType = TypeFromIType(symbol.Type);
+				if (!_stackLocalVarOffsets.TryGetValue(symbol.LocalId, out var offset))
 				{
 					offset = AllocTemp(irType);
-					_stackLocalVarOffsets.Add(localVariable.LocalId, offset);
-					_debugVariables.Add(new IR.VariableTable.LocalStackVariable(localVariable.Name.Original, offset, GetDebugType(localVariable.Type)));
+					_stackLocalVarOffsets.Add(symbol.LocalId, offset);
+					var runtimeType = CodeGen.RuntimeTypeFactory.GetRuntimeType(symbol.Type);
+					_debugVariables.Add(new IR.VariableTable.LocalStackVariable(symbol.Name.Original, offset, runtimeType));
 				}
 
 				return (offset, irType);
 			}
-
-            private IRuntimeType GetDebugType(IType type)
-            {
-				if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.SInt))
-					return RuntimeTypeSINT.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Int))
-					return RuntimeTypeINT.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.DInt))
-					return RuntimeTypeDINT.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.LInt))
-					return RuntimeTypeLINT.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Real))
-					return RuntimeTypeREAL.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.LReal))
-					return RuntimeTypeLREAL.Instance;
-				else if(TypeRelations.IsIdentical(type, SystemScope.BuiltInTypeTable.Bool))
-					return RuntimeTypeBOOL.Instance;
-				else
-					return new RuntimeTypeUnknown(type.Code);
-            }
 
             public IR.CompiledArgument AllocParameter(ParameterVariableSymbol symbol)
 			{
@@ -97,7 +77,8 @@ namespace OfflineCompiler
 				{
 					offset = AllocTemp(type);
 					_paramVarOffsets.Add(symbol.ParameterId, offset);
-					_debugVariables.Add(new IR.VariableTable.ArgStackVariable(symbol.Name.Original, offset, GetDebugType(symbol.Type)));
+					var runtimeType = CodeGen.RuntimeTypeFactory.GetRuntimeType(symbol.Type);
+					_debugVariables.Add(new IR.VariableTable.ArgStackVariable(symbol.Name.Original, offset, runtimeType));
 				}
 				return new (offset, type);
 			}

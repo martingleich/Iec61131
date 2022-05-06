@@ -84,18 +84,15 @@ namespace OfflineCompiler
 	}
 	public sealed class GlobalVariable : IAddressable
 	{
-		public readonly UniqueSymbolId Name;
+		public readonly string Id;
+		public readonly MemoryLocation Location;
 		public readonly int Size;
 
-		public GlobalVariable(GlobalVariableSymbol symbol)
+		public GlobalVariable(string id, MemoryLocation location, int size)
 		{
-			Name = symbol.UniqueName;
-			Size = symbol.Type.LayoutInfo.Size;
-		}
-		public GlobalVariable(FunctionVariableSymbol symbol)
-		{
-			Name = symbol.UniqueName;
-			Size = 0;
+			Id = id;
+			Location = location;
+			Size = size;
 		}
 
 		private Deref Deref(CodegenIR codegen)
@@ -105,10 +102,10 @@ namespace OfflineCompiler
 			return new Deref(tmp, Size);
 		}
 
-		public IReadable ToPointerValue(CodegenIR codegen) => new JustReadable(IRExpr.LiteralExpression.FromMemoryLocation(codegen.Generator.GetMemoryLocation(this)));
+		public IReadable ToPointerValue(CodegenIR codegen) => new JustReadable(IRExpr.LiteralExpression.FromMemoryLocation(Location));
 		public IReadable ToReadable(CodegenIR codegen) => Deref(codegen);
 		public IWritable ToWritable(CodegenIR codegen) => Deref(codegen);
-		public override string ToString() => Name.ToString();
+		public override string ToString() => Id;
 
 		public IAddressable GetElementAddressable(CodegenIR codegen, ElementAddressable.Element element, int derefSize)
 		{
@@ -238,8 +235,10 @@ namespace OfflineCompiler
 	public sealed partial class CodegenIR
 	{
 		public readonly BreakpointMapBuilder BreakpointFactory = new();
+		public readonly RuntimeTypeFactory RuntimeTypeFactory;
 		public readonly GeneratorT Generator;
 		public readonly IR.PouId Id;
+        public readonly GlobalVariableAllocationTable GlobalVariableAllocationTable;
 
         public static IR.PouId PouIdFromSymbol(FunctionVariableSymbol variable)
 			=> new(variable.UniqueName.ToString().ToUpperInvariant());
@@ -248,10 +247,13 @@ namespace OfflineCompiler
 			=> new(callableSymbol.UniqueName.ToString().ToUpperInvariant());
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
-		public CodegenIR(BoundPou pou, SystemScope systemScope)
+		public CodegenIR(BoundPou pou, SystemScope systemScope, GlobalVariableAllocationTable globalVariableAllocationTable)
 		{
+			RuntimeTypeFactory = new RuntimeTypeFactory(systemScope);
+            GlobalVariableAllocationTable = globalVariableAllocationTable ?? throw new ArgumentNullException(nameof(globalVariableAllocationTable));
+
 			Id = PouIdFromSymbol(pou.CallableSymbol);
-			_stackAllocator = new(pou.CallableSymbol, systemScope);
+			_stackAllocator = new(this, pou.CallableSymbol);
 
 			Generator = new(this);
 			_loadVariableExpressionVisitor = new(this);
@@ -347,13 +349,13 @@ namespace OfflineCompiler
 				var (offset, irType) = CodeGen._stackAllocator.AllocParameter(parameterVariable);
 				return new LocalVariable(parameterVariable.Name.Original, irType, offset);
 			}
+			public GlobalVariable GlobalVariable(GlobalVariableSymbol globalVariable)
+			{
+				var location = CodeGen.GlobalVariableAllocationTable.GetAreaOffset(globalVariable);
+				return new GlobalVariable(globalVariable.UniqueName.ToString(), location, globalVariable.Type.LayoutInfo.Size);
+			}
 
 			public ImmutableArray<IR.IStatement> GetStatements() => _statements.ToImmutableArray();
-
-			public IR.MemoryLocation GetMemoryLocation(GlobalVariable globalVariable)
-			{
-				throw new NotImplementedException();
-			}
 		}
 
 		public CompiledPou GetGeneratedCode(SourceMap.SingleFile? sourceMap)

@@ -163,10 +163,13 @@ namespace Compiler
 			IType type,
 			IBoundExpression? initialValueSyntax) : base(declaringSpan, name, type)
 		{
-			UniqueName = new UniqueSymbolId(new UniqueSymbolId(moduleName, gvlName).ToCaseInsensitive(), name);
+			ModuleName = moduleName;
+			GvlName = gvlName;
 			InitialValueSyntax = initialValueSyntax;
 		}
-		public readonly UniqueSymbolId UniqueName;
+		public readonly CaseInsensitiveString ModuleName;
+		public readonly CaseInsensitiveString GvlName;
+		public UniqueSymbolId UniqueName => new UniqueSymbolId(new UniqueSymbolId(ModuleName, GvlName).ToCaseInsensitive(), Name);
 		private ILiteralValue? _initialValue;
 		public ILiteralValue? InitialValue {
 			get

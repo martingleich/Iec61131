@@ -125,7 +125,7 @@ namespace Runtime.IR
 			[System.Xml.Serialization.XmlElement("breakpoints")]
 			public byte[]? Breakpoints;
 			[System.Xml.Serialization.XmlArray("variables")]
-			public List<XmlVariable>? VariableTable;
+			public List<XmlStackVariable>? VariableTable;
 
 			private static byte[]? FromBreakpointsMap(BreakpointMap? breakpointMap)
 			{

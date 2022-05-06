@@ -4,7 +4,7 @@ using Superpower;
 namespace Runtime.IR.Xml
 {
     [System.Xml.Serialization.XmlType("variable")]
-    public sealed class XmlVariable
+    public sealed class XmlStackVariable
     {
         [System.Xml.Serialization.XmlAttribute("isLocal")]
         public bool IsLocal;
@@ -17,9 +17,9 @@ namespace Runtime.IR.Xml
         [System.Xml.Serialization.XmlAttribute("type")]
         public string Type;
 
-        public static XmlVariable FromVariable(VariableTable.StackVariable arg)
+        public static XmlStackVariable FromVariable(VariableTable.StackVariable arg)
         {
-            return new XmlVariable()
+            return new XmlStackVariable()
             {
                 IsLocal = arg.IsLocal,
                 Name = arg.Name,

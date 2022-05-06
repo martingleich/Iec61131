@@ -100,22 +100,14 @@ namespace Compiler.Types
 							else
 							{
 								Array.Sort(fieldLayouts, (a, b) => a.Item1.Alignment.CompareTo(b.Item1.Alignment));
-								int alignment = 1;
-								int cursor = 0;
-								foreach (var fl in fieldLayouts)
+								var fieldLayout = FieldLayout.Zero;
+								foreach (var (typeLayout, fieldSymbol) in fieldLayouts)
 								{
-									var f = fl.Item1;
-									if (cursor % f.Alignment != 0)
-										cursor = ((cursor / f.Alignment) + 1) * f.Alignment;
-									alignment = MathExtensions.Lcm(alignment, f.Alignment);
-									fl.Item2._Complete(cursor);
-									cursor += f.Size;
+									fieldLayout = fieldLayout.NextField(typeLayout);
+									fieldSymbol._Complete(fieldLayout.Offset);
 								}
 
-								if (cursor % alignment != 0)
-									cursor = ((cursor / alignment) + 1) * alignment;
-
-								MaybeLayoutInfo = new LayoutInfo(cursor, alignment);
+								MaybeLayoutInfo = fieldLayout.ToTypeLayout();
 							}
 						}
 						else

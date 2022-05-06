@@ -1,7 +1,5 @@
 ﻿using StandardLibraryExtensions;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Compiler
 {
@@ -31,27 +29,42 @@ namespace Compiler
 				Math.Max(a.Size, b.Size),
 				MathExtensions.Lcm(a.Alignment, b.Alignment));
 		public static LayoutInfo Array(LayoutInfo element, int count) => new(element.Size * count, element.Alignment);
-		public static LayoutInfo Struct(IEnumerable<LayoutInfo> fieldLayouts)
-		{
-			int alignment = 1;
-			int cursor = 0;
-			foreach (var f in fieldLayouts.OrderByDescending(f => f.Alignment))
-			{
-				if (cursor % f.Alignment != 0)
-					cursor = ((cursor / f.Alignment) + 1) * f.Alignment;
-				alignment = MathExtensions.Lcm(alignment, f.Alignment);
-				cursor += f.Size;
-			}
-
-			if (cursor % alignment != 0)
-				cursor = ((cursor / alignment) + 1) * alignment;
-
-			return new LayoutInfo(cursor, alignment);
-		}
 
 		public static bool operator ==(LayoutInfo left, LayoutInfo right) => left.Equals(right);
 		public static bool operator !=(LayoutInfo left, LayoutInfo right) => !(left == right);
 	}
+
+	public readonly struct FieldLayout
+	{
+		public readonly int OwnerAlignment;
+		public readonly int Offset;
+		public readonly int Size;
+
+		public static readonly FieldLayout Zero = new(1, 0, 0);
+
+        public FieldLayout(int ownerAlignment, int offset, int size)
+        {
+            OwnerAlignment = ownerAlignment;
+            Offset = offset;
+            Size = size;
+        }
+
+		public FieldLayout NextField(LayoutInfo typeLayout)
+		{
+			int cursor = Offset + Size;
+            if (cursor % typeLayout.Alignment != 0)
+                cursor = ((cursor / typeLayout.Alignment) + 1) * typeLayout.Alignment;
+            var alignment = MathExtensions.Lcm(OwnerAlignment, typeLayout.Alignment);
+			return new(alignment, cursor, typeLayout.Size);
+		}
+		public LayoutInfo ToTypeLayout()
+		{
+			int cursor = Offset + Size;
+			if (cursor % OwnerAlignment != 0)
+				cursor = ((cursor / OwnerAlignment) + 1) * OwnerAlignment;
+			return new(cursor, OwnerAlignment);
+		}
+    }
 
 	public readonly struct UndefinedLayoutInfo
 	{
