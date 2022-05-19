@@ -247,9 +247,22 @@ namespace OfflineCompiler
 			=> new(callableSymbol.UniqueName.ToString().ToUpperInvariant());
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
-		public CodegenIR(BoundPou pou, SystemScope systemScope, GlobalVariableAllocationTable globalVariableAllocationTable)
+        public static CompiledPou GenerateCode(
+			RuntimeTypeFactory runtimeTypeFactory,
+			GlobalVariableAllocationTable globals,
+			SourceMap sourceMap,
+			BoundPou toCompile)
+        {
+            var codegen = new CodegenIR(toCompile, globals, runtimeTypeFactory);
+            codegen.CompileInitials(toCompile.LocalVariables);
+            codegen.CompileStatement(toCompile.BoundBody.Value);
+            var sourceFile = sourceMap.GetFile(toCompile.CallableSymbol.DeclaringSpan.Start.File);
+            var compiledPou = codegen.GetGeneratedCode(sourceFile);
+            return compiledPou;
+        }
+		private CodegenIR(BoundPou pou, GlobalVariableAllocationTable globalVariableAllocationTable, RuntimeTypeFactory runtimeTypeFactory)
 		{
-			RuntimeTypeFactory = new RuntimeTypeFactory(systemScope);
+			RuntimeTypeFactory = runtimeTypeFactory;
             GlobalVariableAllocationTable = globalVariableAllocationTable ?? throw new ArgumentNullException(nameof(globalVariableAllocationTable));
 
 			Id = PouIdFromSymbol(pou.CallableSymbol);

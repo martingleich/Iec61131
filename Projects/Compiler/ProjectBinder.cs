@@ -29,7 +29,7 @@ namespace Compiler
 		}
 
 		private ImmutableArray<IMessage>? _backingBindMessages;
-		public ImmutableArray<IMessage> BindMessages
+		public IEnumerable<IMessage> BindMessages
 		{
 			get
 			{

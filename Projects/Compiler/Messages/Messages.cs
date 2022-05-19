@@ -6,37 +6,44 @@ using System.Linq;
 
 namespace Compiler.Messages
 {
-	public interface IMessage
+    public interface IMessage
 	{
 		SourceSpan Span { get; }
 		string Text { get; }
 		bool Critical { get; }
+		string ToString(IMessageFormatter formatter);
 	}
-	public abstract class ACriticalMessage : IMessage
-	{
-		protected ACriticalMessage(SourceSpan span)
-		{
+    public abstract class AMessage : IMessage
+    {
+        protected AMessage(SourceSpan span)
+        {
 			Span = span;
-		}
-
+        }
 		public SourceSpan Span { get; }
 		public abstract string Text { get; }
-		public bool Critical => true;
+		public abstract bool Critical { get; }
 		[ExcludeFromCodeCoverage]
-		public override string ToString() => $"{Span} {Text}";
-	}
-	public abstract class AUncriticalMessage : IMessage
-	{
-		protected AUncriticalMessage(SourceSpan span)
+		public string ToString(IMessageFormatter formatter)
 		{
-			Span = span;
-		}
+            if (formatter is null)
+                throw new ArgumentNullException(nameof(formatter));
 
-		public SourceSpan Span { get; }
-		public abstract string Text { get; }
-		public bool Critical => false;
+            var spanName = formatter.GetSourceName(Span);
+			var kindName = formatter.GetKindName(Critical);
+			return $"{kindName}@{spanName}: {Text}";
+		}
 		[ExcludeFromCodeCoverage]
-		public override string ToString() => $"{Span} {Text}";
+		public override string ToString() => ToString(MessageFormatter.Null);
+    }
+    public abstract class ACriticalMessage : AMessage
+	{
+		protected ACriticalMessage(SourceSpan span) : base(span) { }
+		public override bool Critical => true;
+	}
+	public abstract class AUncriticalMessage : AMessage
+	{
+		protected AUncriticalMessage(SourceSpan span) : base(span) { }
+		public override bool Critical => false;
 	}
 	public sealed class InvalidBooleanLiteralMessage : ACriticalMessage
 	{

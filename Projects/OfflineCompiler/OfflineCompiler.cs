@@ -1,111 +1,109 @@
 ﻿using System;
 using System.IO;
 using Compiler;
-using Compiler.Messages;
 using System.Linq;
 using StandardLibraryExtensions;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace OfflineCompiler
 {
-	public static class OfflineCompiler
-	{
-		public static void Compile(
-			DirectoryInfo folder,
-			DirectoryInfo build,
-			TextWriter stdout)
-		{
-			var sourceMap = new SourceMap();
-			var sources = new List<ILanguageSource>();
-			foreach (var (lmSource, sourcemap) in folder.EnumerateFiles().Select(ToLanguageSource).WhereNotNullStruct())
-			{
-				sources.Add(lmSource);
-				sourceMap.Add(sourcemap);
-			}
+    public class OfflineCompilerProject
+    {
+        private readonly Project _compilerProject;
+        private readonly SourceMap _sourceMap;
 
-			bool isOkay = true;
-			var project = Project.New(folder.Name.ToCaseInsensitive(), sources);
-			foreach (var msg in Enumerable.Concat(project.ParseMessages, project.BoundModule.BindMessages))
-			{
-				stdout.WriteLine(GetMessageText(msg, sourceMap));
-				isOkay &= !msg.Critical;
-			}
+        public OfflineCompilerProject(Project compilerProject, SourceMap sourceMap)
+        {
+            _compilerProject = compilerProject ?? throw new ArgumentNullException(nameof(compilerProject));
+            _sourceMap = sourceMap ?? throw new ArgumentNullException(nameof(sourceMap));
+        }
 
-			if (build != null && isOkay)
-			{
-				build.Create();
-				var globals = GlobalVariableAllocationTable.Generate(2, project.BoundModule);
-				foreach (var global in globals.ToCompiledGvls())
-				{
-					var str = Runtime.IR.Xml.XmlGlobalVariableList.ToXml(global);
-					var resultFile = build.FileInfo($"{global.Name}.gvl.ir.xml");
-					File.WriteAllText(resultFile.FullName, str, System.Text.Encoding.UTF8);
-				}
+        private delegate ILanguageSource LanguageSourceCreator(string sourceName, string name, string content);
+        public static OfflineCompilerProject FromFolder(DirectoryInfo folder)
+        {
+            var sourceMap = new SourceMap();
+            var sources = new List<ILanguageSource>();
+            foreach (var (lmSource, sourcemap) in folder.EnumerateFiles().Select(ToLanguageSource).WhereNotNullStruct())
+            {
+                sources.Add(lmSource);
+                sourceMap.Add(sourcemap);
+            }
 
-				foreach (var (symbol, bound) in project.BoundModule.FunctionPous)
-				{
-					var codegen = new CodegenIR(bound, project.BoundModule.Interface.SystemScope, globals);
-					codegen.CompileInitials(bound.LocalVariables);
-					codegen.CompileStatement(bound.BoundBody.Value);
-					var sourceFile = sourceMap.GetFile(bound.CallableSymbol.DeclaringSpan.Start.File);
-					var compiledPou = codegen.GetGeneratedCode(sourceFile);
-					var resultFile = build.FileInfo($"{symbol.Name}.pou.ir.xml");
-					File.WriteAllText(resultFile.FullName, Runtime.IR.Parser.ToXml(compiledPou), System.Text.Encoding.UTF8);
-				}
-			}
-		}
+            return new(Project.New(folder.Name.ToCaseInsensitive(), sources), sourceMap);
 
-		static string GetMessageText(IMessage msg, SourceMap sourceMap)
-		{
-			var kind = msg.Critical ? "Error" : "Warning";
-			return $"{kind}@{sourceMap.GetNameOf(msg.Span)}: {msg.Text}";
-		}
+            static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource(FileInfo info)
+            {
+                if (Extension(info.Name, out string remainder).Equals(".ST", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    LanguageSourceCreator? creator = Extension(remainder, out var name).ToUpperInvariant() switch
+                    {
+                        ".POU" => ToLanguageSourcePou,
+                        ".GVL" => ToLanguageSourceGvl,
+                        ".DUT" => ToLanguageSourceDut,
+                        _ => null,
+                    };
 
-		private static TopLevelPouLanguageSource ToLanguageSourcePou(FileInfo info, string content)
-			=> new(info.Name, content);
-		private static GlobalVariableListLanguageSource ToLanguageSourceGvl(FileInfo info, string content)
-			=> new(info.Name, info.Name.ToCaseInsensitive(), content);
-		private static DutLanguageSource ToLanguageSourceDut(FileInfo info, string content)
-			=> new(info.Name, content);
+                    if (creator != null)
+                    {
+                        var content = File.ReadAllText(info.FullName, System.Text.Encoding.UTF8);
+                        var sourceMap = SourceMap.SingleFile.Create(info, content);
+                        return (creator(info.Name, name, content), sourceMap);
+                    }
+                }
+                return null;
 
-		private static string Extension(string name, out string remainder)
-		{
-			int id = name.LastIndexOf(".");
-			if (id < 0)
-			{
-				remainder = name;
-				return "";
-			}
-			else
-			{
-				remainder = name.Remove(id);
-				return name[id..];
-			}
-		}
-		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource(FileInfo info)
-		{
-			if (Extension(info.Name, out string remainder).Equals(".ST", StringComparison.InvariantCultureIgnoreCase))
-			{
-				return Extension(remainder, out var _).ToUpperInvariant() switch
-				{
-					".POU" => ToLanguageSource2(info, ToLanguageSourcePou),
-					".GVL" => ToLanguageSource2(info, ToLanguageSourceGvl),
-					".DUT" => ToLanguageSource2(info, ToLanguageSourceDut),
-					_ => null,
-				};
-			}
-			else
-			{
-				return null;
-			}
-		}
-		private static (ILanguageSource, SourceMap.SingleFile)? ToLanguageSource2(FileInfo info, Func<FileInfo, string, ILanguageSource> creator)
-		{
-			var content = File.ReadAllText(info.FullName, System.Text.Encoding.UTF8);
-			var sourceMap = SourceMap.SingleFile.Create(info, content);
-			return (creator(info, content), sourceMap);
-		}
-	}
+                static TopLevelPouLanguageSource ToLanguageSourcePou(string sourceFile, string name, string content)
+                    => new(sourceFile, content);
+                static GlobalVariableListLanguageSource ToLanguageSourceGvl(string sourceFile, string name, string content)
+                    => new(sourceFile, name.ToCaseInsensitive(), content);
+                static DutLanguageSource ToLanguageSourceDut(string sourceFile, string name, string content)
+                    => new(sourceFile, content);
+                static string Extension(string name, out string remainder)
+                {
+                    int id = name.LastIndexOf(".");
+                    if (id < 0)
+                    {
+                        remainder = name;
+                        return "";
+                    }
+                    else
+                    {
+                        remainder = name.Remove(id);
+                        return name[id..];
+                    }
+                }
+            }
+        }
 
+        public ImmutableArray<string> GetAllFormattedMessages()
+        {
+            var formatter = new SourceMapMessageFormatter(_sourceMap);
+            return _compilerProject.AllMessages.Select(m => m.ToString(formatter)).ToImmutableArray();
+        }
+        public bool Check(TextWriter stdout)
+        {
+            var formatter = new SourceMapMessageFormatter(_sourceMap);
+            bool isOkay = true;
+            foreach (var msg in _compilerProject.AllMessages)
+            {
+                stdout.WriteLine(msg.ToString(formatter));
+                isOkay &= !msg.Critical;
+            }
+            return isOkay;
+        }
 
+        public CompiledModule GenerateCode()
+        {
+            var runtimeTypeFactory = new RuntimeTypeFactory(_compilerProject.BoundModule.Interface.SystemScope);
+
+            var globalAllocationTable = GlobalVariableAllocationTable.Generate(2, _compilerProject.BoundModule.Interface, runtimeTypeFactory);
+            var globals = globalAllocationTable.ToCompiledGvls().ToImmutableArray();
+            var pous = _compilerProject.BoundModule.FunctionPous.Values
+                .Select(bound => CodegenIR.GenerateCode(runtimeTypeFactory, globalAllocationTable, _sourceMap, bound))
+                .ToImmutableArray();
+
+            return new(globals, pous);
+        }
+    }
 }

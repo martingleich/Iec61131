@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 
 namespace Runtime.IR
 {
@@ -106,45 +107,50 @@ namespace Runtime.IR
 
 			return null;
 		}
-		
+
+		private delegate void BinaryWriter<TIn>(BinaryWriter writer, TIn value);
+		private static readonly BinaryWriter<SourceLC> WriterSourceLC = (bw, x) =>
+		{
+			bw.Write(x.Line);
+			bw.Write(x.Collumn);
+		};
+		private static BinaryWriter<Range<T>> WriterRange<T>(BinaryWriter<T> writerValue) where T : IComparable<T> => (bw, x) =>
+		  {
+			  writerValue(bw, x.Start);
+			  writerValue(bw, x.End);
+		  };
+		private static readonly BinaryWriter<Range<SourceLC>> WriterRangeSourceLC = WriterRange(WriterSourceLC);
+		private static readonly BinaryWriter<int> WriterInt = (bw, x) => bw.Write(x);
+		private static readonly BinaryWriter<Range<int>> WriterRangeInt = WriterRange(WriterInt);
+		private static BinaryWriter<KeyValuePair<TKey, TValue>> WriterKeyValuePair<TKey, TValue>(BinaryWriter<TKey> writerKey, BinaryWriter<TValue> writerValue) => (bw, x) =>
+		{
+			writerKey(bw, x.Key);
+			writerValue(bw, x.Value);
+		};
+		private static readonly BinaryWriter<KeyValuePair<Range<SourceLC>, int>> WriterKeyValuePairRangeSourceLCInt = WriterKeyValuePair(WriterRangeSourceLC, WriterInt);
+		private static readonly BinaryWriter<KeyValuePair<Range<int>, int>> WriterKeyValuePairRangeIntInt = WriterKeyValuePair(WriterRangeInt, WriterInt);
+		private static BinaryWriter<(T1, T2, T3)> WriterTuple<T1, T2, T3>(BinaryWriter<T1> writer1, BinaryWriter<T2> writer2, BinaryWriter<T3> writer3) => (bw, x) =>
+		{
+			writer1(bw, x.Item1);
+			writer2(bw, x.Item2);
+			writer3(bw, x.Item3);
+		};
+		private static readonly BinaryWriter<(Range<int>, int, int)> WriterTupleRangeIntIntInt = WriterTuple(WriterRangeInt, WriterInt, WriterInt);
+		private static BinaryWriter<ImmutableArray<T>> WriterImmutableArray<T>(BinaryWriter<T> writerElem) => (bw, x) =>
+		{
+			WriterInt(bw, x.Length);
+			foreach (T v in x)
+				writerElem(bw, v);
+		};
+
 		public void SerializeToStream(Stream stream)
 		{
-			static void Write(BinaryWriter bw, SourceLC source)
-			{
-				bw.Write(source.Line);
-				bw.Write(source.Collumn);
-			}
-			using (var bw = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
-			{
-				bw.Write(_sourceIndex.Length);
-				foreach (var x in _sourceIndex)
-				{
-					Write(bw, x.Key.Start);
-					Write(bw, x.Key.End);
-					bw.Write(x.Value);
-				}
-				bw.Write(_instructionIndex.Length);
-				foreach (var x in _instructionIndex)
-				{
-					bw.Write(x.Key.Start);
-					bw.Write(x.Key.End);
-					bw.Write(x.Value);
-				}
-				bw.Write(_breakpointData.Length);
-				foreach (var x in _breakpointData)
-				{
-					bw.Write(x.Successors.Start);
-					bw.Write(x.Successors.End);
-					bw.Write(x.Instructions);
-					bw.Write(x.Source);
-				}
-				bw.Write(_successors.Length);
-				foreach (var x in _successors)
-				{
-					bw.Write(x);
-				}
-			}
-		}
+            using var bw = new BinaryWriter(stream, System.Text.Encoding.UTF8, true);
+            WriterImmutableArray(WriterKeyValuePairRangeSourceLCInt)(bw, _sourceIndex);
+            WriterImmutableArray(WriterKeyValuePairRangeIntInt)(bw, _instructionIndex);
+            WriterImmutableArray(WriterTupleRangeIntIntInt)(bw, _breakpointData);
+            WriterImmutableArray(WriterInt)(bw, _successors);
+        }
 
 		public static BreakpointMap DeserializeFromStream(Stream stream)
 		{

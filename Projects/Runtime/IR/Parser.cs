@@ -190,17 +190,15 @@ namespace Runtime.IR
 		private static readonly System.Xml.Serialization.XmlSerializer _serializer = new (typeof(XmlCompiledPou));
 		public static CompiledPou ParsePou(string input) => _parser.Parse(input);
 
-		public static string ToXml(CompiledPou pou)
+		public static void ToXml(CompiledPou pou, Stream dst)
 		{
-			var sb = new StringBuilder();
-			using var writer = XmlWriter.Create(sb, new()
+			using var writer = XmlWriter.Create(dst, new()
 			{
 				Encoding = Encoding.UTF8,
 				Indent = true,
 			});
 			var xml = XmlCompiledPou.FromCompiledPou(pou);
 			_serializer.Serialize(writer, xml);
-			return sb.ToString();
 		}
 	}
 }

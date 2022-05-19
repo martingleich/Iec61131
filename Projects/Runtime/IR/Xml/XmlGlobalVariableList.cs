@@ -43,17 +43,15 @@ namespace Runtime.IR.Xml
             }
         }
 
-		public static string ToXml(CompiledGlobalVariableList obj)
+		public static void ToXml(CompiledGlobalVariableList obj, Stream stream)
 		{
-			var sb = new StringBuilder();
-			using var writer = XmlWriter.Create(sb, new()
+			using var writer = XmlWriter.Create(stream, new()
 			{
 				Encoding = Encoding.UTF8,
 				Indent = true,
 			});
 			var xml = FromObject(obj);
 			_serializer.Serialize(writer, xml);
-			return sb.ToString();
 		}
     }
 }

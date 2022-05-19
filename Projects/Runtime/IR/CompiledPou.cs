@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Immutable;
+using System.IO;
 
 namespace Runtime.IR
 {
-
-
     public sealed class CompiledPou
 	{
 		public readonly PouId Id;
@@ -35,7 +34,7 @@ namespace Runtime.IR
 			StackUsage = stackUsage;
 		}
 		public override string ToString() => $"{Id}";
-	}
+    }
 
     public record struct CompiledArgument(LocalVarOffset Offset, Type Type) { }
 }

@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Runtime
 {
-	public static class Program
+    public static class Program
 	{
 		private sealed class CmdArgs
 		{
@@ -38,40 +38,13 @@ namespace Runtime
 
 			return CommandLineParser.Call<CmdArgs>(args, realArgs => RealMain(realArgs));
 		}
-        private static IEnumerable<T> IndexedValuesToEnumerable<T>(IEnumerable<KeyValuePair<int, T>> indexedSet, T defaultValue)
-        {
-            int i = 0;
-            foreach (var x in indexedSet.OrderBy(x => x.Key))
-            {
-                while (i < x.Key)
-                {
-                    yield return defaultValue;
-                    ++i;
-                }
-                if (i != x.Key)
-                    throw new ArgumentException();
-                yield return x.Value;
-                ++i;
-            }
-        }
         static int RealMain(CmdArgs args)
         {
-            var pous = ImmutableDictionary.CreateBuilder<PouId, CompiledPou>();
-            foreach (var file in args.Folder.GetFiles("*.pou.ir.xml"))
-            {
-                var text = File.ReadAllText(file.FullName);
-                var pou = Parser.ParsePou(text);
-                pous.Add(pou.Id, pou);
-            }
-            var gvls = ImmutableDictionary.CreateBuilder<string, CompiledGlobalVariableList>();
-            foreach (var file in args.Folder.GetFiles("*.gvl.ir.xml"))
-            {
-                var text = File.ReadAllText(file.FullName);
-                var gvl = IR.Xml.XmlGlobalVariableList.Parse(text);
-                gvls.Add(gvl.Name, gvl);
-            }
-            PouId entrypoint = pous.Keys.FirstOrDefault(p => p.Name.Equals(args.Entrypoint, StringComparison.InvariantCultureIgnoreCase));
-            if (entrypoint.Name == null)
+            var pous = LoadPous(args.Folder);
+            var gvls = LoadGvls(args.Folder);
+
+            var entrypoint = pous.Values.FirstOrDefault(p => p.Id.Name.Equals(args.Entrypoint, StringComparison.InvariantCultureIgnoreCase));
+            if (entrypoint == null)
             {
                 Console.Error.WriteLine($"No pou '{args.Entrypoint}' exists.");
                 Console.Error.WriteLine($"Avaiable pous are:");
@@ -79,40 +52,63 @@ namespace Runtime
                     Console.Error.WriteLine(pou.Name);
                 return 1;
             }
-            var called = pous[entrypoint];
-            if (called.InputArgs.Length != 0)
+            if (entrypoint.InputArgs.Length != 0)
             {
-                Console.Error.WriteLine($"Entry point must have not arguments, but '{args.Entrypoint}' has '{called.InputArgs.Length}' input(s).");
+                Console.Error.WriteLine($"Entry point must have not arguments, but '{args.Entrypoint}' has '{entrypoint.InputArgs.Length}' input(s).");
                 return 2;
             }
 
-            var areaSizes = new int[] { 0, args.StackSize }.Concat(IndexedValuesToEnumerable(gvls.Select(g => KeyValuePair.Create((int)g.Value.Area, (int)g.Value.Size)), 0)).ToImmutableArray();
-            var runtime = new Runtime(areaSizes, pous.ToImmutable());
+            var areaSizes = new int[] { 0, args.StackSize }.Concat(EnumerableExtensions.IndexedValuesToEnumerable(gvls.Select(g => KeyValuePair.Create((int)g.Value.Area, (int)g.Value.Size)), 0)).ToImmutableArray();
+            var runtime = new Runtime(areaSizes, pous);
 
             if (args.RunDebugAdapter)
             {
                 using var streamIn = Console.OpenStandardInput();
                 using var streamOut = Console.OpenStandardOutput();
-                using (var logger = new SimpleFileLogger("log.txt"))
+                using var logger = new SimpleFileLogger("log.txt");
+                logger.Log(LogLevel.None, "Starting debug adpater");
+                try
                 {
-                    logger.Log(LogLevel.None, "Starting debug adpater");
-                    try
-                    {
-                        DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray(), gvls.Values.ToImmutableArray(), entrypoint);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogCritical(e, "DebugAdapter.Run: ");
-                        return 1;
-                    }
+                    DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray(), gvls.Values.ToImmutableArray(), entrypoint.Id);
+                }
+                catch (Exception e)
+                {
+                    logger.LogCritical(e, "DebugAdapter.Run: ");
+                    return 1;
                 }
             }
             else
             {
-                runtime.RunOnce(entrypoint);
+                runtime.RunOnce(entrypoint.Id);
             }
 
             return 0;
+        }
+
+        private static ImmutableDictionary<string, CompiledGlobalVariableList> LoadGvls(DirectoryInfo folder)
+        {
+            var gvls = ImmutableDictionary.CreateBuilder<string, CompiledGlobalVariableList>();
+            foreach (var file in folder.GetFiles("*.gvl.ir.xml"))
+            {
+                var text = File.ReadAllText(file.FullName);
+                var gvl = IR.Xml.XmlGlobalVariableList.Parse(text);
+                gvls.Add(gvl.Name, gvl);
+            }
+
+            return gvls.ToImmutable();
+        }
+
+        private static ImmutableDictionary<PouId, CompiledPou> LoadPous(DirectoryInfo folder)
+        {
+            var pous = ImmutableDictionary.CreateBuilder<PouId, CompiledPou>();
+            foreach (var file in folder.GetFiles("*.pou.ir.xml"))
+            {
+                var text = File.ReadAllText(file.FullName);
+                var pou = Parser.ParsePou(text);
+                pous.Add(pou.Id, pou);
+            }
+
+            return pous.ToImmutable();
         }
     }
 }

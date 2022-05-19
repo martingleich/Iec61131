@@ -17,12 +17,11 @@ namespace OfflineCompiler
             _lists = lists ?? throw new System.ArgumentNullException(nameof(lists));
         }
 
-        public static GlobalVariableAllocationTable Generate(ushort firstArea, BoundModule module)
+        public static GlobalVariableAllocationTable Generate(ushort firstArea, BoundModuleInterface moduleInterface, RuntimeTypeFactory runtimeTypeFactory)
 		{
             Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, Dictionary<CaseInsensitiveString, ushort>)> lists = new();
 			ushort area = firstArea;
-			var runtimeTypeFactory = new RuntimeTypeFactory(module.Interface.SystemScope);
-            foreach (var globalVarList in module.Interface.GlobalVariableListSymbols.OrderBy(x => x.Name))
+            foreach (var globalVarList in moduleInterface.GlobalVariableListSymbols.OrderBy(x => x.Name))
             {
 				List<CompiledGlobalVariableList.Variable> symbols = new();
 				var field = FieldLayout.Zero;
@@ -42,7 +41,7 @@ namespace OfflineCompiler
 				area++;
             }
 
-			return new(module.Interface.Name, lists);
+			return new(moduleInterface.Name, lists);
 		}
 
 		public MemoryLocation GetAreaOffset(GlobalVariableSymbol variable)

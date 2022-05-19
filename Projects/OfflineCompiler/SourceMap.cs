@@ -11,14 +11,14 @@ namespace OfflineCompiler
 	{
 		public sealed class SingleFile
 		{
-			public readonly string FullPath;
-			public readonly string FileName;
+			public readonly string FullPath; // The full path of the file in the filesystem.
+			public readonly string SourceFile; // The name of the file in the language source.
 			private readonly ImmutableArray<int> LineStarts;
 
-			public SingleFile(string fullSourceFile, string sourceFile, ImmutableArray<int> lineStarts)
+			public SingleFile(string fullPath, string sourceFile, ImmutableArray<int> lineStarts)
 			{
-				FullPath = fullSourceFile;
-				FileName = sourceFile ?? throw new ArgumentNullException(nameof(sourceFile));
+				FullPath = fullPath ?? throw new ArgumentNullException(nameof(fullPath));
+				SourceFile = sourceFile ?? throw new ArgumentNullException(nameof(sourceFile));
 				LineStarts = lineStarts;
 			}
 
@@ -47,12 +47,18 @@ namespace OfflineCompiler
 			{
 				if (offset < 0)
 					return null;
+				int line, collumn;
 				int pos = LineStarts.BinarySearch(offset);
-				if (pos > 0)
-					return new SourceLC(pos + 1, 0);
-				int line = ~pos - 1;
-				int lineStart = LineStarts[line];
-				int collumn = offset - lineStart;
+				if (pos >= 0)
+				{
+					line = pos;
+					collumn = 0;
+				}
+				else
+				{
+					line = ~pos - 1;
+					collumn = offset - LineStarts[line];
+				}
 				return new SourceLC(line + 1, collumn + 1);
 
 			}
@@ -60,21 +66,21 @@ namespace OfflineCompiler
 			{
 				var start = GetLineCollumn(startOffset).GetValueOrDefault();
 				var end= GetLineCollumn(endOffset).GetValueOrDefault();
-				return $"{FileName}:{start.Line}:{start.Collumn}:{end.Line}:{end.Collumn}";
+				return $"{SourceFile}:{start.Line}:{start.Collumn}:{end.Line}:{end.Collumn}";
 			}
 		}
 
-		public SingleFile? GetFile(string? file)
+		public SingleFile? GetFile(string? sourceFile)
 		{
-			if (file == null)
+			if (sourceFile == null)
 				return null;
-			return Maps[file];
+			return Maps[sourceFile];
 		}
 
 		private readonly Dictionary<string, SingleFile> Maps = new();
 		public void Add(SingleFile file)
 		{
-			Maps.Add(file.FileName, file);
+			Maps.Add(file.SourceFile, file);
 		}
 		public string GetNameOf(SourceSpan span)
 		{
@@ -84,13 +90,6 @@ namespace OfflineCompiler
 				return file.GetNameOf(span.Start.Offset, span.End.Offset);
 			else
 				return span.Start.File;
-		}
-		public SourceLC? GetLineCollumn(SourcePoint point)
-		{
-			if (point.File is string filePath && Maps.TryGetValue(filePath, out var file))
-				return file.GetLineCollumn(point.Offset);
-			else
-				return null;
 		}
 	}
 }

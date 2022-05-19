@@ -73,9 +73,10 @@ namespace OfflineCompiler
 		private LocalVariable LoadAddressAsVariable(IBoundExpression expression)
 		{
 			var value = expression.Accept(_addressableVisitor).ToPointerValue(this);
-			if (value is not LocalVariable variable)
-				variable = Generator.DeclareTemp(IR.Type.Pointer, value);
-			return variable;
+			if (value is LocalVariable variable)
+				return variable;
+			else
+				return Generator.DeclareTemp(IR.Type.Pointer, value);
 		}
 	}
 }

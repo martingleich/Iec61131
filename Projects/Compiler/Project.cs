@@ -52,6 +52,19 @@ namespace Compiler
 				return _backingBoundModule;
 			}
 		}
+		/// <summary>
+		/// Gets the bind messages without forcing full typecheck.
+		/// </summary>
+		public IEnumerable<IMessage> BindMessages
+		{
+			get
+			{
+				foreach (var x in BoundModule.BindMessages)
+					yield return x;
+			}
+		}
+
+		public IEnumerable<IMessage> AllMessages => Enumerable.Concat(ParseMessages, BindMessages);
 		public static Project Empty(CaseInsensitiveString name) => new(
 			name,
 			ImmutableArray<ParsedTopLevelInterfaceAndBodyPouLanguageSource>.Empty,
