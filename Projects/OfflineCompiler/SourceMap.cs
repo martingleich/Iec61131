@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.IO;
 using Runtime.IR;
+using Compiler.Messages;
 
 namespace OfflineCompiler
 {
@@ -91,5 +92,19 @@ namespace OfflineCompiler
 			else
 				return span.Start.File;
 		}
+
+		public IMessageFormatter GetMessageFormatter() => new SourceMapMessageFormatter(this);
+        private sealed class SourceMapMessageFormatter : IMessageFormatter
+        {
+            private readonly SourceMap _sourceMap;
+
+            public SourceMapMessageFormatter(SourceMap sourceMap)
+            {
+                _sourceMap = sourceMap;
+            }
+
+            public string GetKindName(bool critical) => MessageFormatter.Null.GetKindName(critical);
+            public string GetSourceName(SourceSpan span) => _sourceMap.GetNameOf(span);
+        }
 	}
 }

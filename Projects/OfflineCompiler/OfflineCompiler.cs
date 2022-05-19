@@ -79,12 +79,12 @@ namespace OfflineCompiler
 
         public ImmutableArray<string> GetAllFormattedMessages()
         {
-            var formatter = new SourceMapMessageFormatter(_sourceMap);
+            var formatter = _sourceMap.GetMessageFormatter();
             return _compilerProject.AllMessages.Select(m => m.ToString(formatter)).ToImmutableArray();
         }
         public bool Check(TextWriter stdout)
         {
-            var formatter = new SourceMapMessageFormatter(_sourceMap);
+            var formatter = _sourceMap.GetMessageFormatter();
             bool isOkay = true;
             foreach (var msg in _compilerProject.AllMessages)
             {
