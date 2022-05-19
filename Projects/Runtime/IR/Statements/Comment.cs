@@ -12,7 +12,7 @@ namespace Runtime.IR.Statements
 			Value = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
-		public int? Execute(Runtime runtime) => null;
+		public int? Execute(RTE runtime) => null;
 		public override string ToString() => $"# {Value}";
 		private static Comment FromParsed(string value)
 		{

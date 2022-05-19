@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="CmdParse" Version="1.0.2" />
-    <PackageReference Include="StandardLibraryExtensions" Version="1.7.0" />
+    <PackageReference Include="StandardLibraryExtensions" Version="1.8.0" />
   </ItemGroup>
 
   <ItemGroup>

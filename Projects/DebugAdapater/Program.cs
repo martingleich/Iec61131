@@ -1,14 +1,16 @@
 ﻿using CmdParse;
 using Microsoft.Extensions.Logging;
 using Runtime.IR;
+using StandardLibraryExtensions;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 
-namespace Runtime
+namespace DebugAdapter
 {
+    using Runtime = Runtime.RTE;
     public static class Program
 	{
 		private sealed class CmdArgs
@@ -91,7 +93,7 @@ namespace Runtime
             foreach (var file in folder.GetFiles("*.gvl.ir.xml"))
             {
                 var text = File.ReadAllText(file.FullName);
-                var gvl = IR.Xml.XmlGlobalVariableList.Parse(text);
+                var gvl = global::Runtime.IR.Xml.XmlGlobalVariableList.Parse(text);
                 gvls.Add(gvl.Name, gvl);
             }
 

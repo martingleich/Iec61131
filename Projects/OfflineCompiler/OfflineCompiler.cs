@@ -5,6 +5,7 @@ using System.Linq;
 using StandardLibraryExtensions;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Runtime.IR;
 
 namespace OfflineCompiler
 {

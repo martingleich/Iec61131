@@ -17,7 +17,7 @@ namespace Runtime.IR.Expressions
 			Elements = elements;
 		}
 
-		public void LoadTo(Runtime runtime, MemoryLocation location, int size)
+		public void LoadTo(RTE runtime, MemoryLocation location, int size)
 		{
 			var address = Base.GetValue(runtime);
 			foreach (var elem in Elements)
@@ -27,11 +27,11 @@ namespace Runtime.IR.Expressions
 
 		public interface IBase
 		{
-			MemoryLocation GetValue(Runtime runtime);
+			MemoryLocation GetValue(RTE runtime);
 		}
 		public interface IElement
 		{
-			MemoryLocation Add(Runtime runtime, MemoryLocation location);
+			MemoryLocation Add(RTE runtime, MemoryLocation location);
 		}
 
 		public sealed class BaseStackVar : IBase
@@ -43,7 +43,7 @@ namespace Runtime.IR.Expressions
 				Offset = offset;
 			}
 
-			public MemoryLocation GetValue(Runtime runtime) => runtime.LoadEffectiveAddress(Offset);
+			public MemoryLocation GetValue(RTE runtime) => runtime.LoadEffectiveAddress(Offset);
 			public override string ToString() => $"{Offset}";
 			public static readonly TextParser<IBase> Parser =
 				from _value in LocalVarOffset.Parser
@@ -58,7 +58,7 @@ namespace Runtime.IR.Expressions
 				Offset = offset;
 			}
 
-			public MemoryLocation GetValue(Runtime runtime) => runtime.LoadPointer(Offset);
+			public MemoryLocation GetValue(RTE runtime) => runtime.LoadPointer(Offset);
 			public override string ToString() => $"*{Offset}";
 			public static readonly TextParser<IBase> Parser =
 				from _value in Span.EqualTo("*").IgnoreThen(LocalVarOffset.Parser)
@@ -73,7 +73,7 @@ namespace Runtime.IR.Expressions
 				Offset = offset;
 			}
 
-			public MemoryLocation Add(Runtime runtime, MemoryLocation location) => new(location.Area, (ushort)(location.Offset + Offset));
+			public MemoryLocation Add(RTE runtime, MemoryLocation location) => new(location.Area, (ushort)(location.Offset + Offset));
 			public override string ToString() => $".{Offset}";
 		}
 		public sealed class ElementUncheckedArray : IElement
@@ -87,7 +87,7 @@ namespace Runtime.IR.Expressions
 				Scale = scale;
 			}
 
-			public MemoryLocation Add(Runtime runtime, MemoryLocation location)
+			public MemoryLocation Add(RTE runtime, MemoryLocation location)
 			{
 				int index = runtime.LoadDINT(Index);
 				int newOffset = location.Offset + index * Scale;
@@ -111,7 +111,7 @@ namespace Runtime.IR.Expressions
 				Scale = scale;
 			}
 
-			public MemoryLocation Add(Runtime runtime, MemoryLocation location)
+			public MemoryLocation Add(RTE runtime, MemoryLocation location)
 			{
 				int index = runtime.LoadDINT(Index);
 				if (index < LowerBound || index > UpperBound)

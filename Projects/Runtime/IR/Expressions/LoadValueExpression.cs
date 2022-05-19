@@ -11,7 +11,7 @@ namespace Runtime.IR.Expressions
 			Offset = offset;
 		}
 
-		public void LoadTo(Runtime runtime, MemoryLocation location, int size)
+		public void LoadTo(RTE runtime, MemoryLocation location, int size)
 		{
 			var pointer = runtime.LoadEffectiveAddress(Offset);
 			runtime.Copy(pointer, location, size);

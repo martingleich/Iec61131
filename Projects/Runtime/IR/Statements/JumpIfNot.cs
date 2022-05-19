@@ -15,7 +15,7 @@ namespace Runtime.IR.Statements
 			Target = target ?? throw new ArgumentNullException(nameof(target));
 		}
 
-		public int? Execute(Runtime runtime)
+		public int? Execute(RTE runtime)
 		{
 			var control = runtime.LoadBOOL(Control);
 			return control ? null : Target.StatementId;

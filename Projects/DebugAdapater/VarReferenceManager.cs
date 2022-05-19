@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Runtime
+namespace DebugAdapter
 {
     public sealed class VarReferenceManager
     {

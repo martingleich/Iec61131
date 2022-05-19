@@ -7,8 +7,10 @@ using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 using Runtime.IR;
 using Runtime.IR.RuntimeTypes;
 
-namespace Runtime
+namespace DebugAdapter
 {
+    using RTE = Runtime.RTE;
+    using StackFrame = Runtime.StackFrame;
     public sealed class DebugRuntime
     {
         private enum State
@@ -20,7 +22,7 @@ namespace Runtime
         }
 
         private readonly DebugAdapter _adapter;
-        private readonly Runtime _runtime;
+        private readonly RTE _runtime;
 
         private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
 
@@ -40,7 +42,7 @@ namespace Runtime
 
         public DebugRuntime(
             DebugAdapter adapter,
-            Runtime runtime,
+            RTE runtime,
             ImmutableArray<CompiledPou> allPous,
             ImmutableArray<CompiledGlobalVariableList> allGvls,
             PouId entryPoint)
@@ -128,7 +130,7 @@ namespace Runtime
                             _ignoreBreak = true;
                             switch (runtimeState)
                             {
-                                case Runtime.State.Running:
+                                case RTE.State.Running:
                                     if (_singleStep)
                                     {
                                         _singleStep = false;
@@ -139,17 +141,17 @@ namespace Runtime
                                         });
                                     }
                                     break;
-                                case Runtime.State.EndOfProgram:
+                                case RTE.State.EndOfProgram:
                                     _runtime.Call(_entryPoint);
                                     break;
-                                case Runtime.State.Breakpoint:
+                                case RTE.State.Breakpoint:
                                     Stop(new StoppedEvent(StoppedEvent.ReasonValue.Breakpoint)
                                     {
                                         AllThreadsStopped = true,
                                         ThreadId = 0,
                                     });
                                     break;
-                                case Runtime.State.Panic panic:
+                                case RTE.State.Panic panic:
                                     Stop(new StoppedEvent(StoppedEvent.ReasonValue.Exception)
                                     {
                                         AllThreadsStopped = true,

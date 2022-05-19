@@ -8,8 +8,10 @@ using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 using Runtime.IR;
 
-namespace Runtime
+namespace DebugAdapter
 {
+    using RTE = Runtime.RTE;
+    using IR = Runtime.IR;
     public sealed class DebugAdapter : DebugAdapterBase
     {
         private readonly ILogger _logger;
@@ -18,7 +20,7 @@ namespace Runtime
         private DebugAdapter(
             Stream streamIn,
             Stream streamOut,
-            Runtime runtime,
+            RTE runtime,
             ILogger logger,
             ImmutableArray<CompiledPou> allPous,
             ImmutableArray<CompiledGlobalVariableList> allGvls,
@@ -139,7 +141,7 @@ namespace Runtime
                 TotalFrames = frames.Count,
             };
 
-            static Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages.StackFrame ConvertStackFrame(StackFrame frame)
+            static Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages.StackFrame ConvertStackFrame(global::Runtime.StackFrame frame)
             {
                 var compiledPou = frame.Cpou;
                 var source = new Source()
@@ -373,7 +375,7 @@ namespace Runtime
         public static void Run(
             Stream streamIn,
             Stream streamOut,
-            Runtime runtime,
+            RTE runtime,
             ILogger logger,
             ImmutableArray<CompiledPou> allPous,
             ImmutableArray<CompiledGlobalVariableList> allGvls,

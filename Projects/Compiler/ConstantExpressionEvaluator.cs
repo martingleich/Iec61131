@@ -1,6 +1,7 @@
 ﻿using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
+using StandardLibraryExtensions;
 using System;
 
 namespace Compiler

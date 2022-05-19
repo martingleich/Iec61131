@@ -4,9 +4,9 @@
     {
         public static readonly RuntimeTypeLINT Instance = new();
         public string Name => "LINT";
-        public string ReadValue(MemoryLocation location, Runtime runtime) => runtime.LoadLINT(location).ToString();
+        public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadLINT(location).ToString();
         public override string ToString() => Name;
 
-        public int Compare(MemoryLocation a, MemoryLocation b, Runtime runtime) => runtime.LoadLINT(a).CompareTo(runtime.LoadLINT(b));
+        public int Compare(MemoryLocation a, MemoryLocation b, RTE runtime) => runtime.LoadLINT(a).CompareTo(runtime.LoadLINT(b));
     }
 }

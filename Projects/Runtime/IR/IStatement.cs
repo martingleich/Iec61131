@@ -5,7 +5,7 @@ namespace Runtime.IR
 {
 	public interface IStatement
 	{
-		int? Execute(Runtime runtime);
+		int? Execute(RTE runtime);
 		public static readonly TextParser<IStatement> Parser = Parse.OneOf(
 			WriteValue.Parser.Try(), // WriteValue is a prefix of staticCall, so we only try it.
 			StaticCall.Parser,

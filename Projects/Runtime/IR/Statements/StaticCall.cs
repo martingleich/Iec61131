@@ -22,7 +22,7 @@ namespace Runtime.IR.Statements
 			Outputs = outputs;
 		}
 
-		public int? Execute(Runtime runtime) => runtime.Call(Callee, Inputs, Outputs);
+		public int? Execute(RTE runtime) => runtime.Call(Callee, Inputs, Outputs);
 		public override string ToString()
 		{
 			var args = Inputs.DelimitWith(", ");

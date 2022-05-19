@@ -13,7 +13,7 @@ namespace Runtime.IR.Statements
 			Target = target ?? throw new ArgumentNullException(nameof(target));
 		}
 
-		public int? Execute(Runtime runtime) => Target.StatementId;
+		public int? Execute(RTE runtime) => Target.StatementId;
 		public override string ToString() => $"jump to {Target.Name}";
 		public static readonly TextParser<IStatement> Parser =
 			from _label in Span.EqualTo("jump to").ThenIgnore(Span.WhiteSpace).IgnoreThen(Label.ReferenceParser)

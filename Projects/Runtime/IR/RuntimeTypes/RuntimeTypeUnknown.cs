@@ -10,7 +10,7 @@ namespace Runtime.IR.RuntimeTypes
         }
 
         public string Name { get; }
-        public string ReadValue(MemoryLocation location, Runtime runtime) => Name;
+        public string ReadValue(MemoryLocation location, RTE runtime) => Name;
         public override string ToString() => Name;
     }
 }

@@ -2,21 +2,21 @@
 
 namespace RuntimeTests
 {
+    using Runtime;
     using Runtime.IR;
     using Runtime.IR.Statements;
     using Runtime.IR.Expressions;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using Runtime = Runtime.Runtime;
     using System;
     using System.Linq;
     using Type = Runtime.IR.Type;
 
     public class AssemblyTests
     {
-        private static Runtime MakeRt(int memSize, params CompiledPou[] pous)
+        private static RTE MakeRt(int memSize, params CompiledPou[] pous)
         {
-            var rt = new Runtime(
+            var rt = new RTE(
                 ImmutableArray.Create(0, memSize),
                 pous.ToImmutableDictionary(k => k.Id));
             rt.Call(pous[0].Id);
@@ -29,11 +29,11 @@ namespace RuntimeTests
         private static readonly LocalVarOffset Off6 = new(6);
         private static readonly LocalVarOffset Off8 = new(8);
         public static readonly Action<ImmutableArray<byte>> IsZero = bytes => bytes.All(b => b == 0);
-        private static long LoadXInt(Runtime rt, LocalVarOffset offset, Type type) => unchecked((long)rt.LoadBits(rt.LoadEffectiveAddress(offset), type.Size));
-        private static void AssertRunSteps(Runtime rt, int count)
+        private static long LoadXInt(RTE rt, LocalVarOffset offset, Type type) => unchecked((long)rt.LoadBits(rt.LoadEffectiveAddress(offset), type.Size));
+        private static void AssertRunSteps(RTE rt, int count)
         {
             for (int i = 0; i < count; i++)
-                Assert.IsType<Runtime.State.Running>(rt.Step());
+                Assert.IsType<RTE.State.Running>(rt.Step());
         }
         [Fact]
         public void ReturnOfMain()
@@ -41,7 +41,7 @@ namespace RuntimeTests
             var rt = MakeRt(16, pous:
                 CompiledPou.Action(new PouId("Main"), 0,
                     Return.Instance));
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
         }
         [Fact]
         public void IgnoreComment()
@@ -50,10 +50,10 @@ namespace RuntimeTests
                 CompiledPou.Action(new PouId("Main"), 0,
                     new Comment("This is a comment"),
                     Return.Instance));
-            Assert.IsType<Runtime.State.Running>(rt.Step());
+            Assert.IsType<RTE.State.Running>(rt.Step());
             var mem = rt.ReadMemory(1, 0, 16);
             IsZero(mem);
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
         }
         [Theory]
         [InlineData(123, 1)]
@@ -68,11 +68,11 @@ namespace RuntimeTests
                     WriteValue.WriteLiteral(unchecked((ulong)arg), Off0, size),
                     WriteValue.WriteLocal(Off0, new LocalVarOffset(size), size),
                     Return.Instance));
-            Assert.IsType<Runtime.State.Running>(rt.Step());
+            Assert.IsType<RTE.State.Running>(rt.Step());
             Assert.Equal(arg, LoadXInt(rt, Off0, type));
-            Assert.IsType<Runtime.State.Running>(rt.Step());
+            Assert.IsType<RTE.State.Running>(rt.Step());
             Assert.Equal(arg, LoadXInt(rt, new LocalVarOffset(size), type));
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
         }
         [Theory]
         [InlineData(123, 1)]
@@ -87,10 +87,10 @@ namespace RuntimeTests
                     new WriteValue(LiteralExpression.FromMemoryLocation(new MemoryLocation(1, size)), Off0, 4),
                     new WriteDerefValue(new LiteralExpression(unchecked((ulong)arg)), Off0, size),
                     Return.Instance));
-            Assert.IsType<Runtime.State.Running>(rt.Step());
-            Assert.IsType<Runtime.State.Running>(rt.Step());
+            Assert.IsType<RTE.State.Running>(rt.Step());
+            Assert.IsType<RTE.State.Running>(rt.Step());
             Assert.Equal(arg, LoadXInt(rt, new LocalVarOffset(size), type));
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace RuntimeTests
             Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 55) });
             rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 0), (mainId, 1)));
             Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0), (mainId, 1) }); // Old temp breakpoins are cleared
-            Assert.IsType<Runtime.State.Breakpoint>(rt.Step());
+            Assert.IsType<RTE.State.Breakpoint>(rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
             var frame = Assert.Single(rt.GetStackTrace());
             Assert.Equal(0, frame.CurAddress);
@@ -125,7 +125,7 @@ namespace RuntimeTests
             rt.SetBreakpoints(ImmutableArray.Create((mainId, 1)));
             Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
             Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
-            Assert.IsType<Runtime.State.Breakpoint>(rt.Step());
+            Assert.IsType<RTE.State.Breakpoint>(rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
             Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
             var frame = Assert.Single(rt.GetStackTrace());
@@ -144,7 +144,7 @@ namespace RuntimeTests
             rt.SetTemporaryBreakpoints(ImmutableArray.Create((mainId, 1)));
             Assert.Equal(rt.TemporaryBreakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 1) });
             Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
-            Assert.IsType<Runtime.State.Breakpoint>(rt.Step());
+            Assert.IsType<RTE.State.Breakpoint>(rt.Step());
             Assert.Empty(rt.TemporaryBreakpoints);
             Assert.Equal(rt.Breakpoints.ToHashSet(), new HashSet<(PouId, int)>() { (mainId, 0) });
             var frame = Assert.Single(rt.GetStackTrace());
@@ -217,7 +217,7 @@ namespace RuntimeTests
                 Return.Instance));
             rt.Step();
             rt.Step();
-            var panic = Assert.IsType<Runtime.State.Panic>(rt.Step());
+            var panic = Assert.IsType<RTE.State.Panic>(rt.Step());
             Assert.Equal(2, panic.Exception.Position);
         }
 
@@ -269,7 +269,7 @@ namespace RuntimeTests
             var off2 = LoadXInt(rt, Off2, Type.Bits16);
             Assert.Equal(24, off0);
             Assert.Equal(15, off2);
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
             Assert.Empty(rt.GetStackTrace());
         }
 
@@ -287,7 +287,7 @@ namespace RuntimeTests
             for (int i = 0; i < 10; ++i)
             {
                 Assert.Equal(1 + i % 3, Assert.Single(rt.GetStackTrace()).CurAddress);
-                Assert.IsType<Runtime.State.Running>(rt.Step());
+                Assert.IsType<RTE.State.Running>(rt.Step());
             }
         }
         
@@ -303,7 +303,7 @@ namespace RuntimeTests
             for (int i = 0; i < 10; ++i)
             {
                 Assert.Equal(i % 3, Assert.Single(rt.GetStackTrace()).CurAddress);
-                Assert.IsType<Runtime.State.Running>(rt.Step());
+                Assert.IsType<RTE.State.Running>(rt.Step());
             }
         }
         
@@ -318,7 +318,7 @@ namespace RuntimeTests
                     new JumpIfNot(Off0, label),
                     Return.Instance));
             AssertRunSteps(rt, 3);
-            Assert.IsType<Runtime.State.EndOfProgram>(rt.Step());
+            Assert.IsType<RTE.State.EndOfProgram>(rt.Step());
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Runtime.IR.Expressions
 			Address = location;
 		}
 
-		public void LoadTo(Runtime runtime, MemoryLocation location, int size)
+		public void LoadTo(RTE runtime, MemoryLocation location, int size)
 		{
 			var l1 = runtime.LoadPointer(Address);
 			runtime.Copy(l1, location, size);

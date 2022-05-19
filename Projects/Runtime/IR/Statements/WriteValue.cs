@@ -21,7 +21,7 @@ namespace Runtime.IR.Statements
 			Size = size;
 		}
 
-		public int? Execute(Runtime runtime)
+		public int? Execute(RTE runtime)
 		{
 			var address = runtime.LoadEffectiveAddress(Target);
 			Value.LoadTo(runtime, address, Size);

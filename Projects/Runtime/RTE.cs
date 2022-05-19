@@ -7,7 +7,7 @@ namespace Runtime
 {
     using IR;
 
-    public sealed partial class Runtime
+    public sealed partial class RTE
     {
         public sealed class PanicException : Exception
         {
@@ -43,7 +43,7 @@ namespace Runtime
         }
 
         private const int STACK_AREA = 1;
-        public Runtime(ImmutableArray<int> areaSizes, ImmutableDictionary<PouId, CompiledPou> code)
+        public RTE(ImmutableArray<int> areaSizes, ImmutableDictionary<PouId, CompiledPou> code)
         {
             _memory = areaSizes.Select(size => new byte[size]).ToImmutableArray();
             _code = code;

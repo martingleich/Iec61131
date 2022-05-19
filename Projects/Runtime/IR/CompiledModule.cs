@@ -1,9 +1,8 @@
 ﻿using System.IO;
 using StandardLibraryExtensions;
-using Runtime.IR;
 using System.Collections.Immutable;
 
-namespace OfflineCompiler
+namespace Runtime.IR
 {
     public sealed record CompiledModule(ImmutableArray<CompiledGlobalVariableList> GlobalVariableLists, ImmutableArray<CompiledPou> Pous)
     {
@@ -14,13 +13,13 @@ namespace OfflineCompiler
             {
                 var file = path.FileInfo($"{gvl.Name}.gvl.ir.xml");
                 using var stream = file.OpenWrite();
-                Runtime.IR.Xml.XmlGlobalVariableList.ToXml(gvl, stream);
+                Xml.XmlGlobalVariableList.ToXml(gvl, stream);
             }
             foreach (var pou in Pous)
             {
                 var file = path.FileInfo($"{pou.Id.Name}.pou.ir.xml");
                 using var stream = file.OpenWrite();
-                Runtime.IR.Parser.ToXml(pou, stream);
+                Parser.ToXml(pou, stream);
             }
         }
     }

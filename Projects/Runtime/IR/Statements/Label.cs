@@ -23,7 +23,7 @@ namespace Runtime.IR.Statements
 			StatementId = statementId;
 		}
 
-		public int? Execute(Runtime runtime) => null;
+		public int? Execute(RTE runtime) => null;
 		public override string ToString() => $"label {Name}";
 		public static readonly TextParser<Label> ReferenceParser =
 			from arg in Span.NonWhiteSpace

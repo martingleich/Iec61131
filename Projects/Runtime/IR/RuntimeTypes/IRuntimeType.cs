@@ -7,7 +7,7 @@ namespace Runtime.IR.RuntimeTypes
     public interface IRuntimeType
     {
         string Name { get; }
-        string ReadValue(MemoryLocation location, Runtime runtime);
+        string ReadValue(MemoryLocation location, RTE runtime);
 
         private static readonly ImmutableArray<IRuntimeType> RuntimeTypes = ImmutableArray.Create<IRuntimeType>(
                 RuntimeTypeSINT.Instance,
@@ -33,10 +33,10 @@ namespace Runtime.IR.RuntimeTypes
 
     public interface IEquatableRuntimeType : IRuntimeType
     {
-        bool Equals(MemoryLocation a, MemoryLocation b, Runtime runtime);
+        bool Equals(MemoryLocation a, MemoryLocation b, RTE runtime);
     }
     public interface IComparableRuntimeType : IRuntimeType
     {
-        int Compare(MemoryLocation a, MemoryLocation b, Runtime runtime);
+        int Compare(MemoryLocation a, MemoryLocation b, RTE runtime);
     }
 }

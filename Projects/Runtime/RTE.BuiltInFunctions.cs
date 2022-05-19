@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Runtime
 {
-	public sealed partial class Runtime
+	public sealed partial class RTE
 	{
 		private bool TryBuiltInCall(
 			PouId callee,
