@@ -13,7 +13,7 @@
 			},
 			"dependsOn": [
 				"buildOfflineCompiler",
-				"buildRuntime"
+				"buildDebugAdapter"
 			]
 		},
 		{
@@ -29,13 +29,13 @@
 		},
 		{
 			"type": "process",
-			"label": "buildRuntime",
+			"label": "buildDebugAdapter",
 			"command": "dotnet",
 			"args": [
 				"build",
 				"--output",
-				"bin/Runtime/",
-				"..//..//Runtime//Runtime.csproj"
+				"bin/DebugAdapter/",
+				"..//..//DebugAdapter//DebugAdapter.csproj"
 			]
 		}
 	]

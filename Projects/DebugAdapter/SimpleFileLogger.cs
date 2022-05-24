@@ -6,21 +6,28 @@ using System.Linq;
 
 namespace DebugAdapter
 {
-	public sealed class SimpleFileLogger : ILogger, IDisposable
+    public sealed class NullDisposable : IDisposable
+    {
+        public static readonly NullDisposable Instance = new();
+        public void Dispose() {}
+    }
+    public sealed class NullLogger : ILogger
+    {
+		public IDisposable BeginScope<TState>(TState state) => NullDisposable.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => false;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
+    }
+    public sealed class SimpleFileLogger : ILogger, IDisposable
 	{
 		private StreamWriter? _stream;
-		public SimpleFileLogger(string path)
+		public SimpleFileLogger(FileInfo path)
 		{
-			var fileStream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
+			var fileStream = path.Open(FileMode.Create, FileAccess.Write, FileShare.Read);
 			_stream = new StreamWriter(fileStream, System.Text.Encoding.UTF8);
 			_stream.AutoFlush = true;
 		}
 		public LogLevel LogLevel { get; set; }
-		private class NullDisposable : IDisposable
-		{
-			public static readonly NullDisposable Instance = new();
-			public void Dispose() {}
-		}
 		public IDisposable BeginScope<TState>(TState state) => NullDisposable.Instance;
 
 		public bool IsEnabled(LogLevel logLevel) => logLevel > LogLevel;

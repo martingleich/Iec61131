@@ -18,6 +18,8 @@ namespace Runtime.IR.Xml
         public ushort Area;
         [System.Xml.Serialization.XmlAttribute("size")]
         public ushort Size;
+        [System.Xml.Serialization.XmlElement("initializer")]
+        public XmlCompiledPou? Initializer;
         [System.Xml.Serialization.XmlArray("variables")]
         public List<XmlGlobalVariable>? Variables;
 
@@ -26,21 +28,19 @@ namespace Runtime.IR.Xml
             Name = obj.Name,
             Area = obj.Area,
             Size = obj.Size,
+            Initializer = obj.Initializer != null ? XmlCompiledPou.FromCompiledPou(obj.Initializer) : null,
             Variables = obj.VariableTable?.Select(XmlGlobalVariable.FromObject).ToList(),
         };
 
         public CompiledGlobalVariableList ToObject() => new(
-            Name, Area, Size, Variables?.Select(v => v.ToObject()).ToImmutableArray());
+            Name, Area, Size, Initializer?.ToCompiledPou(), Variables?.Select(v => v.ToObject()).ToImmutableArray());
 
 
 		private static readonly System.Xml.Serialization.XmlSerializer _serializer = new (typeof(XmlGlobalVariableList));
-		public static CompiledGlobalVariableList Parse(string input)
+		public static CompiledGlobalVariableList Parse(Stream stream)
         {
-            using (var reader = new StringReader(input))
-            {
-                var xml = (XmlGlobalVariableList)_serializer.Deserialize(reader)!;
-                return xml.ToObject();
-            }
+            var xml = (XmlGlobalVariableList)_serializer.Deserialize(stream)!;
+            return xml.ToObject();
         }
 
 		public static void ToXml(CompiledGlobalVariableList obj, Stream stream)

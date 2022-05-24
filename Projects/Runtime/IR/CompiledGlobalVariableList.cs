@@ -1,7 +1,6 @@
 ﻿using Runtime.IR.RuntimeTypes;
 using System;
 using System.Collections.Immutable;
-using System.IO;
 
 namespace Runtime.IR
 {
@@ -23,12 +22,14 @@ namespace Runtime.IR
 		public readonly string Name;
 		public readonly ushort Area;
 		public readonly ushort Size;
+		public readonly CompiledPou? Initializer;
 		public readonly ImmutableArray<Variable>? VariableTable;
-        public CompiledGlobalVariableList(string name, ushort area, ushort size, ImmutableArray<Variable>? variableTable)
+        public CompiledGlobalVariableList(string name, ushort area, ushort size, CompiledPou? initializer, ImmutableArray<Variable>? variableTable)
         {
             Name = name;
             Area = area;
             Size = size;
+            Initializer = initializer;
             VariableTable = variableTable;
         }
     }

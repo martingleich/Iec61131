@@ -8,7 +8,7 @@ using IR = Runtime.IR;
 using IRExpr = Runtime.IR.Expressions;
 using IRStmt = Runtime.IR.Statements;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
 	public sealed partial class CodegenIR
 	{

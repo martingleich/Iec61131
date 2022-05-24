@@ -1,7 +1,7 @@
 ﻿using System;
 using Compiler;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
 
 	public sealed partial class CodegenIR

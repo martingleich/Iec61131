@@ -2,7 +2,7 @@
 using Compiler.Messages;
 using Xunit;
 
-namespace Tests.ExpressionBinderTests
+namespace CompilerTests.ExpressionBinderTests
 {
 	public class ExpressionBinderTests_ConstantFolding
 	{

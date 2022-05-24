@@ -22,12 +22,11 @@ namespace DebugAdapter
             Stream streamOut,
             RTE runtime,
             ILogger logger,
-            ImmutableArray<CompiledPou> allPous,
-            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            CompiledModule module,
             PouId entryPoint)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _debugRuntime = new DebugRuntime(this, runtime, allPous, allGvls, entryPoint);
+            _debugRuntime = new DebugRuntime(this, runtime, module, entryPoint);
 
             InitializeProtocolClient(streamIn, streamOut);
         }
@@ -187,7 +186,7 @@ namespace DebugAdapter
                 };
                 var globalScope = new Scope("Globals", _varReferenceManager.Globals.Id, false)
                 {
-                    NamedVariables = _debugRuntime.AllGvls.Length,
+                    NamedVariables = _debugRuntime.Module.GlobalVariableLists.Length,
                 };
 
                 return new ScopesResponse(new List<Scope>()
@@ -232,11 +231,11 @@ namespace DebugAdapter
             else if (varRef.IsGlobal)
             {
                 int start = arguments.Start ?? 0;
-                int count = arguments.Count ?? _debugRuntime.AllGvls.Length;
+                int count = arguments.Count ?? _debugRuntime.Module.GlobalVariableLists.Length;
                 var childReferences = _varReferenceManager.AllocateChildren(varRef, start, count);
                 var resultVariables = childReferences.Select((vr, i) =>
                 {
-                    var gvl = _debugRuntime.AllGvls[i];
+                    var gvl = _debugRuntime.Module.GlobalVariableLists[i];
                     return new Variable(gvl.Name, "", vr.Id)
                     {
                         NamedVariables = gvl.VariableTable?.Length ?? 0,
@@ -248,7 +247,7 @@ namespace DebugAdapter
             {
                 if (parentRef.IsGlobal)
                 {
-                    var gvl = _debugRuntime.AllGvls[childIndex];
+                    var gvl = _debugRuntime.Module.GlobalVariableLists[childIndex];
                     if (gvl.VariableTable is ImmutableArray<CompiledGlobalVariableList.Variable> availableVariables)
                     {
                         var requestedVariables = Subrange(availableVariables, arguments.Start, arguments.Count).ToImmutableArray();
@@ -297,9 +296,9 @@ namespace DebugAdapter
             if (curBreakpoint != null)
             {
                 var code = curFrame.Cpou.Code;
-                List<int> stepInIds = new List<int>();
-                Stack<int> cursors = new Stack<int>();
-                HashSet<int> visisited = new HashSet<int>();
+                var stepInIds = new List<int>();
+                var cursors = new Stack<int>();
+                var visisited = new HashSet<int>();
                 cursors.Push(curFrame.CurAddress);
                 while (cursors.TryPop(out int cursor))
                 {
@@ -377,11 +376,10 @@ namespace DebugAdapter
             Stream streamOut,
             RTE runtime,
             ILogger logger,
-            ImmutableArray<CompiledPou> allPous,
-            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            CompiledModule module,
             PouId entryPoint)
         {
-            var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, allPous, allGvls, entryPoint);
+            var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, module, entryPoint);
             debugAdapter.Run();
         }
 

@@ -4,7 +4,7 @@ using Compiler.Types;
 using System.Collections.Immutable;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ErrorHelper;
 

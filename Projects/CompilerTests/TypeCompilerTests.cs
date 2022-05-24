@@ -3,11 +3,9 @@ using Compiler.Messages;
 using Compiler.Scopes;
 using Compiler.Types;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ErrorHelper;
 	public sealed class TypeCompilerTests

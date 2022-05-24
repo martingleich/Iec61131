@@ -1,12 +1,12 @@
 ﻿#nullable enable
 using Xunit;
 using Compiler.Messages;
-using static Tests.ErrorHelper;
-using static Tests.BindHelper;
 using System;
 
-namespace Tests
+namespace CompilerTests
 {
+    using static ErrorHelper;
+    using static BindHelper;
 	public class FlowAnalyserTests
 	{
 		private static Action<IMessage> Err_UnassignedOut(string name) =>

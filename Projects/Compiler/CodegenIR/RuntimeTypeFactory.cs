@@ -2,7 +2,7 @@
 using Compiler.Types;
 using Runtime.IR.RuntimeTypes;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
     public sealed class RuntimeTypeFactory
 	{

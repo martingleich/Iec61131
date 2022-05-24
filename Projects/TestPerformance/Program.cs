@@ -35,7 +35,7 @@ namespace TestPerformance
 
 		static void Main(string[] args)
 		{
-			var assemblyName = typeof(Tests.BindHelper).Assembly.Location;
+			var assemblyName = typeof(CompilerTests.BindHelper).Assembly.Location;
 
 			var msgReceiver = new MessageReceiver();
 			var controller = new XunitFrontController(AppDomainSupport.Denied, assemblyName, null, true, null, null, MessageSinkAdapter.Wrap(msgReceiver));

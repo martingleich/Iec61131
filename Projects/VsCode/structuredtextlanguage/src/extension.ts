@@ -4,7 +4,7 @@ import { DebugAdapterDescriptorFactory } from './debug/DebugAdapterDescriptorFac
 
 export function activate(_context: vscode.ExtensionContext): void {
 	const compilerPath = _context.asAbsolutePath("bin//OfflineCompiler//OfflineCompiler.exe");
-	const runtimePath = _context.asAbsolutePath("bin//Runtime//Runtime.exe");
+	const runtimePath = _context.asAbsolutePath("bin//DebugAdapter//DebugAdapter.exe");
 
 	const buildTaskProvider = vscode.tasks.registerTaskProvider(
 		StructuredTextTaskProvider.Type,

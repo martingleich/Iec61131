@@ -1,7 +1,7 @@
 ﻿using Compiler.Messages;
 using Xunit;
 
-namespace Tests.ExpressionBinderTests
+namespace CompilerTests.ExpressionBinderTests
 {
 	using static ErrorHelper;
 

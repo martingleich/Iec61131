@@ -3,7 +3,7 @@ using Compiler.Messages;
 using Compiler.Types;
 using Xunit;
 
-namespace Tests.ExpressionBinderTests
+namespace CompilerTests.ExpressionBinderTests
 {
 	using static ErrorHelper;
 	public static class ExpressionBinderTests

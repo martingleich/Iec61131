@@ -4,7 +4,7 @@ using Compiler;
 using Compiler.Types;
 using IR = Runtime.IR;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
     public sealed partial class CodegenIR
 	{

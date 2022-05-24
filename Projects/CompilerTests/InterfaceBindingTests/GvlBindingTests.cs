@@ -3,7 +3,7 @@ using Compiler.Messages;
 using System.Linq;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ErrorHelper;
 
@@ -138,6 +138,15 @@ namespace Tests
 			BindHelper.NewProject
 				.AddGVL("MyGvl", "VAR_GLOBAL value : INT := BOOL#TRUE; END_VAR")
 				.BindInterfaces(ErrorOfType<TypeIsNotConvertibleMessage>());
+		}
+		[Fact]
+		public void ParseErrorInGvl()
+		{
+			var parseMessages = BindHelper.NewProject
+				.AddGVL("MyGvl", "VARL value : INT; END_VAR") // Must be VAR_Global
+				.CompilerProject
+				.ParseMessages;
+			ExactlyMessages(ErrorOfType<ExpectedSyntaxMessage>())(parseMessages);
 		}
 	}
 }

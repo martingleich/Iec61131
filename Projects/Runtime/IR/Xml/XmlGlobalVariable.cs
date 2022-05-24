@@ -3,7 +3,7 @@ using Superpower;
 
 namespace Runtime.IR.Xml
 {
-    [System.Xml.Serialization.XmlType("variable")]
+    [System.Xml.Serialization.XmlType("globalvariable")]
     public sealed class XmlGlobalVariable
     {
         [System.Diagnostics.CodeAnalysis.AllowNull]

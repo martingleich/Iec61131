@@ -1,7 +1,7 @@
 ﻿using Compiler;
 using Xunit;
 
-namespace Tests.ExpressionBinderTests
+namespace CompilerTests.ExpressionBinderTests
 {
 	public static class ExpressionBinderTests_Aliases
 	{

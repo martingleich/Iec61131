@@ -6,7 +6,7 @@ using TokenTest = System.Action<Compiler.IToken>;
 using MessageTest = System.Action<System.Collections.Generic.IEnumerable<Compiler.Messages.IMessage>>;
 using Compiler.Messages;
 
-namespace Tests
+namespace CompilerTests
 {
 	public static partial class ScannerTestHelper
 	{

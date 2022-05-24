@@ -9,7 +9,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ErrorHelper;
 
@@ -19,40 +19,38 @@ namespace Tests
 
 		public sealed class TestProject
 		{
-			private readonly int IdCounter;
-			public readonly Project MyProject;
-			public TestProject(int idCounter, Project myProject)
-			{
-				IdCounter = idCounter;
-				MyProject = myProject ?? throw new ArgumentNullException(nameof(myProject));
+			public readonly Project CompilerProject;
+			public TestProject(Project myProject)
+            {
+				CompilerProject = myProject ?? throw new ArgumentNullException(nameof(myProject));
 			}
 
 			public TestProject AddDut(string name, string source)
-				=> new(IdCounter, MyProject.Add(new DutLanguageSource($"{MyProject.Name}/{name}", $"TYPE {name} : {source}; END_TYPE")));
-			public TestProject AddPou(string itf, string body)
-				=> new(IdCounter + 1, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{IdCounter}", itf, body)));
+				=> new(CompilerProject.Add(new DutLanguageSource($"{CompilerProject.Name}/{name}", $"TYPE {name} : {source}; END_TYPE")));
+			public TestProject AddPou(string kind, string name, string itf, string body)
+				=> new(CompilerProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{CompilerProject.Name}/{name}", $"{kind} {name} {itf}", body)));
 			public TestProject AddFunction(string name, string itf, string body)
-				=> new(IdCounter, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{name}", $"FUNCTION {name} {itf}", body)));
+				=> new(CompilerProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{CompilerProject.Name}/{name}", $"FUNCTION {name} {itf}", body)));
 			public TestProject AddFunctionBlock(string name, string itf, string body)
-				=> new(IdCounter, MyProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{MyProject.Name}/{name}", $"FUNCTION_BLOCK {name} {itf}", body)));
+				=> new(CompilerProject.Add(new TopLevelInterfaceAndBodyPouLanguageSource($"{CompilerProject.Name}/{name}", $"FUNCTION_BLOCK {name} {itf}", body)));
 			public TestProject AddGVL(string name, string source)
-				=> new(IdCounter, MyProject.Add(new GlobalVariableListLanguageSource($"{MyProject.Name}/{name}", name.ToCaseInsensitive(), source)));
+				=> new(CompilerProject.Add(new GlobalVariableListLanguageSource($"{CompilerProject.Name}/{name}", name.ToCaseInsensitive(), source)));
 			public TestProject AddLibrary(BoundModuleInterface @interface)
-				=> new(IdCounter, MyProject.Add(new LibraryLanguageSource(
-					SourcePoint.FromOffset($"{MyProject.Name}/Libraries/{@interface.Name}", 0).WithLength(0),
-					@interface)));
+				=> new(CompilerProject.Add(new LibraryLanguageSource(
+                    SourcePoint.FromOffset($"{CompilerProject.Name}/Libraries/{@interface.Name}", 0).WithLength(0),
+                    @interface)));
 
 			public BoundModuleInterface BindInterfaces(params Action<IMessage>[] checks)
 			{
-				ExactlyMessages()(MyProject.ParseMessages);
-				ExactlyMessages(checks)(MyProject.BoundModule.InterfaceMessages);
-				return MyProject.BoundModule.Interface;
+				ExactlyMessages()(CompilerProject.ParseMessages);
+				ExactlyMessages(checks)(CompilerProject.BoundModule.InterfaceMessages);
+				return CompilerProject.BoundModule.Interface;
 			}
 
 			public TestBoundBodies BindBodies(params Action<IMessage>[] checks)
 			{
-				ExactlyMessages()(MyProject.ParseMessages);
-				var boundModule = MyProject.BoundModule;
+				ExactlyMessages()(CompilerProject.ParseMessages);
+				var boundModule = CompilerProject.BoundModule;
 				var boundPous1 = boundModule.FunctionPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous2 = boundModule.FunctionBlockPous.Select(x => KeyValuePair.Create((ISymbol)x.Key, x.Value));
 				var boundPous = Enumerable.Concat(boundPous1, boundPous2).ToImmutableDictionary();
@@ -111,9 +109,9 @@ namespace Tests
 
 			public (T Value, BoundModuleInterface BoundInterface) BindGlobalExpressionEx<T>(string expression, string? targetTypeText, params Action<IMessage>[] checks) where T : IBoundExpression
 			{
-				ExactlyMessages()(Project.MyProject.ParseMessages);
-				ExactlyMessages()(Project.MyProject.BoundModule.InterfaceMessages);
-				var boundModuleInterface = Project.MyProject.BoundModule.Interface;
+				ExactlyMessages()(Project.CompilerProject.ParseMessages);
+				ExactlyMessages()(Project.CompilerProject.BoundModule.InterfaceMessages);
+				var boundModuleInterface = Project.CompilerProject.BoundModule.Interface;
 
 				var expressionParseMessages = new MessageBag();
 				var expressionSyntax = Parser.ParseExpression("BindGlobalExpression/expression", expression, expressionParseMessages);
@@ -167,7 +165,7 @@ namespace Tests
 		}
 
 		public static readonly TestProject NewProject = NewNamedProject("Test");
-		public static TestProject NewNamedProject(string name) => new(0, Project.Empty(name.ToCaseInsensitive()));
+		public static TestProject NewNamedProject(string name) => new(Project.Empty(name.ToCaseInsensitive()));
 
 		public static Action<object> OfType<T>(Action<T> action) => x => action(Assert.IsType<T>(x));
 		public static Action<InitializerBoundExpression.ABoundElement> ArrayElement(int index, Action<IBoundExpression> expression) => elem =>

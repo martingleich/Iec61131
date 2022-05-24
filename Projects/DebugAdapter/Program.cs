@@ -32,6 +32,10 @@ namespace DebugAdapter
 			[CmdName("launchDebuggerAtStartup")]
 			[CmdDefault(false)]
 			public bool LaunchDebuggerAtStartup { get; init; }
+
+			[CmdName("logPath")]
+			[CmdDefault(null)]
+			public FileInfo? LogPath { get; init; }
 		}
 		static int Main(string[] args)
 		{
@@ -42,16 +46,15 @@ namespace DebugAdapter
 		}
         static int RealMain(CmdArgs args)
         {
-            var pous = LoadPous(args.Folder);
-            var gvls = LoadGvls(args.Folder);
+            var module = CompiledModule.LoadFromDirectory(args.Folder);
 
-            var entrypoint = pous.Values.FirstOrDefault(p => p.Id.Name.Equals(args.Entrypoint, StringComparison.InvariantCultureIgnoreCase));
+            var entrypoint = module.Pous.FirstOrDefault(p => p.Id.Name.Equals(args.Entrypoint, StringComparison.InvariantCultureIgnoreCase));
             if (entrypoint == null)
             {
                 Console.Error.WriteLine($"No pou '{args.Entrypoint}' exists.");
                 Console.Error.WriteLine($"Avaiable pous are:");
-                foreach (var pou in pous.Keys.OrderBy(x => x.Name))
-                    Console.Error.WriteLine(pou.Name);
+                foreach (var pou in module.Pous.OrderBy(x => x.Id.Name))
+                    Console.Error.WriteLine(pou.Id.Name);
                 return 1;
             }
             if (entrypoint.InputArgs.Length != 0)
@@ -60,18 +63,26 @@ namespace DebugAdapter
                 return 2;
             }
 
-            var areaSizes = new int[] { 0, args.StackSize }.Concat(EnumerableExtensions.IndexedValuesToEnumerable(gvls.Select(g => KeyValuePair.Create((int)g.Value.Area, (int)g.Value.Size)), 0)).ToImmutableArray();
-            var runtime = new Runtime(areaSizes, pous);
+            var areaSizes = 
+                Enumerable.Concat(
+                    new [] {
+                        KeyValuePair.Create(0, 0),
+                        KeyValuePair.Create(1, args.StackSize)
+                    },
+                    module.GlobalVariableLists.Select(g => KeyValuePair.Create((int)g.Area, (int)g.Size)))
+                .IndexedValuesToEnumerable(0)
+                .ToImmutableArray();
+            var runtime = new Runtime(areaSizes, module.Pous.ToImmutableDictionary(x => x.Id));
 
             if (args.RunDebugAdapter)
             {
                 using var streamIn = Console.OpenStandardInput();
                 using var streamOut = Console.OpenStandardOutput();
-                using var logger = new SimpleFileLogger("log.txt");
+                ILogger logger = args.LogPath is FileInfo logPath ? new SimpleFileLogger(logPath) : new NullLogger();
                 logger.Log(LogLevel.None, "Starting debug adpater");
                 try
                 {
-                    DebugAdapter.Run(streamIn, streamOut, runtime, logger, pous.Values.ToImmutableArray(), gvls.Values.ToImmutableArray(), entrypoint.Id);
+                    DebugAdapter.Run(streamIn, streamOut, runtime, logger, module, entrypoint.Id);
                 }
                 catch (Exception e)
                 {
@@ -87,30 +98,5 @@ namespace DebugAdapter
             return 0;
         }
 
-        private static ImmutableDictionary<string, CompiledGlobalVariableList> LoadGvls(DirectoryInfo folder)
-        {
-            var gvls = ImmutableDictionary.CreateBuilder<string, CompiledGlobalVariableList>();
-            foreach (var file in folder.GetFiles("*.gvl.ir.xml"))
-            {
-                var text = File.ReadAllText(file.FullName);
-                var gvl = global::Runtime.IR.Xml.XmlGlobalVariableList.Parse(text);
-                gvls.Add(gvl.Name, gvl);
-            }
-
-            return gvls.ToImmutable();
-        }
-
-        private static ImmutableDictionary<PouId, CompiledPou> LoadPous(DirectoryInfo folder)
-        {
-            var pous = ImmutableDictionary.CreateBuilder<PouId, CompiledPou>();
-            foreach (var file in folder.GetFiles("*.pou.ir.xml"))
-            {
-                var text = File.ReadAllText(file.FullName);
-                var pou = Parser.ParsePou(text);
-                pous.Add(pou.Id, pou);
-            }
-
-            return pous.ToImmutable();
-        }
     }
 }

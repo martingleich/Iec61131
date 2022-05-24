@@ -18,7 +18,7 @@ namespace Runtime.IR.Expressions
 		public static LiteralExpression FromMemoryLocation(MemoryLocation location) => new(BitsFor(location));
 		public static ulong BitsFor(MemoryLocation location) => ((uint)location.Area << 16) | location.Offset;
 
-		public static LiteralExpression Bool(bool value) => Bits8(value ? (byte)0 : (byte)255);
+		public static LiteralExpression Bool(bool value) => Bits8(value ? (byte)255 : (byte)0);
 		public static LiteralExpression Bits8(byte value) => new(value);
 		public static LiteralExpression Bits16(ushort value) => new(value);
 		public static LiteralExpression Bits32(uint value) => new(value);

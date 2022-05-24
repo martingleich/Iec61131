@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace Compiler.Messages
 {
-	[DebuggerDisplay("Count = {Count}")]
+	[DebuggerDisplay("Count = {Messages.Count}")]
 	public sealed class MessageBag : IEnumerable<IMessage>
 	{
 		[DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]

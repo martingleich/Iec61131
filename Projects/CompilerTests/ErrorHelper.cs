@@ -4,7 +4,7 @@ using Xunit;
 using MessageTest = System.Action<System.Collections.Generic.IEnumerable<Compiler.Messages.IMessage>>;
 using SingleMessageTest = System.Action<Compiler.Messages.IMessage>;
 
-namespace Tests
+namespace CompilerTests
 {
 	public static class ErrorHelper
 	{

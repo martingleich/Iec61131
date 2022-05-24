@@ -1,7 +1,7 @@
 ﻿using Compiler;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ParserTestHelper;
 	using static ScannerTestHelper;

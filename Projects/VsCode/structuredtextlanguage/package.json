@@ -90,6 +90,11 @@
                                 "type": "boolean",
                                 "description": "Should the runtime launch a debugger at startup.",
                                 "default": false
+                            },
+                            "logPath": {
+                                "type": "string",
+                                "description": "Path to a log file for the debug adapter",
+                                "default": null
                             }
                         }
                     }

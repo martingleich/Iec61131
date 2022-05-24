@@ -10,7 +10,7 @@ using IR = Runtime.IR;
 using IRExpr = Runtime.IR.Expressions;
 using IRStmt = Runtime.IR.Statements;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
 	public interface IReadable
 	{
@@ -250,13 +250,13 @@ namespace OfflineCompiler
         public static CompiledPou GenerateCode(
 			RuntimeTypeFactory runtimeTypeFactory,
 			GlobalVariableAllocationTable globals,
-			SourceMap sourceMap,
+			SourceMap? sourceMap,
 			BoundPou toCompile)
         {
             var codegen = new CodegenIR(toCompile, globals, runtimeTypeFactory);
             codegen.CompileInitials(toCompile.LocalVariables);
             codegen.CompileStatement(toCompile.BoundBody.Value);
-            var sourceFile = sourceMap.GetFile(toCompile.CallableSymbol.DeclaringSpan.Start.File);
+            var sourceFile = sourceMap?.GetFile(toCompile.CallableSymbol.DeclaringSpan.Start.File);
             var compiledPou = codegen.GetGeneratedCode(sourceFile);
             return compiledPou;
         }

@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Range = Runtime.IR.Range;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
     public readonly record struct BreakpointId(int Id) { }
 	public sealed class BreakpointMapBuilder

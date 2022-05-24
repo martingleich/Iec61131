@@ -1,4 +1,4 @@
-﻿namespace Tests
+﻿namespace CompilerTests
 {
 	using Compiler;
 	using Compiler.Messages;

@@ -1,11 +1,10 @@
 ﻿using Compiler;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
-	using static ParserTestHelper;
 	using static ScannerTestHelper;
-
+	using static ParserTestHelper;
 	public sealed class ParserTests
 	{
 		[Fact]

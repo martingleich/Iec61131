@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using CmdParse;
-using StandardLibraryExtensions;
 
 namespace OfflineCompiler
 {
@@ -25,11 +24,14 @@ namespace OfflineCompiler
 		{
 			try
 			{
-				var project = OfflineCompilerProject.FromFolder(args.Folder);
-				if (project.Check(Console.Out))
+				var project = Compiler.Project.NewFromFolder(args.Folder);
+				var messageFormatter = project.GetMessageFormatter();
+				foreach (var msg in project.AllMessages)
+					Console.Out.WriteLine(msg.ToString(messageFormatter));
+				if (!project.HasCriticalError())
 				{
-					var result = project.GenerateCode();
-					result.WriteToDictionary(args.Output);
+					var generatedCode = project.GenerateCode();
+					generatedCode.WriteToDictionary(args.Output);
 				}
 				return 0;
 			}

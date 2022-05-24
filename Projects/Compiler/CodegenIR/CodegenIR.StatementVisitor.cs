@@ -6,7 +6,7 @@ using StandardLibraryExtensions;
 using IR = Runtime.IR;
 using IRStmt = Runtime.IR.Statements;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
 	public sealed partial class CodegenIR
 	{

@@ -2,9 +2,8 @@
 using Compiler.Messages;
 using System;
 using Xunit;
-using System.Linq;
 
-namespace Tests
+namespace CompilerTests
 {
 	public static partial class ParserTestHelper
 	{

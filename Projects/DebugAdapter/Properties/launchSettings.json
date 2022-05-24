@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "StandardTest": {
+      "commandName": "Project",
+      "commandLineArgs": "--runDebugAdapter --launchDebuggerAtStartup --entrypoint TEST::PLC_PRG --folder test\\build",
+      "workingDirectory": "C:\\Home\\source\\Iec361131\\dev"
+    }
+  }
+}

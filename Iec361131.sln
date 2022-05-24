@@ -24,7 +24,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Runtime", "Projects\Runtime
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RuntimeTests", "Projects\RuntimeTests\RuntimeTests.csproj", "{40BDFDDA-056B-4702-9E30-9A44C0DFF445}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebugAdapater", "Projects\DebugAdapater\DebugAdapater.csproj", "{A40E1B36-281D-4D39-AC68-5930E58DADB6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DebugAdapter", "Projects\DebugAdapter\DebugAdapter.csproj", "{A40E1B36-281D-4D39-AC68-5930E58DADB6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Executables", "Executables", "{E22A1DBB-4DCD-4509-9249-B9D468764004}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{ECCFFB83-6A7B-445F-BF7A-78223F2BC2ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +71,13 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DB038744-E97C-4DB8-B134-45505AAE2D82} = {ECCFFB83-6A7B-445F-BF7A-78223F2BC2ED}
+		{ED5668A2-CE57-44CC-974F-70C79F975E12} = {ECCFFB83-6A7B-445F-BF7A-78223F2BC2ED}
+		{1C59CECC-AC12-4C6A-8C7C-EA0D9BB4D754} = {E22A1DBB-4DCD-4509-9249-B9D468764004}
+		{40BDFDDA-056B-4702-9E30-9A44C0DFF445} = {ECCFFB83-6A7B-445F-BF7A-78223F2BC2ED}
+		{A40E1B36-281D-4D39-AC68-5930E58DADB6} = {E22A1DBB-4DCD-4509-9249-B9D468764004}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {569BEAEB-7A67-4B94-BAC4-2FD228D379FD}

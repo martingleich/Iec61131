@@ -154,7 +154,7 @@ namespace SourceGenerator
 			cw.WriteLine("using Compiler;");
 			cw.WriteLine("using Xunit;");
 			cw.WriteLine("using TokenTest = System.Action<Compiler.IToken?>;");
-			cw.WriteLine("namespace Tests");
+			cw.WriteLine("namespace CompilerTests");
 			cw.StartBlock();
 			cw.WriteLine("public static partial class ScannerTestHelper");
 			cw.StartBlock();
@@ -177,7 +177,7 @@ namespace SourceGenerator
 			cw.WriteLine("using Xunit;");
 			cw.WriteLine("using TokenTest = System.Action<Compiler.IToken?>;");
 			cw.WriteLine("using SyntaxTest = System.Action<Compiler.ISyntax?>;");
-			cw.WriteLine("namespace Tests");
+			cw.WriteLine("namespace CompilerTests");
 			cw.StartBlock();
 			cw.WriteLine("using static ScannerTestHelper;");
 			cw.WriteLine("public static partial class ParserTestHelper");

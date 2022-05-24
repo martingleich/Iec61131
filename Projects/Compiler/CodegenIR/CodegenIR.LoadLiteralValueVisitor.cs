@@ -2,12 +2,12 @@
 using Compiler;
 using IRExpr = Runtime.IR.Expressions;
 
-namespace OfflineCompiler
+namespace Compiler.CodegenIR
 {
 
 	public sealed partial class CodegenIR
 	{
-		private sealed class LoadLiteralValueVisitor : ILiteralValue.IVisitor<IRExpr.LiteralExpression>
+		public sealed class LoadLiteralValueVisitor : ILiteralValue.IVisitor<IRExpr.LiteralExpression>
 		{
 			public static readonly LoadLiteralValueVisitor Instance = new();
 			public IRExpr.LiteralExpression Visit(TimeLiteralValue timeLiteralValue) => IRExpr.LiteralExpression.Signed32(timeLiteralValue.Value.Milliseconds);

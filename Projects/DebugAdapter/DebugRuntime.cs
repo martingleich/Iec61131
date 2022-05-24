@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 using Runtime.IR;
@@ -13,52 +14,50 @@ namespace DebugAdapter
     using StackFrame = Runtime.StackFrame;
     public sealed class DebugRuntime
     {
-        private enum State
+        private abstract record State
         {
-            Uninitialized,
-            Running,
-            Stopped,
-            Terminated,
+            public sealed record Uninitialized : State { }
+            public sealed record Running(bool IgnoreBreak, bool SingleStep) : State { }
+            public sealed record Stopped : State{ }
+            public sealed record Terminated : State{ }
         }
+
+        public readonly CompiledModule Module;
 
         private readonly DebugAdapter _adapter;
         private readonly RTE _runtime;
 
         private readonly BlockingCollection<Action<DebugRuntime>> _runtimeRequests = new();
 
-        private readonly ImmutableArray<CompiledPou> _allPous;
-        private readonly ImmutableArray<CompiledGlobalVariableList> _allGvls;
         private readonly PouId _entryPoint;
-
-        public ImmutableArray<CompiledGlobalVariableList> AllGvls => _allGvls;
 
         private ImmutableArray<StackFrame>? _cachedStacktrace;
 
-        private State _state = State.Uninitialized;
-
-        // Part of state Running
-        private bool _ignoreBreak = true;
-        private bool _singleStep = true;
+        private State _state = new State.Uninitialized();
 
         public DebugRuntime(
             DebugAdapter adapter,
             RTE runtime,
-            ImmutableArray<CompiledPou> allPous,
-            ImmutableArray<CompiledGlobalVariableList> allGvls,
+            CompiledModule module,
             PouId entryPoint)
         {
             _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
-            _allPous = allPous;
-            _allGvls = allGvls;
+            Module = module;
             _entryPoint = entryPoint;
         }
 
         private void Launch()
         {
-            if (_state == State.Uninitialized)
+            if (_state is State.Uninitialized)
             {
-                _state = State.Running;
+                _state = new State.Running(false, false);
+                _runtime.Call(_entryPoint);
+                foreach(var globalVarList in Module.GlobalVariableLists.OrderByDescending(x => x.Name))
+                {
+                    if (globalVarList.Initializer is CompiledPou initializer)
+                        _runtime.Call(initializer);
+                }
                 _adapter.Protocol.SendEvent(new InitializedEvent());
             }
         }
@@ -72,34 +71,30 @@ namespace DebugAdapter
         }
         private void Stop(StoppedEvent reason)
         {
-            if (_state == State.Running)
+            if (_state is State.Running)
             {
-                _state = State.Stopped;
+                _state = new State.Stopped();
                 _adapter.Protocol.SendEvent(reason);
             }
         }
         private void Terminate()
         {
-            _state = State.Uninitialized;
+            _state = new State.Uninitialized();
             _adapter.Protocol.SendEvent(new ExitedEvent());
         }
         private void Continue(ImmutableArray<(PouId, int)> nextLocations)
         {
             _runtime.SetTemporaryBreakpoints(nextLocations);
-            _ignoreBreak = true;
-            _state = State.Running;
+            _state = new State.Running(true, false);
         }
         private void StepIn(ImmutableArray<(PouId, int)> nextLocations, int frameId, PouId? callee)
         {
             _runtime.SetTemporaryStepInBreakpoint(nextLocations, frameId, callee);
-            _ignoreBreak = true;
-            _state = State.Running;
+            _state = new State.Running(true, false);
         }
         private void StepSingle()
         {
-            _singleStep = true;
-            _ignoreBreak = true;
-            _state = State.Running;
+            _state = new State.Running(true, true);
         }
 
         public void Run()
@@ -123,17 +118,15 @@ namespace DebugAdapter
                             action(this);
                         }
                         return true;
-                    case State.Running:
+                    case State.Running running:
                         {
                             _cachedStacktrace = null;
-                            var runtimeState = _runtime.Step(_ignoreBreak);
-                            _ignoreBreak = true;
+                            var runtimeState = _runtime.Step(running.IgnoreBreak);
                             switch (runtimeState)
                             {
                                 case RTE.State.Running:
-                                    if (_singleStep)
+                                    if (running.SingleStep)
                                     {
-                                        _singleStep = false;
                                         Stop(new StoppedEvent(StoppedEvent.ReasonValue.Step)
                                         {
                                             AllThreadsStopped = true,
@@ -162,6 +155,7 @@ namespace DebugAdapter
                                 default:
                                     throw new InvalidOperationException();
                             }
+                            _state = new State.Running(false, false);
                         }
                         return true;
                     default:
@@ -234,7 +228,7 @@ namespace DebugAdapter
         public CompiledPou? TryGetCompiledPou(string path)
         {
             var normalizedPath = NormalizePath(path);
-            foreach (var pou in _allPous)
+            foreach (var pou in Module.Pous)
             {
                 if (pou.OriginalPath != null && normalizedPath == NormalizePath(pou.OriginalPath))
                 {

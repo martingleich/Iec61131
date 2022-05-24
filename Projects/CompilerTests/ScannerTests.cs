@@ -3,7 +3,7 @@ using Compiler.Messages;
 using System;
 using Xunit;
 
-namespace Tests
+namespace CompilerTests
 {
 	using static ScannerTestHelper;
 	using static ErrorHelper;

@@ -1,14 +1,13 @@
 ﻿using System;
-using Compiler;
 using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.IO;
-using Runtime.IR;
 using Compiler.Messages;
+using Runtime.IR;
 
-namespace OfflineCompiler
+namespace Compiler
 {
-	public sealed class SourceMap
+    public sealed class SourceMap
 	{
 		public sealed class SingleFile
 		{
@@ -78,10 +77,10 @@ namespace OfflineCompiler
 			return Maps[sourceFile];
 		}
 
-		private readonly Dictionary<string, SingleFile> Maps = new();
-		public void Add(SingleFile file)
+		private readonly ImmutableDictionary<string, SingleFile> Maps;
+		public SourceMap(IEnumerable<SingleFile> files)
 		{
-			Maps.Add(file.SourceFile, file);
+			Maps = files.ToImmutableDictionary(x => x.SourceFile);
 		}
 		public string GetNameOf(SourceSpan span)
 		{

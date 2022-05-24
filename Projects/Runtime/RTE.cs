@@ -251,6 +251,7 @@ namespace Runtime
         #endregion
 
         #region Calls
+        public int? Call(CompiledPou callee) => Call(callee.Id);
         public int? Call(PouId callee) => Call(callee, ImmutableArray<LocalVarOffset>.Empty, ImmutableArray<LocalVarOffset>.Empty);
         public int? Call(
             PouId callee,
