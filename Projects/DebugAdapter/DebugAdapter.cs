@@ -238,6 +238,11 @@ namespace DebugAdapter
                     var gvl = _debugRuntime.Module.GlobalVariableLists[i];
                     return new Variable(gvl.Name, "", vr.Id)
                     {
+                        PresentationHint = new VariablePresentationHint()
+                        {
+                            Kind = VariablePresentationHint.KindValue.Class,
+                            Attributes = VariablePresentationHint.AttributesValue.Static,
+                        },
                         NamedVariables = gvl.VariableTable?.Length ?? 0,
                     };
                 }).ToList();

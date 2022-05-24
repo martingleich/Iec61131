@@ -133,6 +133,7 @@ namespace DebugAdapter
                                             ThreadId = 0,
                                         });
                                     }
+                                    _state = new State.Running(false, false);
                                     break;
                                 case RTE.State.EndOfProgram:
                                     _runtime.Call(_entryPoint);
@@ -155,7 +156,6 @@ namespace DebugAdapter
                                 default:
                                     throw new InvalidOperationException();
                             }
-                            _state = new State.Running(false, false);
                         }
                         return true;
                     default:

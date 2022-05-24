@@ -358,7 +358,10 @@ namespace Runtime
                 return State.Breakpoint.Instance;
             }
             if (_callStack.Count == 0)
+            {
+                _instructionCursor = 0;
                 return State.EndOfProgram.Instance;
+            }
             return State.Running.Instance;
         }
         public void Reset()

@@ -1,4 +1,11 @@
 Language-features:
+	Do not generate casts for binary operations that contain a literal.
+		DINT + 1 -> DINT + DINT#1
+		For literals perform partial typification. i.e. 1 becomes ANY_INT_AT_LEAST_SINT, etc.
+		All otherexpressions are typed with the expression typifier.
+		Then perform type inference for the generics.
+		Then make sure everything is typified.
+	Allow more constants in GVL initial values.
 	Add CASE statement
 	Add Exception System
 	Add safe ENUMs
@@ -15,18 +22,16 @@ Language-features:
 			(L)TIME MOD (L)TIME -> (L)TIME
 
 VsCode:
-	Clean up build directory.
 	DAP-Implementation
 		Create debug features:
-			Improve behaviour on exceptions in Debug Adapter. 
 			Breakpoints
 				Add breakpoints for initial values.
 				Add breakpoints for for loop.
 				Support breakpoints from debugger.
-			Catch panics
-			Show local variables
-			Callstack
 	LSP-Implementation
+
+CodeGenIR:
+	Reduce number of temporaries.
 
 
 Compiler-features:
