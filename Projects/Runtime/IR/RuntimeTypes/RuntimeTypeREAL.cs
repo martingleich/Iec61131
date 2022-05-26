@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeREAL Instance = new();
         public string Name => "REAL";
+        public int Size => 4;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadREAL(location).ToString();
         public override string ToString() => Name;
 

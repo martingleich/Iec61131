@@ -35,7 +35,7 @@ namespace CompilerTests.ExpressionBinderTests
 				.BindGlobalExpression("1 + x", null);
 			var op = Assert.IsType<BinaryOperatorBoundExpression>(boundExpression);
 			Assert.IsType<ImplicitAliasToBaseTypeCastBoundExpression>(op.Right);
-			Assert.Equal("Int", boundExpression.Type.Code);
+			Assert.Equal("INT", boundExpression.Type.Code);
 		}
 		[Fact]
 		public static void Addition_AliasToInt_AliasToInt_Same()
@@ -56,7 +56,7 @@ namespace CompilerTests.ExpressionBinderTests
 				.WithGlobalVar("x", "myalias1")
 				.WithGlobalVar("y", "myalias2")
 				.BindGlobalExpression("x + y", null);
-			Assert.Equal("Int", boundExpression.Type.Code);
+			Assert.Equal("INT", boundExpression.Type.Code);
 		}
 		[Fact]
 		public static void Addition_AliasToPointerOffset()

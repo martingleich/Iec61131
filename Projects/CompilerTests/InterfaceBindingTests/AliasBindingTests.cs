@@ -1,6 +1,7 @@
 ﻿using Compiler;
 using Compiler.Messages;
 using Compiler.Types;
+using Runtime.IR.RuntimeTypes;
 using System.Collections.Immutable;
 using Xunit;
 
@@ -28,7 +29,7 @@ namespace CompilerTests
 				.AddDut("myAlias", "ARRAY[0..10] OF INT")
 				.BindInterfaces();
 			var myAlias = Assert.IsType<AliasTypeSymbol>(boundInterface.Types["myAlias"]);
-			var arrayType = new ArrayType(boundInterface.SystemScope.Int, ImmutableArray.Create(new ArrayType.Range(0, 10)));
+			var arrayType = new ArrayType(boundInterface.SystemScope.Int, ImmutableArray.Create(new ArrayTypeRange(0, 10)));
 			AssertEx.EqualType(arrayType, myAlias.AliasedType);
 			Assert.Equal(arrayType.LayoutInfo, myAlias.LayoutInfo);
 		}

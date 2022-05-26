@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeINT Instance = new();
         public string Name => "INT";
+        public int Size => 2;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadINT(location).ToString();
         public override string ToString() => Name;
 

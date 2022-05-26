@@ -31,6 +31,8 @@ namespace Runtime.IR
 				cur = next(cur);
 			}
 		}
+	
+		public static int GetLength(this Range<int> range) => range.End - range.Start;
 	}
 
     public sealed class RangeKeyArrayComparer<TKey, TValue> : IComparer<KeyValuePair<Range<TKey>, TValue>> where TKey:IComparable<TKey>

@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeSINT Instance = new();
         public string Name => "SINT";
+        public int Size => 1;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadSINT(location).ToString();
         public override string ToString() => Name;
 

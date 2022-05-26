@@ -39,18 +39,18 @@ namespace CompilerTests
 		}
 
 		[Theory]
-		[InlineData ("INT", "Int")]
-		[InlineData ("BOOL", "Bool")]
-		[InlineData ("ARRAY[0..1] OF LREAL", "ARRAY[0..1] OF LReal")]
-		[InlineData ("ARRAY[0..1,2..5] OF DATE", "ARRAY[0..1, 2..5] OF Date")]
-		[InlineData ("ARRAY[0..0] OF LREAL", "ARRAY[0..0] OF LReal")]
-		[InlineData ("ARRAY[0..-1] OF LREAL", "ARRAY[0..-1] OF LReal")]
+		[InlineData ("Int", "INT")]
+		[InlineData ("bool", "BOOL")]
+		[InlineData ("ARRAY[0..1] OF LrEal", "ARRAY[0..1] OF LREAL")]
+		[InlineData ("ARRAY[0..1,2..5] OF Date", "ARRAY[0..1, 2..5] OF DATE")]
+		[InlineData ("ARRAY[0..0] OF LReAL", "ARRAY[0..0] OF LREAL")]
+		[InlineData ("ARRAY[0..-1] OF LReal", "ARRAY[0..-1] OF LREAL")]
 		[InlineData ("MyType", "MyType")]
 		[InlineData ("STRING[17]", "STRING[17]")]
 		[InlineData ("STRING", "STRING[80]")]
 		[InlineData ("STRING[SIZEOF(MyType)]", "STRING[23]")]
-		[InlineData ("POINTER TO BYTE", "POINTER TO Byte")]
-		[InlineData ("POINTER TO POINTER TO SINT", "POINTER TO POINTER TO SInt")]
+		[InlineData ("POINTER TO ByTe", "POINTER TO BYTE")]
+		[InlineData ("POINTER TO POINTER TO SInt", "POINTER TO POINTER TO SINT")]
 		public void TypeCompiler(string str, string expected)
 		{
 			AssertTypeCompiler(str, bound => Assert.Equal(expected, bound.Code));
@@ -59,23 +59,23 @@ namespace CompilerTests
 		[Fact]
 		public void Error_ArrayInvalidRanges()
 		{
-			AssertTypeCompiler("ARRAY[5..2] OF Int", t => Assert.Equal("ARRAY[5..5] OF Int", t.Code), ErrorOfType<InvalidArrayRangesMessage>());
+			AssertTypeCompiler("ARRAY[5..2] OF INT", t => Assert.Equal("ARRAY[5..5] OF INT", t.Code), ErrorOfType<InvalidArrayRangesMessage>());
 		}
 		
 		[Fact]
 		public void Error_BadUpperBound()
 		{
-			AssertTypeCompiler("ARRAY[5..TRUE] OF Int", t => Assert.Equal("ARRAY[5..5] OF Int", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>());
+			AssertTypeCompiler("ARRAY[5..TRUE] OF INT", t => Assert.Equal("ARRAY[5..5] OF INT", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 		[Fact]
 		public void Error_BadLowerBound()
 		{
-			AssertTypeCompiler("ARRAY[TRUE..2] OF Int", t => Assert.Equal("ARRAY[2..2] OF Int", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>());
+			AssertTypeCompiler("ARRAY[TRUE..2] OF INT", t => Assert.Equal("ARRAY[2..2] OF INT", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 		[Fact]
 		public void Error_BadLowerAndUpperBound()
 		{
-			AssertTypeCompiler("ARRAY[TRUE..FALSE] OF Int", t => Assert.Equal("ARRAY[0..0] OF Int", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>(), ErrorOfType<TypeIsNotConvertibleMessage>());
+			AssertTypeCompiler("ARRAY[TRUE..FALSE] OF INT", t => Assert.Equal("ARRAY[0..0] OF INT", t.Code), ErrorOfType<TypeIsNotConvertibleMessage>(), ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 	}
 }

@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeLINT Instance = new();
         public string Name => "LINT";
+        public int Size => 8;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadLINT(location).ToString();
         public override string ToString() => Name;
 

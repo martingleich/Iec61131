@@ -1,5 +1,6 @@
 ﻿using Compiler.Messages;
 using Compiler.Types;
+using Runtime.IR.RuntimeTypes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -58,7 +59,7 @@ namespace Compiler
 			}
 			class OneDimensionalArrayInitializer : IInitializerElementSyntax.IVisitor, IElementSyntax.IVisitor<bool, IExpressionSyntax>
 			{
-				private readonly ArrayType.Range _range;
+				private readonly ArrayTypeRange _range;
 				private readonly IType _elementType;
 				private MessageBag Messages => _expressionBinder.MessageBag;
 				private readonly ExpressionBinder _expressionBinder;
@@ -70,7 +71,7 @@ namespace Compiler
 				private readonly Dictionary<int, SourceSpan> _setIndicies = new();
 				private readonly ImmutableArray<InitializerBoundExpression.ABoundElement>.Builder _elements = ImmutableArray.CreateBuilder<InitializerBoundExpression.ABoundElement>();
 
-				private OneDimensionalArrayInitializer( ArrayType.Range range, IType elementType, ExpressionBinder binder)
+				private OneDimensionalArrayInitializer(ArrayTypeRange range, IType elementType, ExpressionBinder binder)
 				{
 					_elementType = elementType ?? throw new ArgumentNullException(nameof(elementType));
 					_range = range;

@@ -1,4 +1,6 @@
-﻿namespace Compiler.Types
+﻿using Runtime.IR.RuntimeTypes;
+
+namespace Compiler.Types
 {
 	public interface IType
 	{

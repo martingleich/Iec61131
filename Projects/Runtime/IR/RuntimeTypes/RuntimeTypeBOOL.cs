@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeBOOL Instance = new();
         public string Name => "BOOL";
+        public int Size => 1;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadBOOL(location) ? "TRUE" : "FALSE";
         public override string ToString() => Name;
 

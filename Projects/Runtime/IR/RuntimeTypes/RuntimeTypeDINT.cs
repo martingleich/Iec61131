@@ -4,6 +4,7 @@
     {
         public static readonly RuntimeTypeDINT Instance = new();
         public string Name => "DINT";
+        public int Size => 4;
         public string ReadValue(MemoryLocation location, RTE runtime) => runtime.LoadDINT(location).ToString();
         public override string ToString() => Name;
 

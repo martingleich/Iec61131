@@ -1,46 +1,19 @@
-﻿using Compiler.Messages;
+﻿using Compiler.CodegenIR;
+using Compiler.Messages;
 using Compiler.Scopes;
+using Runtime.IR.RuntimeTypes;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
 namespace Compiler.Types
 {
 	public sealed class ArrayType : IType, _IDelayedLayoutType
 	{
-		public readonly struct Range : IEquatable<Range>
-		{
-			public readonly int LowerBound;
-			public readonly int UpperBound;
-
-			public Range(int lowerBound, int upperBound)
-			{
-				if (upperBound - lowerBound + 1 < 0)
-					throw new ArgumentException($"Upperbound({upperBound}) must be in range [lowerBound({lowerBound})-1, inf].", nameof(upperBound));
-				LowerBound = lowerBound;
-				UpperBound = upperBound;
-			}
-
-			public int Size => UpperBound - LowerBound + 1;
-			public bool IsInRange(int index) => index >= LowerBound && index <= UpperBound;
-
-			public bool Equals(Range other) => LowerBound == other.LowerBound && UpperBound == other.UpperBound;
-			public override bool Equals(object? obj) => throw new NotImplementedException("Use Equals(ArrayRange) instead");
-			public override int GetHashCode() => HashCode.Combine(LowerBound, UpperBound);
-			public override string ToString() => $"{LowerBound}..{UpperBound}";
-			public static bool operator ==(Range left, Range right) => left.Equals(right);
-
-			public static bool operator !=(Range left, Range right) => !(left == right);
-
-			public IEnumerable<int> Values => Enumerable.Range(LowerBound, Size);
-		}
-
 		private readonly ArrayTypeSyntax? MaybeSyntax;
 		private readonly IScope? MaybeScope;
 
 		public readonly IType BaseType;
-		public ImmutableArray<Range> Ranges { get; private set; }
+		public ImmutableArray<ArrayTypeRange> Ranges { get; private set; }
 		public UndefinedLayoutInfo? MaybeLayoutInfo { get; private set; }
 		public LayoutInfo LayoutInfo => MaybeLayoutInfo!.Value.TryGet(out var result) ? result : LayoutInfo.Zero;
 		public int ElementCount
@@ -66,7 +39,7 @@ namespace Compiler.Types
 			}
 		}
 
-		public ArrayType(IType baseType, ImmutableArray<Range> ranges)
+		public ArrayType(IType baseType, ImmutableArray<ArrayTypeRange> ranges)
 		{
 			BaseType = baseType ?? throw new ArgumentNullException(nameof(baseType));
 			Ranges = ranges;
@@ -118,26 +91,26 @@ namespace Compiler.Types
 			var upperbound = ConstantExpressionEvaluator.EvaluateConstant(scope, messageBag, type, syntax.UpperBound) as T;
 			return new BoundRange<T>(lowerbound, upperbound, syntax);
 		}
-		private static Range BoundRangeToArrayRange(MessageBag messageBag, BoundRange<DIntLiteralValue> range)
+		private static ArrayTypeRange BoundRangeToArrayRange(MessageBag messageBag, BoundRange<DIntLiteralValue> range)
 		{
 			if (range.Lower == null && range.Upper != null)
-				return new Range(range.Upper.Value, range.Upper.Value);
+				return new ArrayTypeRange(range.Upper.Value, range.Upper.Value);
 			else if (range.Lower != null && range.Upper == null)
-				return new Range(range.Lower.Value, range.Lower.Value);
+				return new ArrayTypeRange(range.Lower.Value, range.Lower.Value);
 			else if (range.Lower != null && range.Upper != null)
 				if (range.Upper.Value - range.Lower.Value + 1 < 0)
 				{
 					messageBag.Add(new InvalidArrayRangesMessage(range.Syntax.SourceSpan));
-					return new Range(range.Lower.Value, range.Lower.Value);
+					return new ArrayTypeRange(range.Lower.Value, range.Lower.Value);
 				}
 				else
-					return new Range(range.Lower.Value, range.Upper.Value);
+					return new ArrayTypeRange(range.Lower.Value, range.Upper.Value);
 			else
-				return new Range(0, 0);
+				return new ArrayTypeRange(0, 0);
 		}
-		private static ImmutableArray<Range> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax, out bool isValid)
+		private static ImmutableArray<ArrayTypeRange> CalculateArrayRanges(IScope scope, MessageBag messageBag, ArrayTypeSyntax arraySyntax, out bool isValid)
 		{
-			var builder = ImmutableArray.CreateBuilder<Range>();
+			var builder = ImmutableArray.CreateBuilder<ArrayTypeRange>();
 			isValid = true;
 			foreach (var rangeSyntax in arraySyntax.Ranges)
 			{
@@ -150,5 +123,10 @@ namespace Compiler.Types
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
+
+		public RuntimeTypeArray GetRuntimeType(RuntimeTypeFactory runtimeTypeFactory)
+		{
+            return new RuntimeTypeArray(Ranges, runtimeTypeFactory.GetRuntimeType(BaseType));
+		}
 	}
 }

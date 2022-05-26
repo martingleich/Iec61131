@@ -223,30 +223,13 @@ namespace DebugAdapter
                     new Variable(request.Name, value, -1)
                     {
                         EvaluateName = request.Name,
-                        Type = _initializeArguments?.SupportsVariableType == true ? request.Type.Name : null
-                    })
-                    .ToList();
+                        Type = _initializeArguments?.SupportsVariableType == true ? request.Type.Name : null,
+                    }).ToList();
                 return new VariablesResponse(resultVariables);
             }
             else if (varRef.IsGlobal)
             {
-                int start = arguments.Start ?? 0;
-                int count = arguments.Count ?? _debugRuntime.Module.GlobalVariableLists.Length;
-                var childReferences = _varReferenceManager.AllocateChildren(varRef, start, count);
-                var resultVariables = childReferences.Select((vr, i) =>
-                {
-                    var gvl = _debugRuntime.Module.GlobalVariableLists[i];
-                    return new Variable(gvl.Name, "", vr.Id)
-                    {
-                        PresentationHint = new VariablePresentationHint()
-                        {
-                            Kind = VariablePresentationHint.KindValue.Class,
-                            Attributes = VariablePresentationHint.AttributesValue.Static,
-                        },
-                        NamedVariables = gvl.VariableTable?.Length ?? 0,
-                    };
-                }).ToList();
-                return new VariablesResponse(resultVariables);
+                return GetGVLRefs(arguments, varRef);
             }
             else if (varRef.IsChild(out var parentRef, out int childIndex))
             {
@@ -263,8 +246,7 @@ namespace DebugAdapter
                             {
                                 EvaluateName = $"{gvl.Name}::{request.Name}",
                                 Type = _initializeArguments?.SupportsVariableType == true ? request.Type.Name : null
-                            })
-                            .ToList();
+                            }).ToList();
                         return new VariablesResponse(resultVariables);
                     }
                     else
@@ -282,6 +264,28 @@ namespace DebugAdapter
                 return new VariablesResponse();
             }
         }
+
+        private VariablesResponse GetGVLRefs(VariablesArguments arguments, VarReferenceManager.VarReference varRef)
+        {
+            int start = arguments.Start ?? 0;
+            int count = arguments.Count ?? _debugRuntime.Module.GlobalVariableLists.Length;
+            var childReferences = _varReferenceManager.AllocateChildren(varRef, start, count);
+            var resultVariables = childReferences.Select((vr, i) =>
+            {
+                var gvl = _debugRuntime.Module.GlobalVariableLists[i];
+                return new Variable(gvl.Name, "", vr.Id)
+                {
+                    PresentationHint = new VariablePresentationHint()
+                    {
+                        Kind = VariablePresentationHint.KindValue.Class,
+                        Attributes = VariablePresentationHint.AttributesValue.Static,
+                    },
+                    NamedVariables = gvl.VariableTable?.Length ?? 0,
+                };
+            }).ToList();
+            return new VariablesResponse(resultVariables);
+        }
+
         protected override ContinueResponse HandleContinueRequest(ContinueArguments arguments)
         {
             _debugRuntime.SendContinue();

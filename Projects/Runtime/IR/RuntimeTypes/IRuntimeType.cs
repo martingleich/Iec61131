@@ -28,7 +28,13 @@ namespace Runtime.IR.RuntimeTypes
             }
             return Superpower.Model.Result.Empty<IRuntimeType>(input);
         };
-        public static readonly TextParser<IRuntimeType> Parser = ParserDefinite.Or(Superpower.Parsers.Span.NonWhiteSpace.Select(span => (IRuntimeType)new RuntimeTypeUnknown(span.ToStringValue())));
+        private static readonly TextParser<IRuntimeType> ParserUnknown = Superpower.Parsers.Span.NonWhiteSpace.Select(span => (IRuntimeType)new RuntimeTypeUnknown(span.ToStringValue(), 0));
+        private static TextParser<IRuntimeType> MakeParser(TextParser<IRuntimeType> self) => ParserDefinite.Or(RuntimeTypeArray.MakeParser(self)).Or(ParserUnknown);
+        private static TextParser<IRuntimeType> MakeParser() => MakeParser(Parse.Ref(MakeParser));
+        public static readonly TextParser<IRuntimeType> Parser = MakeParser();
+
+        public IIndexedChildren? GetNumberedChildren() => null;
+        int Size { get; }
     }
 
     public interface IEquatableRuntimeType : IRuntimeType
@@ -38,5 +44,13 @@ namespace Runtime.IR.RuntimeTypes
     public interface IComparableRuntimeType : IRuntimeType
     {
         int Compare(MemoryLocation a, MemoryLocation b, RTE runtime);
+    }
+
+    public interface IIndexedChildren
+    {
+        Range<int> Range { get; }
+        MemoryLocation GetChildLocation(MemoryLocation parentLocation, int index);
+        IRuntimeType GetChildType(int index);
+        string GetChildName(int index);
     }
 }
