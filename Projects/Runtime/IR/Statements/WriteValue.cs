@@ -37,5 +37,6 @@ namespace Runtime.IR.Statements
 			from _deref in Span.EqualTo("*").Optional()
 			from _dst in LocalVarOffset.Parser
 			select (IStatement)(_deref.HasValue ? new WriteDerefValue(_value, _dst, _size) : new WriteValue(_value, _dst, _size));
+        public bool ContainsStatementReference => false;
 	}
 }

@@ -14,5 +14,6 @@ namespace Runtime.IR
 			Jump.Parser,
 			JumpIfNot.Parser,
 			Label.StatementParser);
-	}
+        bool ContainsStatementReference { get; }
+    }
 }

@@ -596,10 +596,10 @@ namespace Compiler
 	public sealed class InitVariableBoundStatement : IBoundStatement
 	{
 		public INode? OriginalNode { get; }
-		public readonly IVariableSymbol LeftSide;
+		public readonly InlineLocalVariableSymbol LeftSide;
 		public readonly IBoundExpression? RightSide;
 
-		public InitVariableBoundStatement(INode? originalNode, IVariableSymbol leftSide, IBoundExpression? rightSide)
+		public InitVariableBoundStatement(INode? originalNode, InlineLocalVariableSymbol leftSide, IBoundExpression? rightSide)
 		{
 			OriginalNode = originalNode;
 			LeftSide = leftSide ?? throw new ArgumentNullException(nameof(leftSide));

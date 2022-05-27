@@ -91,11 +91,11 @@ namespace CompilerTests.CodeGenTests
             ErrorHelper.ExactlyMessages()(project.AllMessages);
             var compiledModule = project.GenerateCode();
             Assert.Collection(compiledModule.GlobalVariableLists[0].Initializer!.Code,
-                x => Assert.Equal("copy4 131072 to stack0", x.ToString()),
-                x => Assert.Equal("copy2 12345 to *stack0", x.ToString()),
-                x => Assert.Equal("copy4 131074 to stack0", x.ToString()),
-                x => Assert.Equal("copy1 255 to *stack0", x.ToString()),
-                x => Assert.Equal("return", x.ToString()));
+                StatementChecker.String("copy4 131072 to stack0"),
+                StatementChecker.String("copy2 12345 to *stack0"),
+                StatementChecker.String("copy4 131074 to stack0"),
+                StatementChecker.String("copy1 255 to *stack0"),
+                StatementChecker.Return);
         }
     }
 }

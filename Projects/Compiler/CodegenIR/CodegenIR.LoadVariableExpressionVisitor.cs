@@ -1,6 +1,4 @@
 ﻿using System;
-using Compiler;
-using IR = Runtime.IR;
 
 namespace Compiler.CodegenIR
 {

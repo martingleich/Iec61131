@@ -31,7 +31,7 @@ namespace Compiler.CodegenIR
 			public void AddTrailingReturn(IBoundStatement boundSt)
 			{
 				SourceSpan? span =  boundSt.OriginalNode is ISyntax originalSyntax ? originalSyntax.GetFullEnd().WithLength(0) : null;
-				using (var _ = NewBreakpointScope(span))
+				using (var _ = NewLogicalStatementScope(span))
                     CodeGen.Generator.IL(IRStmt.Return.Instance);
 			}
 
@@ -50,8 +50,10 @@ namespace Compiler.CodegenIR
 			}
 			private void Assign(IWritable writable, IBoundExpression valueExpression)
 			{
-				var value = valueExpression.Accept(CodeGen._loadValueExpressionVisitor);
-				writable.Assign(CodeGen, value);
+				var target = writable as LocalVariable;
+				var value = valueExpression.Accept(CodeGen._loadValueExpressionVisitor, target);
+				if(target != value)
+                    writable.Assign(CodeGen, value);
 			}
 
 			public void Visit(SequenceBoundStatement sequenceBoundStatement)
@@ -60,14 +62,14 @@ namespace Compiler.CodegenIR
 					st.Accept(this);
 			}
 
-			private readonly struct BreakpointScope : IDisposable
+			private readonly struct LogicalStatementScope : IDisposable
 			{
-				public static readonly BreakpointScope Null = default;
+				public static readonly LogicalStatementScope Null = default;
 				private readonly StatementVisitor? Self;
 				private readonly SourceSpan SourceSpan;
 				private readonly int InstructionBegin;
 
-				public BreakpointScope(StatementVisitor? self, SourceSpan sourceSpan, int instructionBegin)
+				public LogicalStatementScope(StatementVisitor? self, SourceSpan sourceSpan, int instructionBegin)
 				{
 					Self = self;
 					SourceSpan = sourceSpan;
@@ -84,31 +86,32 @@ namespace Compiler.CodegenIR
 						foreach (var pred in Self._breakpointPredecessors)
 							Self.CodeGen.BreakpointFactory.SetPredecessor(newId, pred);
 						Self._breakpointPredecessors = ImmutableArray.Create(newId);
+                        Self.CodeGen._stackAllocator.FreeAllTemporaries();
 					}
 				}
 			}
 
-			private BreakpointScope NewBreakpointScope(SourceSpan? maybeSourceSpan)
+			private LogicalStatementScope NewLogicalStatementScope(SourceSpan? maybeSourceSpan)
 			{
 				var instructionBegin = CodeGen.Generator.InstructionId;
 				if (maybeSourceSpan is SourceSpan sourceSpan)
-					return new BreakpointScope(this, sourceSpan, instructionBegin);
+					return new LogicalStatementScope(this, sourceSpan, instructionBegin);
 				else
-					return BreakpointScope.Null;
+					return LogicalStatementScope.Null;
 			}
-			private BreakpointScope NewBreakpointScope(IBoundNode owner) => NewBreakpointScope(owner.TryGetSourcePosition());
+			private LogicalStatementScope NewLogicalStatementScope(IBoundNode owner) => NewLogicalStatementScope(owner.TryGetSourcePosition());
 			public void Visit(ExpressionBoundStatement expressionBoundStatement)
 			{
-				using (var _ = NewBreakpointScope(expressionBoundStatement))
+				using (var _ = NewLogicalStatementScope(expressionBoundStatement))
 				{
                     AddComment(expressionBoundStatement);
-					expressionBoundStatement.Expression.Accept(CodeGen._loadValueExpressionVisitor);
+					expressionBoundStatement.Expression.Accept(CodeGen._loadValueExpressionVisitor, null);
 				}
 			}
 
 			public void Visit(AssignBoundStatement assignToExpressionBoundStatement)
 			{
-				using (var _ = NewBreakpointScope(assignToExpressionBoundStatement))
+				using (var _ = NewLogicalStatementScope(assignToExpressionBoundStatement))
 				{
                     AddComment(assignToExpressionBoundStatement);
 					var writable = CodeGen.LoadWritable(assignToExpressionBoundStatement.LeftSide);
@@ -119,7 +122,7 @@ namespace Compiler.CodegenIR
 			{
 				if (initVariableBoundStatement.RightSide is not null)
 				{
-					using (var _ = NewBreakpointScope(initVariableBoundStatement))
+					using (var _ = NewLogicalStatementScope(initVariableBoundStatement))
 					{
                         AddComment(initVariableBoundStatement);
 						var writable = initVariableBoundStatement.LeftSide.Accept(CodeGen._variableAddressableVisitor).ToWritable(CodeGen);
@@ -140,7 +143,7 @@ namespace Compiler.CodegenIR
 						// Last branch.
 						if (branch.Condition is IBoundExpression condition)
 						{
-							using (var _ = NewBreakpointScope(condition))
+							using (var _ = NewLogicalStatementScope(condition))
 							{
 								AddComment(condition);
 								var conditionValue = CodeGen.LoadValueAsVariable(condition);
@@ -156,7 +159,7 @@ namespace Compiler.CodegenIR
 						var nextLabel = CodeGen.Generator.DeclareLabel();
 						if (branch.Condition is IBoundExpression condition)
 						{
-							using (var _ = NewBreakpointScope(condition))
+							using (var _ = NewLogicalStatementScope(condition))
 							{
 								AddComment(condition);
 								var conditionValue = CodeGen.LoadValueAsVariable(condition);
@@ -252,7 +255,7 @@ namespace Compiler.CodegenIR
 				if(whileSyntax != null) AddComment(whileSyntax.TokenWhile, whileSyntax.Condition, whileSyntax.TokenDo);
 				var startLabel = CodeGen.Generator.DeclareLabel();
 				var endLabel = CodeGen.Generator.DeclareLabel();
-				using (var _ = NewBreakpointScope(whileBoundStatement.Condition))
+				using (var _ = NewLogicalStatementScope(whileBoundStatement.Condition))
 				{
 					CodeGen.Generator.IL_Label(startLabel);
 					var value = CodeGen.LoadValueAsVariable(whileBoundStatement.Condition);
@@ -261,7 +264,7 @@ namespace Compiler.CodegenIR
 				var breakpointCondition = _breakpointPredecessors;
 				whileBoundStatement.Body.Accept(GetInLoopVisitor(endLabel, startLabel));
 				if(whileSyntax != null) AddComment(whileSyntax.TokenEndWhile);
-				using (var _ = NewBreakpointScope(whileSyntax?.TokenEndWhile?.SourceSpan))
+				using (var _ = NewLogicalStatementScope(whileSyntax?.TokenEndWhile?.SourceSpan))
 				{
 					CodeGen.Generator.IL_Jump(startLabel);
 					CodeGen.Generator.IL_Label(endLabel);
@@ -278,7 +281,7 @@ namespace Compiler.CodegenIR
 				if (_loopExitLabel is null)
 					throw new InvalidOperationException();
 				AddComment(exitBoundStatement);
-				using (var _ = NewBreakpointScope(exitBoundStatement))
+				using (var _ = NewLogicalStatementScope(exitBoundStatement))
 				{
 					CodeGen.Generator.IL_Jump(_loopExitLabel);
 				}
@@ -289,7 +292,7 @@ namespace Compiler.CodegenIR
 				if (_loopContinueLabel is null)
 					throw new InvalidOperationException();
 				AddComment(continueBoundStatement);
-				using (var _ = NewBreakpointScope(continueBoundStatement))
+				using (var _ = NewLogicalStatementScope(continueBoundStatement))
 				{
 					CodeGen.Generator.IL_Jump(_loopContinueLabel);
 				}
@@ -298,14 +301,14 @@ namespace Compiler.CodegenIR
 			public void Visit(ReturnBoundStatement returnBoundStatement)
 			{
 				AddComment(returnBoundStatement);
-				using (var _ = NewBreakpointScope(returnBoundStatement))
+				using (var _ = NewLogicalStatementScope(returnBoundStatement))
 				{
 					CodeGen.Generator.IL(IRStmt.Return.Instance);
 				}
 			}
 		}
-	
-		private readonly StatementVisitor _statementVisitor;
+
+        private readonly StatementVisitor _statementVisitor;
 		public void CompileStatement(IBoundStatement statement)
 		{
 			statement.Accept(_statementVisitor);

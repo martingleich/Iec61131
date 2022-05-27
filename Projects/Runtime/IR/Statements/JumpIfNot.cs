@@ -25,5 +25,6 @@ namespace Runtime.IR.Statements
 			from _control in Span.EqualTo("if not").ThenIgnore(Span.WhiteSpace).IgnoreThen(LocalVarOffset.Parser).ThenIgnore(Span.WhiteSpace)
 			from _label in Span.EqualTo("jump to").ThenIgnore(Span.WhiteSpace).IgnoreThen(Label.ReferenceParser)
 			select (IStatement)new JumpIfNot(_control, _label);
+        public bool ContainsStatementReference => true;
 	}
 }

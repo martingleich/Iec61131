@@ -31,8 +31,6 @@ VsCode:
 	LSP-Implementation
 
 CodeGenIR:
-	Reduce number of temporaries.
-
 
 Compiler-features:
 	Store scopes with symbols:

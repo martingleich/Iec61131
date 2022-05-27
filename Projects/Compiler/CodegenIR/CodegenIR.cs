@@ -266,7 +266,7 @@ namespace Compiler.CodegenIR
             GlobalVariableAllocationTable = globalVariableAllocationTable ?? throw new ArgumentNullException(nameof(globalVariableAllocationTable));
 
 			Id = PouIdFromSymbol(pou.CallableSymbol);
-			_stackAllocator = new(this, pou.CallableSymbol);
+			_stackAllocator = StackAllocator.Create(this, pou);
 
 			Generator = new(this);
 			_loadVariableExpressionVisitor = new(this);
@@ -337,29 +337,29 @@ namespace Compiler.CodegenIR
 			}
 
 			public LocalVariable IL_SimpleCallAsVariable(IR.Type type, IR.PouId symbolId, params LocalVariable[] args)
-				=> CodeGen.LoadValueAsVariable(type, IL_SimpleCall(type, symbolId, args));
-			public IReadable IL_SimpleCall(IR.Type type, IR.PouId symbolId, params LocalVariable[] args)
+				=> CodeGen.LoadValueAsVariable(type, IL_SimpleCall(null, type, symbolId, args));
+			public IReadable IL_SimpleCall(LocalVariable? targetVar, IR.Type type, IR.PouId symbolId, params LocalVariable[] args)
 			{
-				var tmp = DeclareTemp(type);
+				var tmp = targetVar ?? DeclareTemp(type);
 				IL(new IRStmt.StaticCall(symbolId,
 					args.Select(arg => arg.Offset).ToImmutableArray(),
 					ImmutableArray.Create(tmp.Offset)));
 				return tmp;
 			}
-			public IReadable IL_SimpleCall(FunctionVariableSymbol variable, params LocalVariable[] args)
-				=> IL_SimpleCall(CodegenIR.TypeFromIType(variable.Type.GetReturnType()), PouIdFromSymbol(variable), args);
+			public IReadable IL_SimpleCall(LocalVariable? targetVar, FunctionVariableSymbol variable, params LocalVariable[] args)
+				=> IL_SimpleCall(targetVar, CodegenIR.TypeFromIType(variable.Type.GetReturnType()), PouIdFromSymbol(variable), args);
 
 			public IAddressable GetElementAddressableField(IAddressable baseReference, FieldVariableSymbol field)
 				=> baseReference.GetElementAddressable(CodeGen, new ElementAddressable.Element.Field(field), CodegenIR.TypeFromIType(field.Type).Size);
 
 			public LocalVariable LocalVariable(ILocalVariableSymbol localVariable)
 			{
-				var (offset, irType) = CodeGen._stackAllocator.AllocStackLocal(localVariable);
+				var (offset, irType) = CodeGen._stackAllocator.GetLocalInfo(localVariable);
 				return new LocalVariable(localVariable.Name.Original, irType, offset);
 			}
 			public LocalVariable Parameter(ParameterVariableSymbol parameterVariable)
 			{
-				var (offset, irType) = CodeGen._stackAllocator.AllocParameter(parameterVariable);
+				var (offset, irType) = CodeGen._stackAllocator.GetParameterInfo(parameterVariable);
 				return new LocalVariable(parameterVariable.Name.Original, irType, offset);
 			}
 			public GlobalVariable GlobalVariable(GlobalVariableSymbol globalVariable)
@@ -368,7 +368,7 @@ namespace Compiler.CodegenIR
 				return new GlobalVariable(globalVariable.UniqueName.ToString(), location, globalVariable.Type.LayoutInfo.Size);
 			}
 
-			public ImmutableArray<IR.IStatement> GetStatements() => _statements.ToImmutableArray();
+			public ImmutableArray<IStatement> GetStatements() => _statements.ToImmutableArray();
 		}
 
 		public CompiledPou GetGeneratedCode(SourceMap.SingleFile? sourceMap)
@@ -395,8 +395,10 @@ namespace Compiler.CodegenIR
 			{
 				if (local.InitialValue is IBoundExpression initial)
 				{
-					var value = initial.Accept(_loadValueExpressionVisitor);
-					Generator.LocalVariable(local).Assign(this, value);
+					var target = Generator.LocalVariable(local);
+					var value = initial.Accept(_loadValueExpressionVisitor, target);
+					if(value != target)
+                        Generator.LocalVariable(local).Assign(this, value);
 				}
 			}
 		}

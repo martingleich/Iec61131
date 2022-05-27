@@ -20,5 +20,7 @@ namespace Runtime.IR.Statements
 		}
 		public static readonly TextParser<IStatement> Parser =
 			Superpower.Parsers.Comment.ShellStyle.Select(str => (IStatement)FromParsed(str.ToStringValue()));
-	}
+
+        public bool ContainsStatementReference => false;
+    }
 }

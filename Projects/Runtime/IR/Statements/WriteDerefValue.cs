@@ -22,5 +22,6 @@ namespace Runtime.IR.Statements
 			return null;
 		}
 		public override string ToString() => $"copy{Size} {Value} to *{Target}";
+        public bool ContainsStatementReference => false;
 	}
 }

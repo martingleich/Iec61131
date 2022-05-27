@@ -11,5 +11,6 @@ namespace Runtime.IR.Statements
 		public override string ToString() => "return";
 		public static readonly TextParser<IStatement> Parser =
 			Span.EqualTo("return").IgnoreThen(Parse.Return((IStatement)Instance));
+        public bool ContainsStatementReference => false;
 	}
 }

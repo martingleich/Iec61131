@@ -35,5 +35,6 @@ namespace Runtime.IR.Statements
 			from _1 in Span.EqualTo("=>").SuroundOptionalWhitespace()
 			from _outputs in LocalVarOffset.Parser.CommaSeperatedList()
 			select (IStatement)new StaticCall(_callee, _inputs, _outputs);
+        public bool ContainsStatementReference => false;
 	}
 }

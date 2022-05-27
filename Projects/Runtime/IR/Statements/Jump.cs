@@ -18,5 +18,6 @@ namespace Runtime.IR.Statements
 		public static readonly TextParser<IStatement> Parser =
 			from _label in Span.EqualTo("jump to").ThenIgnore(Span.WhiteSpace).IgnoreThen(Label.ReferenceParser)
 			select (IStatement)new Jump(_label);
+        public bool ContainsStatementReference => true;
 	}
 }

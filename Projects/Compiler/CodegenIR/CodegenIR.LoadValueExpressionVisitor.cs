@@ -12,7 +12,7 @@ namespace Compiler.CodegenIR
 {
 	public sealed partial class CodegenIR
 	{
-		private sealed class LoadValueExpressionVisitor : IBoundExpression.IVisitor<IReadable>
+		private sealed class LoadValueExpressionVisitor : IBoundExpression.IVisitor<IReadable, LocalVariable?>
 		{
 			private readonly CodegenIR CodeGen;
 
@@ -23,50 +23,50 @@ namespace Compiler.CodegenIR
 
 			private GeneratorT Generator => CodeGen.Generator;
 
-			public IReadable Visit(LiteralBoundExpression literalBoundExpression) => new JustReadable(literalBoundExpression.Value.Accept(LoadLiteralValueVisitor.Instance));
-			public IReadable Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression) => new JustReadable(IRExpr.LiteralExpression.Signed32(sizeOfTypeBoundExpression.Type.LayoutInfo.Size));
-			public IReadable Visit(VariableBoundExpression variableBoundExpression) => variableBoundExpression.Variable.Accept(CodeGen._loadVariableExpressionVisitor);
-			public IReadable Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression) => implicitEnumCastBoundExpression.Value.Accept(this);
-			public IReadable Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression)
+			public IReadable Visit(LiteralBoundExpression literalBoundExpression, LocalVariable? targetVar) => new JustReadable(literalBoundExpression.Value.Accept(LoadLiteralValueVisitor.Instance));
+			public IReadable Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression, LocalVariable? targetVar) => new JustReadable(IRExpr.LiteralExpression.Signed32(sizeOfTypeBoundExpression.Type.LayoutInfo.Size));
+			public IReadable Visit(VariableBoundExpression variableBoundExpression, LocalVariable? targetVar) => variableBoundExpression.Variable.Accept(CodeGen._loadVariableExpressionVisitor);
+			public IReadable Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression, LocalVariable? targetVar) => implicitEnumCastBoundExpression.Value.Accept(this, targetVar);
+			public IReadable Visit(BinaryOperatorBoundExpression binaryOperatorBoundExpression, LocalVariable? targetVar)
 			{
 				var left = CodeGen.LoadValueAsVariable(binaryOperatorBoundExpression.Left);
 				var right = CodeGen.LoadValueAsVariable(binaryOperatorBoundExpression.Right);
-				return Generator.IL_SimpleCall(binaryOperatorBoundExpression.Function, left, right);
+				return Generator.IL_SimpleCall(targetVar, binaryOperatorBoundExpression.Function, left, right);
 			}
-			public IReadable Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression)
+			public IReadable Visit(UnaryOperatorBoundExpression unaryOperatorBoundExpression, LocalVariable? targetVar)
 			{
 				var arg = CodeGen.LoadValueAsVariable(unaryOperatorBoundExpression.Value);
-				return Generator.IL_SimpleCall(unaryOperatorBoundExpression.Function, arg);
+				return Generator.IL_SimpleCall(targetVar, unaryOperatorBoundExpression.Function, arg);
 			}
-			public IReadable Visit(ImplicitCastBoundExpression implicitArithmeticCaseBoundExpression)
+			public IReadable Visit(ImplicitCastBoundExpression implicitArithmeticCaseBoundExpression, LocalVariable? targetVar)
 			{
 				var arg = CodeGen.LoadValueAsVariable(implicitArithmeticCaseBoundExpression.Value);
-				return Generator.IL_SimpleCall(implicitArithmeticCaseBoundExpression.CastFunction, arg);
+				return Generator.IL_SimpleCall(targetVar, implicitArithmeticCaseBoundExpression.CastFunction, arg);
 			}
-			public IReadable Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression)
+			public IReadable Visit(ArrayIndexAccessBoundExpression arrayIndexAccessBoundExpression, LocalVariable? targetVar)
 				=> CodeGen.LoadAddressable(arrayIndexAccessBoundExpression).ToReadable(CodeGen);
-			public IReadable Visit(FieldAccessBoundExpression fieldAccessBoundExpression)
+			public IReadable Visit(FieldAccessBoundExpression fieldAccessBoundExpression, LocalVariable? targetVar)
 				=> CodeGen.LoadAddressable(fieldAccessBoundExpression).ToReadable(CodeGen);
-			public IReadable Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression)
+			public IReadable Visit(PointerIndexAccessBoundExpression pointerIndexAccessBoundExpression, LocalVariable? targetVar)
 				=> CodeGen.LoadAddressable(pointerIndexAccessBoundExpression).ToReadable(CodeGen);
-			public IReadable Visit(DerefBoundExpression derefBoundExpression)
+			public IReadable Visit(DerefBoundExpression derefBoundExpression, LocalVariable? targetVar)
 				=> CodeGen.LoadAddressable(derefBoundExpression).ToReadable(CodeGen);
 
-			public IReadable Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression) => implicitPointerTypeCaseBoundExpression.Value.Accept(this);
-			public IReadable Visit(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression) => aliasToBaseTypeCastBoundExpression.Value.Accept(this);
-			public IReadable Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression) => implicitAliasFromBaseTypeCastBoundExpression.Value.Accept(this);
-			public IReadable Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression)
+			public IReadable Visit(ImplicitPointerTypeCastBoundExpression implicitPointerTypeCaseBoundExpression, LocalVariable? targetVar) => implicitPointerTypeCaseBoundExpression.Value.Accept(this, targetVar);
+			public IReadable Visit(ImplicitAliasToBaseTypeCastBoundExpression aliasToBaseTypeCastBoundExpression, LocalVariable? targetVar) => aliasToBaseTypeCastBoundExpression.Value.Accept(this, targetVar);
+			public IReadable Visit(ImplicitAliasFromBaseTypeCastBoundExpression implicitAliasFromBaseTypeCastBoundExpression, LocalVariable? targetVar) => implicitAliasFromBaseTypeCastBoundExpression.Value.Accept(this, targetVar);
+			public IReadable Visit(PointerDiffrenceBoundExpression pointerDiffrenceBoundExpression, LocalVariable? targetVar)
 			{
 				var left = CodeGen.LoadValueAsVariable(pointerDiffrenceBoundExpression.Left);
 				var right = CodeGen.LoadValueAsVariable(pointerDiffrenceBoundExpression.Right);
-				return CodeGen.Generator.IL_SimpleCall(IR.Type.Pointer, new IR.PouId("__SYSTEM::SUB_POINTER"), left, right);
+				return CodeGen.Generator.IL_SimpleCall(targetVar, IR.Type.Pointer, new IR.PouId("__SYSTEM::SUB_POINTER"), left, right);
 			}
 
-			public IReadable Visit(PointerOffsetBoundExpression pointerOffsetBoundExpression)
+			public IReadable Visit(PointerOffsetBoundExpression pointerOffsetBoundExpression, LocalVariable? targetVar)
 			{
 				var left = CodeGen.LoadValueAsVariable(pointerOffsetBoundExpression.Left);
 				var right = CodeGen.LoadValueAsVariable(pointerOffsetBoundExpression.Right);
-				return CodeGen.Generator.IL_SimpleCall(IR.Type.Pointer, new IR.PouId("__SYSTEM::ADD_POINTER"), left, right);
+				return CodeGen.Generator.IL_SimpleCall(targetVar, IR.Type.Pointer, new IR.PouId("__SYSTEM::ADD_POINTER"), left, right);
 			}
 
 			private sealed class CalleeInfo
@@ -106,7 +106,7 @@ namespace Compiler.CodegenIR
 				public int GetId(ParameterVariableSymbol parameter) => _idMap[parameter.ParameterId];
 			}
 
-			public IReadable Visit(CallBoundExpression callBoundExpression)
+			public IReadable Visit(CallBoundExpression callBoundExpression, LocalVariable? targetVar)
 			{
 				var staticCallee = (ICallableTypeSymbol)callBoundExpression.Callee.Type; // Will always succeed for compiling code.
 				var calleeInfo = new CalleeInfo(staticCallee);
@@ -154,12 +154,12 @@ namespace Compiler.CodegenIR
 				LocalVariable returnVariable;
 				if (maybeReturnType is IR.Type returnType)
 				{
-					returnVariable = CodeGen.Generator.DeclareTemp(returnType);
+					returnVariable = targetVar ?? CodeGen.Generator.DeclareTemp(returnType);
 					intermediateOutputs = intermediateOutputs.Prepend(returnVariable).ToArray();
 				}
 				else
 				{
-					returnVariable = CodeGen.Generator.DeclareTemp(IR.Type.Bits0);
+					returnVariable = targetVar ?? CodeGen.Generator.DeclareTemp(IR.Type.Bits0);
 				}
 				CodeGen.Generator.IL(new IRStmt.StaticCall(
 					CodegenIR.PouIdFromSymbol(staticCallee),
@@ -178,9 +178,9 @@ namespace Compiler.CodegenIR
 				return returnVariable;
 			}
 
-			public IReadable Visit(InitializerBoundExpression initializerBoundExpression)
+			public IReadable Visit(InitializerBoundExpression initializerBoundExpression, LocalVariable? targetVar)
 			{
-				var var = CodeGen.Generator.DeclareTemp(TypeFromIType(initializerBoundExpression.Type));
+				var var = targetVar ?? CodeGen.Generator.DeclareTemp(TypeFromIType(initializerBoundExpression.Type));
 				foreach (var elem in initializerBoundExpression.Elements)
 				{
 					var value = CodeGen.LoadValueAsVariable(elem.Value);
@@ -230,12 +230,12 @@ namespace Compiler.CodegenIR
 				return var;
 			}
 
-			public IReadable Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression)
+			public IReadable Visit(ImplicitDiscardBoundExpression implicitDiscardBoundExpression, LocalVariable? targetVar)
 			{
-				implicitDiscardBoundExpression.Value.Accept(CodeGen._loadValueExpressionVisitor);
+				implicitDiscardBoundExpression.Value.Accept(CodeGen._loadValueExpressionVisitor, targetVar);
 				return new JustReadable(IRExpr.NullExpression.Instance);
 			}
-			public IReadable Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression) => throw new InvalidOperationException();
+			public IReadable Visit(ImplicitErrorCastBoundExpression implicitErrorCastBoundExpression, LocalVariable? targetVar) => throw new InvalidOperationException();
 		}
 		private readonly LoadValueExpressionVisitor _loadValueExpressionVisitor;
 
@@ -247,7 +247,7 @@ namespace Compiler.CodegenIR
 		}
 		private LocalVariable LoadValueAsVariable(IBoundExpression expression)
 		{
-			var value = expression.Accept(_loadValueExpressionVisitor);
+			var value = expression.Accept(_loadValueExpressionVisitor, null);
 			return LoadValueAsVariable(TypeFromIType(expression.Type), value);
 		}
 		private readonly VariableAddressableVisitor _variableAddressableVisitor;
