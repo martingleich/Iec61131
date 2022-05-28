@@ -202,24 +202,30 @@ namespace Compiler.CodegenIR
 					else if (elem is InitializerBoundExpression.ABoundElement.AllElements)
 					{
 						var type = (ArrayType)initializerBoundExpression.Type;
-						var index = CodeGen.Generator.DeclareTemp(IR.Type.Bits32);
-						var indexPtr = CodeGen.Generator.DeclareTemp(IR.Type.Pointer, index.ToPointerValue(CodeGen));
-						var arrayPtr = new PointerVariableAddressable(CodeGen.Generator.DeclareTemp(IR.Type.Pointer, var.ToPointerValue(CodeGen)), type.BaseType.LayoutInfo.Size);
-						var initialValue = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(0)));
-						var upperBound = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(type.ElementCount)));
-						var step = CodeGen.Generator.DeclareTemp(IR.Type.Bits32, new JustReadable(IRExpr.LiteralExpression.Signed32(0)));
-						CodeGen._statementVisitor.GenerateForLoop(
-							null,
-							"DINT",
-							v =>
-							{
-								var element = arrayPtr.GetElementAddressable(CodeGen, new ElementAddressable.Element.PointerIndex(index, type.BaseType.LayoutInfo.Size), type.BaseType.LayoutInfo.Size);
-								element.ToWritable(CodeGen).Assign(CodeGen, value);
-							},
-							indexPtr,
-							initialValue,
-							upperBound,
-							step);
+						var idx = CodeGen.Generator.DeclareTemp(IR.Type.Bits32);
+						var ptr = CodeGen.Generator.DeclareTemp(IR.Type.Pointer);
+						var endptr = CodeGen.Generator.DeclareTemp(IR.Type.Pointer);
+						var cond = CodeGen.Generator.DeclareTemp(IR.Type.Bits8);
+						CodeGen.Generator.IL(new IR.Statements.WriteValue(new IRExpr.LiteralExpression(0), idx.Offset, IR.Type.Bits32.Size));
+						CodeGen.Generator.IL(new IR.Statements.WriteValue(
+							new ElementAddressable(new IRExpr.AddressExpression.BaseStackVar(var.Offset),
+							ImmutableArray.Create<ElementAddressable.Element>(new ElementAddressable.Element.PointerIndex(idx, type.BaseType.LayoutInfo.Size)),
+							type.BaseType.LayoutInfo.Size).ToPointerValue(CodeGen).GetExpression(), ptr.Offset, IR.Type.Pointer.Size));
+						CodeGen.Generator.IL(new IR.Statements.WriteValue(IRExpr.LiteralExpression.Signed32(type.ElementCount), idx.Offset, IR.Type.Bits32.Size));
+						CodeGen.Generator.IL(new IR.Statements.WriteValue(
+							new ElementAddressable(new IRExpr.AddressExpression.BaseStackVar(var.Offset),
+							ImmutableArray.Create<ElementAddressable.Element>(new ElementAddressable.Element.PointerIndex(idx, type.BaseType.LayoutInfo.Size)),
+							type.BaseType.LayoutInfo.Size).ToPointerValue(CodeGen).GetExpression(), endptr.Offset, IR.Type.Pointer.Size));
+						CodeGen.Generator.IL(new IR.Statements.WriteValue(IRExpr.LiteralExpression.Signed32(type.BaseType.LayoutInfo.Size), idx.Offset, IR.Type.Bits32.Size));
+						var label = CodeGen.Generator.DeclareLabel();
+						CodeGen.Generator.IL_Label(label);
+						CodeGen.Generator.IL(new IR.Statements.WriteDerefValue(
+							value.GetExpression(),
+							ptr.Offset,
+							type.BaseType.LayoutInfo.Size));
+						CodeGen.Generator.IL_SimpleCall(ptr, IR.Type.Pointer, new IR.PouId("__SYSTEM::ADD_POINTER"), ptr, idx);
+						CodeGen.Generator.IL_SimpleCall(cond, IR.Type.Pointer, new IR.PouId("__SYSTEM::EQUAL_DINT"), ptr, endptr);
+						CodeGen.Generator.IL_Jump_IfNot(cond, label);
 					}
 					else
 					{

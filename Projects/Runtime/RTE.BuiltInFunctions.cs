@@ -49,7 +49,7 @@ namespace Runtime
 			{
 				var name = callee.Name["__SYSTEM::".Length..];
 				var lastUnderscore = name.IndexOf('_');
-				var op = name[..(lastUnderscore - 1)];
+				var op = name[..lastUnderscore];
 				var type = name[(lastUnderscore + 1)..];
 				var maybeType = IR.RuntimeTypes.IRuntimeType.ParserDefinite.TryParse(type);
 				if (maybeType.HasValue)

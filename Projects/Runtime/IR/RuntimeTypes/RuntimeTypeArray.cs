@@ -46,14 +46,9 @@ namespace Runtime.IR.RuntimeTypes
 
         public string Name => $"ARRAY[{string.Join(", ", Ranges)}] OF {BaseType.Name}";
 
-        private static readonly TextParser<ArrayTypeRange> ParserDimension =
-            from _1 in Superpower.Parsers.Span.WhiteSpace
-            from dim in ArrayTypeRange.Parser
-            from _3 in Superpower.Parsers.Span.WhiteSpace
-            select dim;
         public static TextParser<IRuntimeType> MakeParser(TextParser<IRuntimeType> baseTypeParser) =>
             from _1 in Superpower.Parsers.Span.EqualToIgnoreCase("ARRAY[")
-            from dimensions in Parse.Chain(Superpower.Parsers.Span.EqualTo(","), ParserDimension.Select(ImmutableArray.Create), (_, a, b) => a.AddRange(b))
+            from dimensions in Parse.Chain(Superpower.Parsers.Span.EqualTo(",").SuroundOptionalWhitespace(), ArrayTypeRange.Parser.SuroundOptionalWhitespace().Select(ImmutableArray.Create), (_, a, b) => a.AddRange(b))
             from _2 in Superpower.Parsers.Span.EqualToIgnoreCase("] OF ")
             from baseType in baseTypeParser
             select (IRuntimeType)new RuntimeTypeArray(dimensions, baseType);
@@ -62,7 +57,7 @@ namespace Runtime.IR.RuntimeTypes
 
         public int Size => BaseType.Size * ElementCount;
 
-        public IIndexedChildren GetIndexedChildren() => new IndexedChildren(this);
+        public IIndexedChildren? GetIndexedChildren() => new IndexedChildren(this);
         public override string ToString() => Name;
     }
 }

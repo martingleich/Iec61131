@@ -32,7 +32,7 @@ namespace Runtime.IR.RuntimeTypes
 
         public static readonly TextParser<ArrayTypeRange> Parser =
             from start in Superpower.Parsers.Numerics.IntegerInt32
-            from _2 in Superpower.Parsers.Span.EqualTo("..")
+            from _2 in Superpower.Parsers.Span.EqualTo("..").SuroundOptionalWhitespace()
             from end in Superpower.Parsers.Numerics.IntegerInt32
             select new ArrayTypeRange(start, end);
     }

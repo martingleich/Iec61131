@@ -196,28 +196,16 @@ namespace DebugAdapter
         public void SendStepSingle() => Send(dbg => dbg.StepSingle());
 
         public Task<ImmutableArray<StackFrame>> SendGetStacktrace() => SendCompute(dbg => _cachedStacktrace ??= dbg._runtime.GetStackTrace());
-        public Task<ImmutableArray<string>> SendGetStackVariableValues(int frameId, ImmutableArray<(LocalVarOffset Offset, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
+        public Task<ImmutableArray<string>> SendGetVariableValues(ImmutableArray<(MemoryLocation Location, IRuntimeType DebugType)?> variables) => SendCompute(dbg =>
         {
             return ImmutableArray.CreateRange(variables, variable =>
             {
                 try
                 {
-                    var location = dbg._runtime.LoadEffectiveAddress(frameId, variable.Offset);
-                    return variable.DebugType.ReadValue(location, _runtime);
-                }
-                catch (Exception e)
-                {
-                    return $"Exception: {e.Message}";
-                }
-            });
-        });
-        public Task<ImmutableArray<string>> SendGetVariableValues(ImmutableArray<(MemoryLocation Location, IRuntimeType DebugType)> variables) => SendCompute(dbg =>
-        {
-            return ImmutableArray.CreateRange(variables, variable =>
-            {
-                try
-                {
-                    return variable.DebugType.ReadValue(variable.Location, _runtime);
+                    if (variable is (MemoryLocation Location, IRuntimeType DebugType))
+                        return DebugType.ReadValue(Location, _runtime);
+                    else
+                        return "";
                 }
                 catch (Exception e)
                 {

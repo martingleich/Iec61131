@@ -33,7 +33,7 @@ namespace Runtime.IR.RuntimeTypes
         private static TextParser<IRuntimeType> MakeParser() => MakeParser(Parse.Ref(MakeParser));
         public static readonly TextParser<IRuntimeType> Parser = MakeParser();
 
-        public IIndexedChildren? GetNumberedChildren() => null;
+        public IIndexedChildren? GetIndexedChildren() => null;
         int Size { get; }
     }
 

@@ -304,7 +304,7 @@ namespace Runtime
             for (int i = _callStack.Count - 1; i >= 0; --i)
             {
                 var frame = _callStack[i];
-                builder.Add(new StackFrame(frame.Compiled, curInstr, i));
+                builder.Add(new StackFrame(frame.Compiled, curInstr, i, frame[new LocalVarOffset(0)]));
                 curInstr = frame.CallAddress;
             }
             builder.Reverse();
@@ -402,5 +402,5 @@ namespace Runtime
                 _breakpoints.Add(i);
         }
     }
-    public record struct StackFrame(CompiledPou Cpou, int CurAddress, int FrameId) { }
+    public record struct StackFrame(CompiledPou Cpou, int CurAddress, int FrameId, MemoryLocation BaseAddress) { }
 }

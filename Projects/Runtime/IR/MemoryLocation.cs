@@ -14,6 +14,7 @@
 		public override string ToString() => $"{Area}:{Offset}";
 
 		public static MemoryLocation operator +(MemoryLocation location, int offset) => new (location.Area, (ushort)(location.Offset + offset));
+		public static MemoryLocation operator +(MemoryLocation location, LocalVarOffset offset) => location + offset.Offset;
 		public static MemoryLocation operator -(MemoryLocation location, int offset) => location + (-offset);
 	}
 }

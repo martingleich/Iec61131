@@ -14,13 +14,13 @@ namespace Runtime.IR
             foreach (var gvl in GlobalVariableLists)
             {
                 var file = path.FileInfo($"{gvl.Name}.{GvlEnding}");
-                using var stream = file.OpenWrite();
+                using var stream = file.Create();
                 Xml.XmlGlobalVariableList.ToXml(gvl, stream);
             }
             foreach (var pou in Pous)
             {
                 var file = path.FileInfo($"{pou.Id.Name.Split("::")[^1]}.{PouEnding}");
-                using var stream = file.OpenWrite();
+                using var stream = file.Create();
                 Xml.XmlCompiledPou.ToXml(pou, stream);
             }
         }
