@@ -30,12 +30,12 @@
 			"patterns": [
 				{
 					"name": "keyword.type.structured-text",
-					"match": "\\b(?i)(char|lreal|real|lint|dint|int|sint|ulint|udint|uint|usint|lword|dword|word|byte|bool|ltime|time|ldt|dt|ldate|ltod|tod|(pointer(\\s+to)?)|array|string)\\b",
+					"match": "\\b(?i)(char|lreal|real|lint|dint|int|sint|ulint|udint|uint|usint|lword|dword|word|byte|bool|ltime|time|ldt|dt|ldate|ltod|tod|(pointer(\\s+to)?)|array|of|string)\\b",
 					"comment": "Must happen before keyword.control.structured-text because we have to match 'pointer to' before 'to' as keyword."
 				},
 				{
 					"name": "keyword.control.structured-text",
-					"match": "\\b(?i)(of|to|if|then|end_if|elsif|else|while|end_while|repeat|until|end_repeat|exit|continue|return|for|by|end_for|do|case|end_case)\\b"
+					"match": "\\b(?i)(to|if|then|end_if|elsif|else|while|end_while|repeat|until|end_repeat|exit|continue|return|for|by|end_for|do|case|end_case)\\b"
 				},
 				{
 					"name": "keyword.operator.structured-text",
