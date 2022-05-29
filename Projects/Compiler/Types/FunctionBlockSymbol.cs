@@ -25,8 +25,7 @@ namespace Compiler.Types
 		}
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
-		public LayoutInfo LayoutInfo => throw new NotImplementedException();
-
+		public LayoutInfo LayoutInfo => _layoutHelper.LayoutInfo;
 
 		internal void _SetFields(SymbolSet<FieldVariableSymbol> fields)
 		{

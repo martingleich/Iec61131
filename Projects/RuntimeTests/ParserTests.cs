@@ -5,7 +5,6 @@ namespace RuntimeTests
 {
     using Runtime.IR;
     using Runtime.IR.Expressions;
-    using Runtime.IR.RuntimeTypes;
     using Runtime.IR.Statements;
 
     public class ParserTests
@@ -203,19 +202,6 @@ namespace RuntimeTests
 			var statement = IStatement.Parser.Parse(source);
 			Assert.IsType(expectedType, statement); ;
 			Assert.Equal(source, statement.ToString());
-		}
-	}
-	public class RuntimeTypeParserTests
-	{
-
-        [Theory]
-		[InlineData("ARRAY[0..10] OF INT")]
-		[InlineData("ARRAY[0..10, 1..7] OF LREAL")]
-		[InlineData("ARRAY[0..10, 1..7] OF ARRAY[0..0] OF INT")]
-		public void Arrays(string source)
-		{
-			var parsed = IRuntimeType.Parser.Parse(source);
-			Assert.Equal(parsed.Name, source);
 		}
 	}
 }

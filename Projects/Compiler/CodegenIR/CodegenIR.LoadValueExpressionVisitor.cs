@@ -162,7 +162,7 @@ namespace Compiler.CodegenIR
 					returnVariable = targetVar ?? CodeGen.Generator.DeclareTemp(IR.Type.Bits0);
 				}
 				CodeGen.Generator.IL(new IRStmt.StaticCall(
-					CodegenIR.PouIdFromSymbol(staticCallee),
+					PouIdFromSymbol(staticCallee),
 					inputs.Select(x => x.Offset).ToImmutableArray(),
 					intermediateOutputs.Select(x => x.Offset).ToImmutableArray()));
 

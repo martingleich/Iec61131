@@ -30,6 +30,18 @@ namespace CompilerTests
 			Assert.Empty(myType.Fields);
 		}
 		[Fact]
+		public void FunctionAndFunctionBlockWithSameName()
+		{
+			var boundInterface = BindHelper.NewProject
+				.AddFunction("foo", "", "")
+				.AddFunctionBlock("foo", "", "")
+				.BindInterfaces();
+			var fb = Assert.Single(boundInterface.Types);
+			AssertEx.EqualCaseInsensitive("foo", fb.Name);
+			var func = Assert.Single(boundInterface.FunctionSymbols);
+			AssertEx.EqualCaseInsensitive("foo", func.Name);
+		}
+		[Fact]
 		public void Structure_SimpleFields()
 		{
 			var boundInterface = BindHelper.NewProject

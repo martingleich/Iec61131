@@ -242,9 +242,9 @@ namespace Compiler.CodegenIR
 
         public static IR.PouId PouIdFromSymbol(FunctionVariableSymbol variable)
 			=> new(variable.UniqueName.ToString().ToUpperInvariant());
-
 		public static IR.PouId PouIdFromSymbol(ICallableTypeSymbol callableSymbol)
 			=> new(callableSymbol.UniqueName.ToString().ToUpperInvariant());
+
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
         public static CompiledPou GenerateCode(

@@ -211,6 +211,10 @@ namespace DebugAdapter
 
             return new VariablesResponse(variables);
         }
+        protected override EvaluateResponse HandleEvaluateRequest(EvaluateArguments arguments)
+        {
+            return new EvaluateResponse("Failed to evaluate expression.", 0);
+        }
 
         protected override ContinueResponse HandleContinueRequest(ContinueArguments arguments)
         {

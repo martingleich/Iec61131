@@ -83,7 +83,7 @@ namespace Compiler
 
             var globalAllocationTable = GlobalVariableAllocationTable.Generate(2, BoundModule.Interface, runtimeTypeFactory);
             var globals = globalAllocationTable.ToCompiledGvls().ToImmutableArray();
-            var pous = BoundModule.FunctionPous.Values
+            var pous = BoundModule.FunctionPous.Values.Concat(BoundModule.FunctionBlockPous.Values)
                 .Select(bound => CodegenIR.CodegenIR.GenerateCode(runtimeTypeFactory, globalAllocationTable, SourceMap, bound))
                 .ToImmutableArray();
 
