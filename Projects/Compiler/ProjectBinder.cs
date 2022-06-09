@@ -535,14 +535,13 @@ namespace Compiler
 			private static GlobalVariableSymbol BindVarDecl(CaseInsensitiveString gvlName, VarDeclSyntax syntax, IScope scope, MessageBag messages)
 			{
 				IType type = TypeCompiler.MapSymbolic(scope, syntax.Type.Type, messages);
-				var initial = syntax.Initial != null ? ExpressionBinder.Bind(syntax.Initial.Value, scope, messages, type) : null;
 				return new(
 					syntax.TokenIdentifier.SourceSpan,
 					scope.SystemScope.ModuleName,
 					gvlName,
 					syntax.Identifier,
 					type,
-					initial);
+					syntax.Initial?.Value);
 			}
 		}
 
@@ -701,7 +700,7 @@ namespace Compiler
 			foreach (var gvlSymbol in gvlsToComplete)
 			{
 				foreach (var globalVar in gvlSymbol.Variables)
-					globalVar._CompleteInitialValue(scope.SystemScope, messageBag);
+					globalVar._CompleteInitialValue(scope, messageBag);
 			}
 		}
 

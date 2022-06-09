@@ -1,6 +1,4 @@
-﻿using StandardLibraryExtensions;
-using Superpower;
-using System;
+﻿using Superpower;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -46,6 +44,7 @@ namespace Runtime.IR.Xml
         [System.Diagnostics.CodeAnalysis.AllowNull]
         public XmlCode Code;
 
+        // Debug data
         [System.Xml.Serialization.XmlElement("originalPath")]
         public string? OriginalPath;
         [System.Xml.Serialization.XmlElement("breakpoints")]

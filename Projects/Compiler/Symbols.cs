@@ -161,7 +161,19 @@ namespace Compiler
 			CaseInsensitiveString gvlName,
 			CaseInsensitiveString name,
 			IType type,
-			IBoundExpression? initialValueSyntax) : base(declaringSpan, name, type)
+			ILiteralValue? initialValue) : base(declaringSpan, name, type)
+		{
+			ModuleName = moduleName;
+			GvlName = gvlName;
+			_initialValue = initialValue;
+		}
+		public GlobalVariableSymbol(
+			SourceSpan declaringSpan,
+			CaseInsensitiveString moduleName,
+			CaseInsensitiveString gvlName,
+			CaseInsensitiveString name,
+			IType type,
+			IExpressionSyntax? initialValueSyntax) : base(declaringSpan, name, type)
 		{
 			ModuleName = moduleName;
 			GvlName = gvlName;
@@ -185,12 +197,15 @@ namespace Compiler
 				_initialValue = value;
 			}
 		}
-		private readonly IBoundExpression? InitialValueSyntax;
+		private readonly IExpressionSyntax? InitialValueSyntax;
 
-		internal void _CompleteInitialValue(SystemScope systemScope, MessageBag messages)
+		internal void _CompleteInitialValue(IScope scope, MessageBag messages)
 		{
 			if (InitialValueSyntax != null)
-				InitialValue = ConstantExpressionEvaluator.EvaluateConstant(systemScope, InitialValueSyntax, messages);
+			{
+				var boundSyntax = ExpressionBinder.Bind(InitialValueSyntax, scope, messages, Type);
+				InitialValue = ConstantExpressionEvaluator.EvaluateConstant(scope.SystemScope, boundSyntax, messages);
+			}
 		}
 		public override T Accept<T>(IVariableSymbol.IVisitor<T> visitor) => visitor.Visit(this);
 	}

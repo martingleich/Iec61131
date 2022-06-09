@@ -23,7 +23,7 @@ namespace Compiler.CodegenIR
 
 			private GeneratorT Generator => CodeGen.Generator;
 
-			public IReadable Visit(LiteralBoundExpression literalBoundExpression, LocalVariable? targetVar) => new JustReadable(literalBoundExpression.Value.Accept(LoadLiteralValueVisitor.Instance));
+			public IReadable Visit(LiteralBoundExpression literalBoundExpression, LocalVariable? targetVar) => literalBoundExpression.Value.Accept(CodeGen._loadLiteralValue);
 			public IReadable Visit(SizeOfTypeBoundExpression sizeOfTypeBoundExpression, LocalVariable? targetVar) => new JustReadable(IRExpr.LiteralExpression.Signed32(sizeOfTypeBoundExpression.Type.LayoutInfo.Size));
 			public IReadable Visit(VariableBoundExpression variableBoundExpression, LocalVariable? targetVar) => variableBoundExpression.Variable.Accept(CodeGen._loadVariableExpressionVisitor);
 			public IReadable Visit(ImplicitEnumToBaseTypeCastBoundExpression implicitEnumCastBoundExpression, LocalVariable? targetVar) => implicitEnumCastBoundExpression.Value.Accept(this, targetVar);

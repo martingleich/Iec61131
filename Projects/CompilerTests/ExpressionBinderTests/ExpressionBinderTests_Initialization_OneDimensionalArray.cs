@@ -14,7 +14,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{}", "ARRAY[0..-1] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Empty(init.Elements);
 			AssertEx.EqualCaseInsensitive("ARRAY[0..-1] OF INT", init.Type.Code);
 		}
@@ -23,7 +23,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{[0] := 1, [1] := 2, [2] := 3}", "ARRAY[0..2] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundIntLiteral(1)),
 				ArrayElement(1, BoundIntLiteral(2)),
@@ -35,7 +35,7 @@ namespace CompilerTests.ExpressionBinderTests
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("ARRAY[0..2] OF INT#{[0] := 1, [1] := 2, [2] := 3}", null);
 			Assert.Equal("ARRAY[0..2] OF INT", boundExpression.Type.Code);
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundIntLiteral(1)),
 				ArrayElement(1, BoundIntLiteral(2)),
@@ -46,7 +46,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{[2] := 7, [1] := 6, [0] := 3}", "ARRAY[0..2] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(2, BoundIntLiteral(7)),
 				ArrayElement(1, BoundIntLiteral(6)),
@@ -57,7 +57,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{[..] := 7}", "ARRAY[0..2] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				AllElements(BoundIntLiteral(7)));
 		}
@@ -66,7 +66,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{1, 2, 3}", "ARRAY[0..2] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundIntLiteral(1)),
 				ArrayElement(1, BoundIntLiteral(2)),
@@ -77,7 +77,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{[5 - (2*2) - 1] := 6}", "ARRAY[0..0] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundIntLiteral(6)));
 		}
@@ -87,7 +87,7 @@ namespace CompilerTests.ExpressionBinderTests
 			var boundExpression = BindHelper.NewProject
 				.WithGlobalVar("localVar", "INT")
 				.BindGlobalExpression("{[0] := localVar}", "ARRAY[0..0] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundVariable("localVar")));
 		}
@@ -98,7 +98,7 @@ namespace CompilerTests.ExpressionBinderTests
 				.AddDut("MyAlias", "ARRAY[0..0] OF INT")
 				.BindGlobalExpression("{[0] := 1}", "MyAlias");
 			var cast = Assert.IsType<ImplicitAliasFromBaseTypeCastBoundExpression>(boundExpression);
-			var init = Assert.IsType<InitializerBoundExpression>(cast.Value);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(cast.Value);
 			Assert.Collection(init.Elements,
 				ArrayElement(0, BoundIntLiteral(1)));
 		}

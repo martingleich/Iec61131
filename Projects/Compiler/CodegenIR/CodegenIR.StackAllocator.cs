@@ -27,7 +27,7 @@ namespace Compiler.CodegenIR
 
             private StackAllocator(
 				CodegenIR codeGen,
-				ICallableTypeSymbol calleeType)
+				ICallableTypeSymbol? calleeType)
 			{
                 CodeGen = codeGen ?? throw new ArgumentNullException(nameof(codeGen));
 
@@ -37,25 +37,35 @@ namespace Compiler.CodegenIR
 					ThisVariableOffset = null;
 
 				var inputArgs = ImmutableArray.CreateBuilder<IR.CompiledArgument>();
-				foreach (var param in calleeType.Parameters)
+				if (calleeType != null)
 				{
-					if (param.Kind == ParameterKind.Input || param.Kind == ParameterKind.InOut)
+					foreach (var param in calleeType.Parameters)
 					{
-						var arg = AllocParameter(param);
-						inputArgs.Add(arg);
+						if (param.Kind == ParameterKind.Input || param.Kind == ParameterKind.InOut)
+						{
+							var arg = AllocParameter(param);
+							inputArgs.Add(arg);
+						}
 					}
 				}
 				InputArgs = inputArgs.ToImmutable();
-				var outputArgs = ImmutableArray.CreateBuilder<IR.CompiledArgument>();
-				foreach (var param in calleeType.Parameters)
+				if (calleeType != null)
 				{
-					if (param.Kind == ParameterKind.Output)
+					var outputArgs = ImmutableArray.CreateBuilder<IR.CompiledArgument>();
+					foreach (var param in calleeType.Parameters)
 					{
-						var arg = AllocParameter(param);
-						outputArgs.Add(arg);
+						if (param.Kind == ParameterKind.Output)
+						{
+							var arg = AllocParameter(param);
+							outputArgs.Add(arg);
+						}
 					}
+					OutputArgs = outputArgs.ToImmutable();
 				}
-				OutputArgs = outputArgs.ToImmutable();
+				else
+				{
+					OutputArgs = ImmutableArray<IR.CompiledArgument>.Empty;
+				}
             }
 
 			public (IR.LocalVarOffset, IR.Type) GetLocalInfo(ILocalVariableSymbol symbol)
@@ -107,13 +117,16 @@ namespace Compiler.CodegenIR
 				return offset;
 			}
 
-            public static StackAllocator Create(CodegenIR codegen, BoundPou toCompile)
+            public static StackAllocator Create(CodegenIR codegen, BoundPou? toCompile)
             {
-				var result = new StackAllocator(codegen, toCompile.CallableSymbol);
-				var allocator = new InlineVariableVisitor(result);
-				foreach (var local in toCompile.LocalVariables)
-					result.GetLocalInfo(local);
-				toCompile.BoundBody.Value.Accept(allocator);
+				var result = new StackAllocator(codegen, toCompile?.CallableSymbol);
+				if (toCompile != null)
+				{
+					var allocator = new InlineVariableVisitor(result);
+					foreach (var local in toCompile.LocalVariables)
+						result.GetLocalInfo(local);
+					toCompile.BoundBody.Value.Accept(allocator);
+				}
 				return result;
             }
 

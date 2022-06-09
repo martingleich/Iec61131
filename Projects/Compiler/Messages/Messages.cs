@@ -1,4 +1,5 @@
 ﻿using Compiler.Types;
+using Runtime.IR.RuntimeTypes;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -308,6 +309,19 @@ namespace Compiler.Messages
 
 		public override string Text => $"Division by zero in constant context.";
 	}
+	public sealed class OutOfBoundsAccessInConstantContextMessage : ACriticalMessage
+	{
+		public OutOfBoundsAccessInConstantContextMessage(SourceSpan sourceSpan, ImmutableArray<int> indices, ImmutableArray<ArrayTypeRange> ranges) : base(sourceSpan)
+		{
+			Indices = indices;
+			Ranges = ranges;
+		}
+
+		public override string Text => $"Out of bounds access in constant context.";
+
+        public ImmutableArray<int> Indices { get; }
+        public ImmutableArray<ArrayTypeRange> Ranges { get; }
+    }
 	public sealed class CannotDereferenceTypeMessage : ACriticalMessage
 	{
 		public readonly IType Type;

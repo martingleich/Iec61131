@@ -7,21 +7,22 @@ using System.Linq;
 
 namespace DebugAdapter
 {
-    public class VariableReferenceManager
+    public sealed class VariableReferenceManager
     {
-        private readonly Dictionary<int, VariableReference> Table = new();
+        private readonly Dictionary<int, VariableReference> _table = new();
         private VariableReference.ScopeVariableReference? _globalScope;
-        private readonly Dictionary<(int, bool), VariableReference.ScopeVariableReference> FrameTable = new();
+        private readonly Dictionary<Frame, VariableReference.ScopeVariableReference> _frameTable = new();
         private int _nextId = 1;
 
         public T Create<T>(Func<Id, T> factory) where T:VariableReference
         {
             var id = new Id(this, _nextId++);
             var value = factory(id);
-            Table.Add(id.Value, value);
+            _table.Add(id.Value, value);
             return value;
         }
 
+        private record struct Frame(int Index, bool IsArgs) { }
         public readonly struct Id
         {
             public readonly VariableReferenceManager Owner;
@@ -40,20 +41,20 @@ namespace DebugAdapter
                 _globalScope = Create(id => VariableReference.CreateGlobalVariables(id, gvls));
             return _globalScope;
         }
-        public VariableReference.ScopeVariableReference GetStack(int frame, bool args, MemoryLocation stackBase, IEnumerable<VariableTable.StackVariable> variables)
+        public VariableReference.ScopeVariableReference GetStack(int frame, bool isArgs, MemoryLocation stackBase, IEnumerable<VariableTable.StackVariable> variables)
         {
-            if (!FrameTable.TryGetValue((frame, args), out var frameScope))
+            if (!_frameTable.TryGetValue(new Frame(frame, isArgs), out var frameScope))
             {
                 frameScope = Create(id =>
                 {
                     var children = variables.Select(v => id.Owner.Create(id2 => VariableReference.CreateForType(id2, v.Name, v.Name, v.Type, stackBase + v.StackOffset))).ToImmutableArray();
-                    return new VariableReference.ScopeVariableReference(args ? "Arguments" : "Locals", id, children);
+                    return new VariableReference.ScopeVariableReference(isArgs ? "Arguments" : "Locals", id, children);
                 });
-                FrameTable.Add((frame, args), frameScope);
+                _frameTable.Add(new Frame(frame, isArgs), frameScope);
             }
             return frameScope;
         }
-        public VariableReference Get(int id) => Table[id];
+        public VariableReference Get(int id) => _table[id];
     }
 
     public abstract class VariableReference

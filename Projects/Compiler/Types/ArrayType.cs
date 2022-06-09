@@ -128,5 +128,24 @@ namespace Compiler.Types
 		{
             return new RuntimeTypeArray(Ranges, runtimeTypeFactory.GetRuntimeType(BaseType));
 		}
-	}
+
+        public int? GetIndexOf(ImmutableArray<int> indices)
+        {
+			if (indices.Length != Ranges.Length)
+				throw new ArgumentException($"{nameof(indices.Length)}({indices.Length} must be equal to {nameof(Ranges.Length)}({Ranges.Length})");
+			int index = 0;
+			int scale = 1;
+			for (int i = indices.Length - 1; i >= 0; --i)
+			{
+				var range = Ranges[i];
+				var idx = indices[i];
+				if (!range.IsInRange(idx))
+					return null;
+				var offset = idx - range.LowerBound;
+				index += scale * offset;
+				scale *= range.Size;
+			}
+			return index;
+        }
+    }
 }

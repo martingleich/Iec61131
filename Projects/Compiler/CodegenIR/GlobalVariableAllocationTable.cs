@@ -25,40 +25,22 @@ namespace Compiler.CodegenIR
             {
                 List<CompiledGlobalVariableList.Variable> symbols = new();
                 var field = FieldLayout.Zero;
-                var initializer = ImmutableArray.CreateBuilder<IStatement>();
+                var initializer = ImmutableArray.CreateBuilder<KeyValuePair<MemoryLocation, ILiteralValue>>();
                 foreach (var variable in globalVarList.Variables.OrderByDescending(x => x.Type.LayoutInfo.Alignment).ThenBy(x => x.Name))
                 {
                     field = field.NextField(variable.Type.LayoutInfo);
                     var runtimeType = runtimeTypeFactory.GetRuntimeType(variable.Type);
                     symbols.Add(new CompiledGlobalVariableList.Variable(variable.Name.Original, (ushort)field.Offset, runtimeType));
                     if (variable.InitialValue is ILiteralValue initialValue)
-                    {
-                        initializer.Add(new Runtime.IR.Statements.WriteValue(
-                            Runtime.IR.Expressions.LiteralExpression.FromMemoryLocation(new MemoryLocation(area, (ushort)field.Offset)),
-                            new LocalVarOffset(0),
-                            Type.Pointer.Size));
-                        initializer.Add(new Runtime.IR.Statements.WriteDerefValue(
-                            initialValue.Accept(CodegenIR.LoadLiteralValueVisitor.Instance),
-                            new LocalVarOffset(0),
-                            CodegenIR.TypeFromIType(initialValue.Type).Size));
-                    }
+                        initializer.Add(KeyValuePair.Create(new MemoryLocation(area, (ushort)field.Offset), initialValue));
                 }
 
                 CompiledPou? initializerPou;
                 if (initializer.Count > 0)
-                {
-                    initializer.Add(Runtime.IR.Statements.Return.Instance);
-                    initializerPou = new CompiledPou(
-                        new PouId($"{globalVarList}##Initializer"),
-                        1,
-                        ImmutableArray<CompiledArgument>.Empty,
-                        ImmutableArray<CompiledArgument>.Empty,
-                        initializer.ToImmutable());
-                }
+                    initializerPou = CodegenIR.GenerateGvlInitializer(runtimeTypeFactory, new PouId($"{globalVarList}##Initializer"), initializer.ToImmutable());
                 else
-                {
                     initializerPou = null;
-                }
+
                 var compiled = new CompiledGlobalVariableList(
                     globalVarList.Name.Original,
                     area,

@@ -14,7 +14,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{}", "ARRAY[0..-1, 0..-1] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Empty(init.Elements);
 			AssertEx.EqualCaseInsensitive("ARRAY[0..-1, 0..-1] OF INT", init.Type.Code);
 		}
@@ -23,7 +23,7 @@ namespace CompilerTests.ExpressionBinderTests
 		{
 			var boundExpression = BindHelper.NewProject
 				.BindGlobalExpression("{[..] := 123}", "ARRAY[0..2, 0..2] OF INT");
-			var init = Assert.IsType<InitializerBoundExpression>(boundExpression);
+			var init = Assert.IsAssignableFrom<InitializerBoundExpression>(boundExpression);
 			Assert.Collection(init.Elements,
 				AllElements(BoundIntLiteral(123)));
 		}

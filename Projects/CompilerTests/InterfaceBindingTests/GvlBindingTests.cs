@@ -140,10 +140,25 @@ namespace CompilerTests
 				.BindInterfaces(ErrorOfType<TypeIsNotConvertibleMessage>());
 		}
 		[Fact]
+		public void BindInitialValue_FunctionBlock()
+		{
+			BindHelper.NewProject
+				.AddFunctionBlock("FB", "VAR_INST field : INT; END_VAR", "")
+				.AddGVL("MyGvl", "VAR_GLOBAL value : FB := {.field := 32}; END_VAR")
+				.BindInterfaces();
+		}
+		[Fact]
+		public void BindInitialValue_Array()
+		{
+			BindHelper.NewProject
+				.AddGVL("MyGvl", "VAR_GLOBAL value : ARRAY[0..9] OF INT := {0,1,2,3,4,5,6,7,8,9}; END_VAR")
+				.BindInterfaces();
+		}
+		[Fact]
 		public void ParseErrorInGvl()
 		{
 			var parseMessages = BindHelper.NewProject
-				.AddGVL("MyGvl", "VARL value : INT; END_VAR") // Must be VAR_Global
+				.AddGVL("MyGvl", "VAR value : INT; END_VAR") // Must be VAR_Global
 				.CompilerProject
 				.ParseMessages;
 			ExactlyMessages(ErrorOfType<ExpectedSyntaxMessage>())(parseMessages);

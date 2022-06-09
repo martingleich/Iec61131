@@ -1,4 +1,5 @@
 Language-features:
+	Do not invoke constant folding for non-compiling expressions.
 	Do not generate casts for binary operations that contain a literal.
 		DINT + 1 -> DINT + DINT#1
 		For literals perform partial typification. i.e. 1 becomes ANY_INT_AT_LEAST_SINT, etc.

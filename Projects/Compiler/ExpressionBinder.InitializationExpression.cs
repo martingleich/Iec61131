@@ -43,7 +43,7 @@ namespace Compiler
 			{
 				if(!targetType.IsError())
 					MessageBag.Add(new CannotUseAnInitializerForThisTypeMessage(initializationExpressionSyntax.SourceSpan));
-				baseBound = new InitializerBoundExpression(ImmutableArray<InitializerBoundExpression.ABoundElement>.Empty, targetType, initializationExpressionSyntax);
+				baseBound = new InitializerBoundExpression.UnknownInitializerBoundExpression(ImmutableArray<InitializerBoundExpression.ABoundElement>.Empty, targetType, initializationExpressionSyntax);
 			}
 			return ImplicitCast(baseBound, context);
 		}
@@ -108,14 +108,14 @@ namespace Compiler
 					}
 				}
 
-				private InitializerBoundExpression GetBound(INode originalNode, IType type)
+				private InitializerBoundExpression GetBound(INode originalNode, ArrayType type)
 				{
 					foreach (var i in _range.Values)
 					{
 						if (!_setIndicies.ContainsKey(i))
 							Messages.Add(new IndexNotInitializedMessage(i, originalNode.SourceSpan));
 					}
-					return new InitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
+					return new InitializerBoundExpression.ArrayInitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
 				}
 
 				public static InitializerBoundExpression Bind(ArrayType type, ExpressionBinder binder, InitializationExpressionSyntax syntax)
@@ -196,11 +196,11 @@ namespace Compiler
 				}
 
 
-				private InitializerBoundExpression GetBound(INode originalNode, IType type, bool isEmpty)
+				private InitializerBoundExpression GetBound(INode originalNode, ArrayType type, bool isEmpty)
 				{
 					if (_elements.Count == 0 && !isEmpty)
 						Messages.Add(new MissingElementsInInitializerMessage(originalNode.SourceSpan));
-					return new InitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
+					return new InitializerBoundExpression.ArrayInitializerBoundExpression(_elements.ToImmutable(), type, originalNode);
 				}
 
 				public static InitializerBoundExpression Bind(ArrayType type, ExpressionBinder binder, InitializationExpressionSyntax syntax)
@@ -248,14 +248,14 @@ namespace Compiler
 
 		private class StructuredTypeInitializer : IInitializerElementSyntax.IVisitor, IElementSyntax.IVisitor<bool, IExpressionSyntax>
 		{
-			private readonly IType _type;
+			private readonly IStructuredTypeSymbol _type;
 			private readonly SymbolSet<FieldVariableSymbol> _fields;
 			private readonly ExpressionBinder _binder;
 			private MessageBag Messages => _binder.MessageBag;
 			private readonly Dictionary<FieldVariableSymbol, SourceSpan> _setFields = new(SymbolByNameComparer<FieldVariableSymbol>.Instance);
 			private readonly ImmutableArray<InitializerBoundExpression.ABoundElement>.Builder _elements = ImmutableArray.CreateBuilder<InitializerBoundExpression.ABoundElement>();
 
-			private StructuredTypeInitializer(IType type, SymbolSet<FieldVariableSymbol> fields, ExpressionBinder binder)
+			private StructuredTypeInitializer(IStructuredTypeSymbol type, SymbolSet<FieldVariableSymbol> fields, ExpressionBinder binder)
 			{
 				_type = type ?? throw new ArgumentNullException(nameof(type));
 				_fields = fields;
@@ -277,10 +277,10 @@ namespace Compiler
 					if (!_setFields.ContainsKey(field))
 						Messages.Add(new FieldNotInitializedMessage(field, originalNode.SourceSpan));
 
-				return new InitializerBoundExpression(_elements.ToImmutable(), _type, originalNode);
+				return new InitializerBoundExpression.StructuredInitializerBoundExpression(_elements.ToImmutable(), _type, originalNode);
 			}
 
-			public static IBoundExpression Bind(IType type, SymbolSet<FieldVariableSymbol> fields, ExpressionBinder binder, InitializationExpressionSyntax syntax)
+			public static IBoundExpression Bind(IStructuredTypeSymbol type, SymbolSet<FieldVariableSymbol> fields, ExpressionBinder binder, InitializationExpressionSyntax syntax)
 			{
 				var initializer = new StructuredTypeInitializer(type, fields, binder);
 				foreach (var element in syntax.Elements)

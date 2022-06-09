@@ -3,7 +3,7 @@ using System;
 
 namespace Compiler.Types
 {
-	public sealed class StructuredTypeSymbol : ITypeSymbol, _IDelayedLayoutType
+    public sealed class StructuredTypeSymbol : _IDelayedLayoutType, IStructuredTypeSymbol
 	{
 		private readonly StructuredLayoutHelper _layoutHelper;
 		public bool IsUnion { get; }

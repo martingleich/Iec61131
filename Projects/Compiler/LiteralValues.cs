@@ -1,5 +1,7 @@
 ﻿using Compiler.Types;
+using StandardLibraryExtensions;
 using System;
+using System.Collections.Immutable;
 
 namespace Compiler
 {
@@ -26,6 +28,8 @@ namespace Compiler
 			T Visit(UIntLiteralValue uIntLiteralValue);
 			T Visit(USIntLiteralValue uSIntLiteralValue);
 			T Visit(SIntLiteralValue sIntLiteralValue);
+			T Visit(ArrayLiteralValue arrayLiteralValue);
+			T Visit(StructuredLiteralValue structuredLiteralValue);
 		}
 	}
 
@@ -300,7 +304,6 @@ namespace Compiler
 		public override int GetHashCode() => 0;
 		public override string ToString() => "0";
 	}
-
 	public sealed class LTimeLiteralValue : ILiteralValue, IEquatable<LTimeLiteralValue>
 	{
 		public readonly DurationNs64 Value;
@@ -319,7 +322,6 @@ namespace Compiler
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 	}
-
 	public sealed class TimeLiteralValue : ILiteralValue, IEquatable<TimeLiteralValue>
 	{
 		public readonly DurationMs32 Value;
@@ -338,4 +340,91 @@ namespace Compiler
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 		public override int GetHashCode() => Value.GetHashCode();
 	}
+	public abstract class ArrayLiteralValue : ILiteralValue, IEquatable<ArrayLiteralValue>
+	{
+        IType ILiteralValue.Type => Type;
+		public readonly ArrayType Type;
+
+        private ArrayLiteralValue(ArrayType type)
+        {
+            Type = type ?? throw new ArgumentNullException(nameof(type));
+        }
+
+        public T Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+        public bool Equals(ILiteralValue? other) => other is ArrayLiteralValue otherArray && Equals(otherArray);
+		public bool Equals(ArrayLiteralValue? other)
+		{
+			if (other == null)
+				return false;
+			if (Type.ElementCount != other.Type.ElementCount)
+				return false;
+			for (int i = 0; i < Type.ElementCount; ++i)
+			{
+				if (!GetElement(i).Equals(other.GetElement(i)))
+					return false;
+			}
+			return true;
+		}
+        public override int GetHashCode()
+        {
+			var hash = HashCode.Combine(0);
+			for (int i = 0; i < Type.ElementCount; ++i)
+				hash = HashCode.Combine(hash, GetElement(i).GetHashCode());
+			return hash;
+        }
+		public abstract ILiteralValue GetElement(int id);
+		public sealed class AllSameArrayLiteralValue : ArrayLiteralValue
+		{
+			public readonly ILiteralValue Value;
+			public AllSameArrayLiteralValue(ArrayType type, ILiteralValue value) : base(type)
+			{
+				Value = value;
+			}
+			public override ILiteralValue GetElement(int id) => Value;
+		}
+		public sealed class SimpleArrayLiteralValue : ArrayLiteralValue
+		{
+            public readonly ImmutableArray<ILiteralValue> Elements;
+			public SimpleArrayLiteralValue(ArrayType type, ImmutableArray<ILiteralValue> elements) : base(type)
+			{
+				Elements = elements;
+			}
+			public override ILiteralValue GetElement(int id) => Elements[id];
+		}
+    }
+	public sealed class StructuredLiteralValue : ILiteralValue, IEquatable<StructuredLiteralValue>
+	{
+		IType ILiteralValue.Type => Type;
+        public IStructuredTypeSymbol Type { get; }
+		public readonly ImmutableDictionary<CaseInsensitiveString, ILiteralValue> Elements;
+
+        public StructuredLiteralValue(ImmutableDictionary<CaseInsensitiveString, ILiteralValue> elements, IStructuredTypeSymbol type)
+        {
+            Elements = elements;
+            Type = type ?? throw new ArgumentNullException(nameof(type));
+        }
+
+        public T Accept<T>(ILiteralValue.IVisitor<T> visitor) => visitor.Visit(this);
+
+		public override bool Equals(object? obj) => throw new NotImplementedException();
+        public bool Equals(ILiteralValue? other) => other is StructuredLiteralValue otherStructured && Equals(otherStructured);
+		public bool Equals(StructuredLiteralValue? other)
+		{
+			if (other == null)
+				return false;
+			if (!TypeRelations.IsIdentical(other.Type, Type))
+				return false;
+			// We now know that both dictionaries contain the same keys.
+			foreach (var elem in Elements)
+			{
+				if (!other.Elements.TryGetValue(elem.Key, out var otherValue) || !otherValue.Equals(elem.Value))
+					return false;
+			}
+			return true;
+		}
+		public override int GetHashCode() => 0;
+
+        public ILiteralValue GetElement(FieldVariableSymbol field) => Elements[field.Name];
+    }
 }

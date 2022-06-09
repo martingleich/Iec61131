@@ -481,7 +481,7 @@ namespace Compiler
 		}
 		public override string ToString() => Value.ToString();
 	}
-	public sealed class InitializerBoundExpression : IBoundExpression
+	public abstract class InitializerBoundExpression : IBoundExpression
 	{
 		public abstract class ABoundElement
 		{
@@ -528,20 +528,59 @@ namespace Compiler
 
 		public ImmutableArray<ABoundElement> Elements;
 
-		public InitializerBoundExpression(ImmutableArray<ABoundElement> elements, IType type, INode? originalNode)
+		private InitializerBoundExpression(ImmutableArray<ABoundElement> elements, INode? originalNode)
 		{
 			Elements = elements;
-			Type = type ?? throw new ArgumentNullException(nameof(type));
 			OriginalNode = originalNode;
 		}
 
-		public IType Type { get; }
+		public abstract IType Type { get; }
 		public INode? OriginalNode { get; }
 
 		public T Accept<T>(IBoundExpression.IVisitor<T> visitor) => visitor.Visit(this);
 		T IBoundExpression.Accept<T, TContext>(IBoundExpression.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 
 		public override string ToString() => $"{Type.Code}#{{{string.Join(", ", Elements)}}}";
+
+		public sealed class ArrayInitializerBoundExpression : InitializerBoundExpression
+		{
+            public ArrayInitializerBoundExpression(ImmutableArray<ABoundElement> elements, ArrayType type, INode? originalNode) : base(elements, originalNode)
+            {
+				Type = type ?? throw new ArgumentNullException(nameof(type));
+            }
+
+            public override ArrayType Type { get; }
+            public override T Accept<T>(Func<ArrayInitializerBoundExpression, T> forArray, Func<StructuredInitializerBoundExpression, T> forStructure, Func<UnknownInitializerBoundExpression, T> forUnknown)
+				=> forArray(this);
+        }
+		public sealed class StructuredInitializerBoundExpression : InitializerBoundExpression
+		{
+            public StructuredInitializerBoundExpression(ImmutableArray<ABoundElement> elements, IStructuredTypeSymbol type, INode? originalNode) : base(elements, originalNode)
+            {
+				Type = type ?? throw new ArgumentNullException(nameof(type));
+            }
+
+            public override IStructuredTypeSymbol Type { get; }
+            public override T Accept<T>(Func<ArrayInitializerBoundExpression, T> forAray, Func<StructuredInitializerBoundExpression, T> forStructure, Func<UnknownInitializerBoundExpression, T> forUnknown)
+				=> forStructure(this);
+		}
+		public sealed class UnknownInitializerBoundExpression : InitializerBoundExpression
+		{
+            public UnknownInitializerBoundExpression(ImmutableArray<ABoundElement> elements, IType type, INode? originalNode) : base(elements, originalNode)
+            {
+				Type = type ?? throw new ArgumentNullException(nameof(type));
+            }
+
+            public override IType Type { get; }
+
+            public override T Accept<T>(Func<ArrayInitializerBoundExpression, T> forAray, Func<StructuredInitializerBoundExpression, T> forStructure, Func<UnknownInitializerBoundExpression, T> forUnknown)
+				=> forUnknown(this);
+        }
+
+		public abstract T Accept<T>(
+			Func<ArrayInitializerBoundExpression, T> forArray,
+			Func<StructuredInitializerBoundExpression, T> forStructure,
+			Func<UnknownInitializerBoundExpression, T> forUnknown);
 	}
 	
 	public sealed class SequenceBoundStatement : IBoundStatement

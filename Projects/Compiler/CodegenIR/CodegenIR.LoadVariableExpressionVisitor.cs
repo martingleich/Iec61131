@@ -21,7 +21,7 @@ namespace Compiler.CodegenIR
 			public IReadable Visit(ParameterVariableSymbol parameterVariableSymbol) => CodeGen._variableAddressableVisitor.Visit(parameterVariableSymbol).ToReadable(CodeGen);
 			public IReadable Visit(FunctionVariableSymbol functionVariableSymbol) => CodeGen._variableAddressableVisitor.Visit(functionVariableSymbol).ToReadable(CodeGen);
 
-			public IReadable Visit(EnumVariableSymbol enumVariableSymbol) => new JustReadable(enumVariableSymbol.Value.InnerValue.Accept(LoadLiteralValueVisitor.Instance));
+			public IReadable Visit(EnumVariableSymbol enumVariableSymbol) => enumVariableSymbol.Value.InnerValue.Accept(CodeGen._loadLiteralValue);
 			public IReadable Visit(ErrorVariableSymbol errorVariableSymbol) => throw new InvalidOperationException();
 		}
 		private readonly LoadVariableExpressionVisitor _loadVariableExpressionVisitor;

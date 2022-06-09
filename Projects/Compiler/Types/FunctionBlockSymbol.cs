@@ -3,7 +3,7 @@ using System;
 
 namespace Compiler.Types
 {
-	public sealed class FunctionBlockSymbol : ICallableTypeSymbol, ITypeSymbol, _IDelayedLayoutType
+	public sealed class FunctionBlockSymbol : ICallableTypeSymbol, _IDelayedLayoutType, IStructuredTypeSymbol
 	{
 		public string Code => Name.Original;
 		public SourceSpan DeclaringSpan { get; }
@@ -52,5 +52,5 @@ namespace Compiler.Types
 			false,
 			Fields);
 		public override string ToString() => UniqueName.ToString();
-	}
+    }
 }
