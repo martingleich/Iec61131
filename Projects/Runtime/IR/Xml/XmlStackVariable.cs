@@ -27,9 +27,9 @@ namespace Runtime.IR.Xml
                 Type = arg.Type.Name
             };
         }
-        public VariableTable.StackVariable ToVariable()
+        public VariableTable.StackVariable ToVariable(RuntimeTypeParser parser)
         {
-            var type = IRuntimeType.Parser.Parse(Type);
+            var type = parser.Parse(Type);
             var offset = new LocalVarOffset(LocalOffset);
             if (IsLocal)
                 return new VariableTable.LocalStackVariable(Name, offset, type);

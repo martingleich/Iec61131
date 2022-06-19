@@ -14,11 +14,11 @@ namespace Runtime.IR.Xml
             return table.Variables.Select(XmlStackVariable.FromVariable).ToList();
         }
         [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("variables")]
-        public static VariableTable? ToTable(List<XmlStackVariable>? variables)
+        public static VariableTable? ToTable(List<XmlStackVariable>? variables, RuntimeTypeParser parser)
         {
             if(variables == null)
                 return null;
-            var variables2 = variables.Select(v => v.ToVariable()).ToImmutableArray();
+            var variables2 = variables.Select(v => v.ToVariable(parser)).ToImmutableArray();
             return new(variables2);
         }
     }

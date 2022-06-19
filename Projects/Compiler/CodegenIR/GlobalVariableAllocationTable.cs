@@ -17,7 +17,7 @@ namespace Compiler.CodegenIR
             _lists = lists ?? throw new System.ArgumentNullException(nameof(lists));
         }
 
-        public static GlobalVariableAllocationTable Generate(ushort firstArea, BoundModuleInterface moduleInterface, RuntimeTypeFactory runtimeTypeFactory)
+        public static GlobalVariableAllocationTable Generate(ushort firstArea, BoundModuleInterface moduleInterface, RuntimeTypeFactoryFromType runtimeTypeFactory)
         {
             Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, Dictionary<CaseInsensitiveString, ushort>)> lists = new();
             ushort area = firstArea;

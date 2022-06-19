@@ -124,7 +124,7 @@ namespace Compiler.Types
 
 		public T Accept<T, TContext>(IType.IVisitor<T, TContext> visitor, TContext context) => visitor.Visit(this, context);
 
-		public RuntimeTypeArray GetRuntimeType(RuntimeTypeFactory runtimeTypeFactory)
+		public RuntimeTypeArray GetRuntimeType(RuntimeTypeFactoryFromType runtimeTypeFactory)
 		{
             return new RuntimeTypeArray(Ranges, runtimeTypeFactory.GetRuntimeType(BaseType));
 		}

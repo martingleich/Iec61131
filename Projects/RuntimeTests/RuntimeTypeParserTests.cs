@@ -1,9 +1,9 @@
 ﻿using Xunit;
-using Superpower;
 
 namespace RuntimeTests
 {
     using Runtime.IR.RuntimeTypes;
+    using Runtime.IR.Xml;
 
     public class RuntimeTypeParserTests
 	{
@@ -13,7 +13,8 @@ namespace RuntimeTests
 		[InlineData("ARRAY[0..10, 1..7] OF ARRAY[0..0] OF INT")]
 		public void Array(string source)
 		{
-			var parsed = Assert.IsType<RuntimeTypeArray>(IRuntimeType.Parser.Parse(source));
+			var parser = new RuntimeTypeParser();
+			var parsed = Assert.IsType<RuntimeTypeArray>(parser.Parse(source));
 			Assert.Equal(parsed.Name, source);
 		}
 	}

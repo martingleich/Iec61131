@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 
 namespace Runtime
 {
-	public sealed partial class RTE
+    public sealed partial class RTE
 	{
 		private bool TryBuiltInCall(
 			PouId callee,
@@ -51,10 +51,10 @@ namespace Runtime
 				var lastUnderscore = name.IndexOf('_');
 				var op = name[..lastUnderscore];
 				var type = name[(lastUnderscore + 1)..];
-				var maybeType = IR.RuntimeTypes.IRuntimeType.ParserDefinite.TryParse(type);
-				if (maybeType.HasValue)
+				var maybeType = RuntimeTypeParser.TryParseBuiltIn(type);
+				if (maybeType != null)
 				{
-					if (maybeType.Value is IR.RuntimeTypes.IComparableRuntimeType runtimeComparer && GetComparer(op) is Func<int, bool> resultComparer)
+					if (maybeType is IR.RuntimeTypes.IComparableRuntimeType runtimeComparer && GetComparer(op) is Func<int, bool> resultComparer)
 					{
 						var arg0 = LoadEffectiveAddress(inputs[0]);
 						var arg1 = LoadEffectiveAddress(inputs[1]);
@@ -63,7 +63,7 @@ namespace Runtime
 						WriteBOOL(outputs[0], result);
 						return true;
 					}
-					else if (maybeType.Value is IR.RuntimeTypes.IEquatableRuntimeType runtimeEquatable && GetEquatable(op) is Func<bool, bool> resultEquals)
+					else if (maybeType is IR.RuntimeTypes.IEquatableRuntimeType runtimeEquatable && GetEquatable(op) is Func<bool, bool> resultEquals)
 					{
 						var arg0 = LoadEffectiveAddress(inputs[0]);
 						var arg1 = LoadEffectiveAddress(inputs[1]);

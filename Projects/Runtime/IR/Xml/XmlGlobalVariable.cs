@@ -22,9 +22,9 @@ namespace Runtime.IR.Xml
             Offset = variable.Offset,  
             Type = variable.Type.Name,
         };
-        public CompiledGlobalVariableList.Variable ToObject() => new(
+        public CompiledGlobalVariableList.Variable ToObject(RuntimeTypeParser parser) => new(
             Name,
             Offset,
-            IRuntimeType.ParserDefinite.Parse(Type));
+            parser.Parse(Type));
     }
 }

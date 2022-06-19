@@ -10,7 +10,7 @@ namespace Compiler.CodegenIR
     public sealed partial class CodegenIR
 	{
 		public readonly BreakpointMapBuilder BreakpointFactory = new();
-		public readonly RuntimeTypeFactory RuntimeTypeFactory;
+		public readonly RuntimeTypeFactoryFromType RuntimeTypeFactory;
 		public readonly GeneratorT Generator;
         public readonly GlobalVariableAllocationTable GlobalVariableAllocationTable;
 
@@ -21,7 +21,7 @@ namespace Compiler.CodegenIR
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
         public static CompiledPou GenerateCode(
-			RuntimeTypeFactory runtimeTypeFactory,
+			RuntimeTypeFactoryFromType runtimeTypeFactory,
 			GlobalVariableAllocationTable globals,
 			SourceMap? sourceMap,
 			BoundPou toCompile)
@@ -36,7 +36,7 @@ namespace Compiler.CodegenIR
         }
 
 		public static CompiledPou GenerateGvlInitializer(
-			RuntimeTypeFactory runtimeTypeFactory,
+			RuntimeTypeFactoryFromType runtimeTypeFactory,
 			PouId id,
 			ImmutableArray<KeyValuePair<MemoryLocation, ILiteralValue>> values)
 		{
@@ -47,7 +47,7 @@ namespace Compiler.CodegenIR
 			return compiledPou;
 		}
 
-		private CodegenIR(BoundPou? pou, GlobalVariableAllocationTable globalVariableAllocationTable, RuntimeTypeFactory runtimeTypeFactory)
+		private CodegenIR(BoundPou? pou, GlobalVariableAllocationTable globalVariableAllocationTable, RuntimeTypeFactoryFromType runtimeTypeFactory)
 		{
 			RuntimeTypeFactory = runtimeTypeFactory;
             GlobalVariableAllocationTable = globalVariableAllocationTable;

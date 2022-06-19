@@ -52,7 +52,7 @@ namespace Compiler.Types
 		public override int GetHashCode() => Name.GetHashCode();
 		public override bool Equals(object? obj) => throw new NotImplementedException();
 
-		public IRuntimeType GetRuntimeType(RuntimeTypeFactory factory)
+		public IRuntimeType GetRuntimeType(RuntimeTypeFactoryFromType factory)
 		{
 			if (RuntimeType is IRuntimeType runtimeType)
 				return runtimeType;

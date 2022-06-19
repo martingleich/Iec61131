@@ -79,7 +79,7 @@ namespace Compiler
         {
 			if (HasCriticalError())
 				throw new InvalidOperationException($"Cannot generate code with critical errors.");
-            var runtimeTypeFactory = new RuntimeTypeFactory(BoundModule.Interface.SystemScope);
+            var runtimeTypeFactory = new RuntimeTypeFactoryFromType();
 
             var globalAllocationTable = GlobalVariableAllocationTable.Generate(2, BoundModule.Interface, runtimeTypeFactory);
             var globals = globalAllocationTable.ToCompiledGvls().ToImmutableArray();
@@ -87,7 +87,7 @@ namespace Compiler
                 .Select(bound => CodegenIR.CodegenIR.GenerateCode(runtimeTypeFactory, globalAllocationTable, SourceMap, bound))
                 .ToImmutableArray();
 
-            return new(globals, pous);
+            return new(globals, pous, runtimeTypeFactory.GetTypes());
         }
 
 		public static Project Empty(CaseInsensitiveString name) => new(

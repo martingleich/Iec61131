@@ -92,7 +92,7 @@ namespace Runtime.IR.Xml
             };
         }
 
-        public CompiledPou ToCompiledPou()
+        public CompiledPou ToCompiledPou(RuntimeTypeParser parser)
         {
             return new(
                 new PouId(Id),
@@ -102,15 +102,15 @@ namespace Runtime.IR.Xml
                 Code.ToCode())
             {
                 BreakpointMap = ToBreakpointsMap(Breakpoints),
-                VariableTable = XmlVariables.ToTable(VariableTable),
+                VariableTable = XmlVariables.ToTable(VariableTable, parser),
                 OriginalPath = OriginalPath
             };
         }
         private static readonly System.Xml.Serialization.XmlSerializer _serializer = new(typeof(XmlCompiledPou));
-        public static CompiledPou Parse(Stream stream)
+        public static CompiledPou Parse(Stream stream, RuntimeTypeParser parser)
         {
             var value = (XmlCompiledPou)_serializer.Deserialize(stream)!;
-            return value.ToCompiledPou();
+            return value.ToCompiledPou(parser);
         }
         public static void ToXml(CompiledPou pou, Stream dst)
         {

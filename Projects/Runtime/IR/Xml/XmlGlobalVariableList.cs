@@ -32,15 +32,15 @@ namespace Runtime.IR.Xml
             Variables = obj.VariableTable?.Select(XmlGlobalVariable.FromObject).ToList(),
         };
 
-        public CompiledGlobalVariableList ToObject() => new(
-            Name, Area, Size, Initializer?.ToCompiledPou(), Variables?.Select(v => v.ToObject()).ToImmutableArray());
+        public CompiledGlobalVariableList ToObject(RuntimeTypeParser parser) => new(
+            Name, Area, Size, Initializer?.ToCompiledPou(parser), Variables?.Select(v => v.ToObject(parser)).ToImmutableArray());
 
 
 		private static readonly System.Xml.Serialization.XmlSerializer _serializer = new (typeof(XmlGlobalVariableList));
-		public static CompiledGlobalVariableList Parse(Stream stream)
+		public static CompiledGlobalVariableList Parse(Stream stream, RuntimeTypeParser parser)
         {
             var xml = (XmlGlobalVariableList)_serializer.Deserialize(stream)!;
-            return xml.ToObject();
+            return xml.ToObject(parser);
         }
 
 		public static void ToXml(CompiledGlobalVariableList obj, Stream stream)
