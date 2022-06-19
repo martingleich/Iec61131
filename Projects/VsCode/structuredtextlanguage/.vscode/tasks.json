@@ -9,8 +9,9 @@
 			"detail": "npm run compile",
 			"group": {
 				"kind": "build",
-				"isDefault": true
+				"isDefault": true,
 			},
+			"dependsOrder": "sequence",
 			"dependsOn": [
 				"buildOfflineCompiler",
 				"buildDebugAdapter"
@@ -22,6 +23,7 @@
 			"command": "dotnet",
 			"args": [
 				"build",
+				"--nologo",
 				"--output",
 				"bin/OfflineCompiler/",
 				"..//..//OfflineCompiler//OfflineCompiler.csproj"
@@ -33,6 +35,7 @@
 			"command": "dotnet",
 			"args": [
 				"build",
+				"--nologo",
 				"--output",
 				"bin/DebugAdapter/",
 				"..//..//DebugAdapter//DebugAdapter.csproj"
