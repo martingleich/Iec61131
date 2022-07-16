@@ -6,7 +6,6 @@ Language-features:
 		All otherexpressions are typed with the expression typifier.
 		Then perform type inference for the generics.
 		Then make sure everything is typified.
-	Allow more constants in GVL initial values.
 	Add CASE statement
 	Add Exception System
 	Add safe ENUMs
@@ -28,9 +27,9 @@ VsCode:
 			Breakpoints
 				Add breakpoints for initial values.
 				Add breakpoints for for loop.
-				Support breakpoints from debugger.
 			Monitoring:
-				Structures
+				Allow to read expressions.
+				Allow to write expressions
 	LSP-Implementation
 
 CodeGenIR:

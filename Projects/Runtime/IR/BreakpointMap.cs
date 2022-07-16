@@ -90,6 +90,7 @@ namespace Runtime.IR
 			=> BinarySearchRanges(_instructionIndex, instruction) is int idx
 				? new Breakpoint(this, idx)
 				: null;
+
 		private static int? BinarySearchRanges<T>(ImmutableArray<KeyValuePair<Range<T>, int>> ranges, T value) where T : IComparable<T>
 		{
 			var idx = ranges.BinarySearch(KeyValuePair.Create(Range.Create(value, value), 0), RangeKeyArrayComparer<T, int>.Instance);

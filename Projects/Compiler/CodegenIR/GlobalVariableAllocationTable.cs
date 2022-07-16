@@ -9,9 +9,11 @@ namespace Compiler.CodegenIR
     public sealed class GlobalVariableAllocationTable
     {
         private readonly CaseInsensitiveString _moduleName;
-        private readonly Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, Dictionary<CaseInsensitiveString, ushort>)> _lists;
+        private readonly ImmutableDictionary<CaseInsensitiveString, (CompiledGlobalVariableList, ImmutableDictionary<CaseInsensitiveString, ushort>)> _lists;
 
-        private GlobalVariableAllocationTable(CaseInsensitiveString moduleName, Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, Dictionary<CaseInsensitiveString, ushort>)> lists)
+        private GlobalVariableAllocationTable(
+            CaseInsensitiveString moduleName,
+            ImmutableDictionary<CaseInsensitiveString, (CompiledGlobalVariableList, ImmutableDictionary<CaseInsensitiveString, ushort>)> lists)
         {
             _moduleName = moduleName;
             _lists = lists ?? throw new System.ArgumentNullException(nameof(lists));
@@ -19,7 +21,7 @@ namespace Compiler.CodegenIR
 
         public static GlobalVariableAllocationTable Generate(ushort firstArea, BoundModuleInterface moduleInterface, RuntimeTypeFactoryFromType runtimeTypeFactory)
         {
-            Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, Dictionary<CaseInsensitiveString, ushort>)> lists = new();
+            Dictionary<CaseInsensitiveString, (CompiledGlobalVariableList, ImmutableDictionary<CaseInsensitiveString, ushort>)> lists = new();
             ushort area = firstArea;
             foreach (var globalVarList in moduleInterface.GlobalVariableListSymbols.OrderBy(x => x.Name))
             {
@@ -47,12 +49,12 @@ namespace Compiler.CodegenIR
                     (ushort)(field.Offset + field.Size),
                     initializerPou,
                     symbols.ToImmutableArray());
-                var offsets = symbols.ToDictionary(v => v.Name.ToCaseInsensitive(), v => v.Offset);
+                var offsets = symbols.ToImmutableDictionary(v => v.Name.ToCaseInsensitive(), v => v.Offset);
                 lists.Add(globalVarList.Name, (compiled, offsets));
                 area++;
             }
 
-            return new(moduleInterface.Name, lists);
+            return new(moduleInterface.Name, lists.ToImmutableDictionary());
         }
 
         public MemoryLocation GetAreaOffset(GlobalVariableSymbol variable)

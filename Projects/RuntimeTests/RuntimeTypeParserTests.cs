@@ -2,8 +2,8 @@
 
 namespace RuntimeTests
 {
+    using Runtime.IR;
     using Runtime.IR.RuntimeTypes;
-    using Runtime.IR.Xml;
 
     public class RuntimeTypeParserTests
 	{

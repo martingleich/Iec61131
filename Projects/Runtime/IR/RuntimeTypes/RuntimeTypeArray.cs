@@ -46,13 +46,6 @@ namespace Runtime.IR.RuntimeTypes
 
         public string Name => $"ARRAY[{string.Join(", ", Ranges)}] OF {BaseType.Name}";
 
-        public static TextParser<IRuntimeType> MakeParser(TextParser<IRuntimeType> baseTypeParser) =>
-            from _1 in Superpower.Parsers.Span.EqualToIgnoreCase("ARRAY[")
-            from dimensions in Parse.Chain(Superpower.Parsers.Span.EqualTo(",").SuroundOptionalWhitespace(), ArrayTypeRange.Parser.SuroundOptionalWhitespace().Select(ImmutableArray.Create), (_, a, b) => a.AddRange(b))
-            from _2 in Superpower.Parsers.Span.EqualToIgnoreCase("] OF ")
-            from baseType in baseTypeParser
-            select (IRuntimeType)new RuntimeTypeArray(dimensions, baseType);
-
         public string ReadValue(MemoryLocation location, RTE runtime) => "";
 
         public int Size => BaseType.Size * ElementCount;

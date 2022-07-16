@@ -190,10 +190,14 @@ namespace DebugAdapter
         public void SendLaunch() => Send(dbg => dbg.Launch());
         public void SendContinue() => Send(dbg => dbg.Continue(ImmutableArray<(PouId, int)>.Empty));
         public void SendStep(ImmutableArray<(PouId, int)> nextLocations) => Send(dbg => dbg.Continue(nextLocations));
-        public void SendStepIn(ImmutableArray<(PouId, int)> nextLocations, int frameId, PouId? callee) => Send(dbg => dbg.StepIn(nextLocations, frameId, callee));
+        public void SendStepToFrame(ImmutableArray<(PouId, int)> nextLocations, int frameId, PouId? callee) => Send(dbg => dbg.StepIn(nextLocations, frameId, callee));
         public void SendTerminate() => Send(dbg => dbg.Terminate());
         public void SendPause() => Send(dbg => dbg.Pause());
         public void SendStepSingle() => Send(dbg => dbg.StepSingle());
+        public Task<RTE.State.Panic?> SendExecute(CompiledPou assigner) => SendCompute(dbg =>
+        {
+            return dbg._runtime.Execute(assigner);
+        });
 
         public Task<ImmutableArray<StackFrame>> SendGetStacktrace() => SendCompute(dbg => _cachedStacktrace ??= dbg._runtime.GetStackTrace());
         public Task<ImmutableArray<string>> SendGetVariableValues(ImmutableArray<(MemoryLocation Location, IRuntimeType DebugType)?> variables) => SendCompute(dbg =>

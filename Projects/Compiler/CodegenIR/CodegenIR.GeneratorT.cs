@@ -83,7 +83,7 @@ namespace Compiler.CodegenIR
 				return tmp;
 			}
 			public IReadable IL_SimpleCall(LocalVariable? targetVar, FunctionVariableSymbol variable, params LocalVariable[] args)
-				=> IL_SimpleCall(targetVar, CodegenIR.TypeFromIType(variable.Type.GetReturnType()), PouIdFromSymbol(variable), args);
+				=> IL_SimpleCall(targetVar, TypeFromIType(variable.Type.GetReturnType()), PouIdFromSymbol(variable), args);
 
 			public IAddressable GetElementAddressableField(IAddressable baseReference, FieldVariableSymbol field)
 				=> baseReference.GetElementAddressable(CodeGen, new ElementAddressable.Element.Field(field), CodegenIR.TypeFromIType(field.Type).Size);
@@ -100,11 +100,14 @@ namespace Compiler.CodegenIR
 			}
 			public GlobalVariable GlobalVariable(GlobalVariableSymbol globalVariable)
 			{
+				if (CodeGen.GlobalVariableAllocationTable == null)
+					throw new InvalidOperationException($"Cannot access global variables in this codegenerator instance.");
 				var location = CodeGen.GlobalVariableAllocationTable.GetAreaOffset(globalVariable);
 				return new GlobalVariable(globalVariable.UniqueName.ToString(), location, globalVariable.Type.LayoutInfo.Size);
 			}
 
 			public ImmutableArray<IStatement> GetStatements() => _statements.ToImmutableArray();
 		}
-	}
+
+    }
 }

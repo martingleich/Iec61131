@@ -10,6 +10,14 @@ namespace Compiler.CodegenIR
 	{
         private readonly Dictionary<string, RuntimeTypeStructured> _complexTypes = new();
 
+        public RuntimeTypeFactoryFromType()
+        {
+        }
+        public RuntimeTypeFactoryFromType(IEnumerable<RuntimeTypeStructured> initialTypes)
+        {
+            foreach (var type in initialTypes)
+                _complexTypes.Add(type.Name, type);
+        }
         public ImmutableArray<RuntimeTypeStructured> GetTypes()
         {
             return _complexTypes.Values.ToImmutableArray();

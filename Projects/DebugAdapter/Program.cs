@@ -1,4 +1,5 @@
 ﻿using CmdParse;
+using DebugAdapter.Logger;
 using Microsoft.Extensions.Logging;
 using Runtime.IR;
 using StandardLibraryExtensions;
@@ -25,13 +26,9 @@ namespace DebugAdapter
 			[CmdDefault(1024*10)]
 			public int StackSize { get; init; }
 
-			[CmdName("runDebugAdapter")]
-			[CmdDefault(false)]
-			public bool RunDebugAdapter { get; init; }
-
 			[CmdName("launchDebuggerAtStartup")]
 			[CmdDefault(false)]
-			public bool LaunchDebuggerAtStartup { get; init; }
+			public bool LaunchDebuggerAtStartup { get; init; } // Used at runtime.
 
 			[CmdName("logPath")]
 			[CmdDefault(null)]
@@ -74,25 +71,18 @@ namespace DebugAdapter
                 .ToImmutableArray();
             var runtime = new Runtime(areaSizes, module.Pous.ToImmutableDictionary(x => x.Id));
 
-            if (args.RunDebugAdapter)
+            using var streamIn = Console.OpenStandardInput();
+            using var streamOut = Console.OpenStandardOutput();
+            ILogger logger = args.LogPath is FileInfo logPath ? new SimpleFileLogger(logPath) : new NullLogger();
+            logger.Log(LogLevel.None, "Starting debug adpater");
+            try
             {
-                using var streamIn = Console.OpenStandardInput();
-                using var streamOut = Console.OpenStandardOutput();
-                ILogger logger = args.LogPath is FileInfo logPath ? new SimpleFileLogger(logPath) : new NullLogger();
-                logger.Log(LogLevel.None, "Starting debug adpater");
-                try
-                {
-                    DebugAdapter.Run(streamIn, streamOut, runtime, logger, module, entrypoint.Id);
-                }
-                catch (Exception e)
-                {
-                    logger.LogCritical(e, "DebugAdapter.Run: ");
-                    return 1;
-                }
+                DebugAdapter.Run(streamIn, streamOut, runtime, logger, module, entrypoint.Id);
             }
-            else
+            catch (Exception e)
             {
-                runtime.RunOnce(entrypoint.Id);
+                logger.LogCritical(e, "DebugAdapter.Run: ");
+                return 1;
             }
 
             return 0;

@@ -251,8 +251,8 @@ namespace Runtime
         #endregion
 
         #region Calls
-        public int? Call(CompiledPou callee) => Call(callee.Id);
-        public int? Call(PouId callee) => Call(callee, ImmutableArray<LocalVarOffset>.Empty, ImmutableArray<LocalVarOffset>.Empty);
+        public int? Call(CompiledPou callee) => RealCall(callee, ImmutableArray<LocalVarOffset>.Empty, ImmutableArray<LocalVarOffset>.Empty);
+        public int? Call(PouId callee) => Call(_code[callee]);
         public int? Call(
             PouId callee,
             ImmutableArray<LocalVarOffset> inputs,
@@ -261,22 +261,21 @@ namespace Runtime
             if (TryBuiltInCall(callee, inputs, outputs))
                 return null;
 
-            return RealCall(callee, inputs, outputs);
+            return RealCall(_code[callee], inputs, outputs);
 
-            int RealCall(PouId callee, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
+        }
+        private int RealCall(CompiledPou compiled, ImmutableArray<LocalVarOffset> inputs, ImmutableArray<LocalVarOffset> outputs)
+        {
+            var newBase = _callStack.Count > 0 ? (ushort)(CurrentFrame.Base + CurrentFrame.StackSize) : (ushort)0;
+            _callStack.Add(new CallFrame(compiled, outputs, _instructionCursor, newBase));
+            for (int i = 0; i < inputs.Length; ++i)
             {
-                var compiled = _code[callee];
-                var newBase = _callStack.Count > 0 ? (ushort)(CurrentFrame.Base + CurrentFrame.StackSize) : (ushort)0;
-                _callStack.Add(new CallFrame(compiled, outputs, _instructionCursor, newBase));
-                for (int i = 0; i < inputs.Length; ++i)
-                {
-                    var (argOffset, argType) = compiled.InputArgs[i];
-                    var from = LoadEffectiveAddress(_callStack.Count - 2, inputs[i]);
-                    var to = LoadEffectiveAddress(_callStack.Count - 1, argOffset);
-                    Copy(from, to, argType.Size);
-                }
-                return 0;
+                var (argOffset, argType) = compiled.InputArgs[i];
+                var from = LoadEffectiveAddress(_callStack.Count - 2, inputs[i]);
+                var to = LoadEffectiveAddress(_callStack.Count - 1, argOffset);
+                Copy(from, to, argType.Size);
             }
+            return 0;
         }
 
         private CallFrame PopFrame()
@@ -400,6 +399,27 @@ namespace Runtime
             _breakpoints.Clear();
             foreach (var i in newBreakpoints)
                 _breakpoints.Add(i);
+        }
+        public State.Panic? Execute(CompiledPou assigner)
+        {
+            var targetCount = _callStack.Count;
+            _instructionCursor = Call(assigner)!.Value;
+            while (_callStack.Count > targetCount)
+            {
+                try
+                {
+                    if (CurrentFrame.Code[_instructionCursor].Execute(this) is int nextInstruction)
+                        _instructionCursor = nextInstruction;
+                    else
+                        ++_instructionCursor;
+                }
+                catch (PanicException pe)
+                {
+                    _instructionCursor = Return();
+                    return new State.Panic(pe);
+                }
+            }
+            return null;
         }
     }
     public record struct StackFrame(CompiledPou Cpou, int CurAddress, int FrameId, MemoryLocation BaseAddress) { }

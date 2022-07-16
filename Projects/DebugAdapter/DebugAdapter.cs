@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using Compiler;
+using Compiler.CodegenIR;
+using Compiler.Scopes;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol;
 using Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages;
 using Runtime.IR;
+using Runtime.IR.RuntimeTypes;
 
 namespace DebugAdapter
 {
@@ -39,6 +43,11 @@ namespace DebugAdapter
         protected override void HandleProtocolError(Exception ex)
         {
             _logger.LogCritical(ex, "HandleProtocolError");
+            Protocol.SendEvent(new OutputEvent(ex.ToString())
+            {
+                Category = OutputEvent.CategoryValue.MessageBox,
+                Severity = OutputEvent.SeverityValue.Error,
+            });
             base.HandleProtocolError(ex);
         }
         private InitializeArguments? _initializeArguments = null;
@@ -52,6 +61,9 @@ namespace DebugAdapter
                 SupportsExceptionOptions = false,
                 SupportsTerminateThreadsRequest = false,
                 SupportsStepInTargetsRequest = true,
+                SupportsSetExpression = false,
+                SupportsSetVariable = true,
+                SupportsValueFormattingOptions = false,
             };
         }
         protected override LaunchResponse HandleLaunchRequest(LaunchArguments arguments)
@@ -133,14 +145,14 @@ namespace DebugAdapter
         {
             var trace = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var frames = trace.Select(ConvertStackFrame).ToList();
-            _varReferenceManager = new VariableReferenceManager();
             frames.Reverse();
+            _varReferenceManager = new VariableReferenceManager();
             return new StackTraceResponse(frames)
             {
                 TotalFrames = frames.Count,
             };
 
-            static Microsoft.VisualStudio.Shared.VSCodeDebugProtocol.Messages.StackFrame ConvertStackFrame(global::Runtime.StackFrame frame)
+            static StackFrame ConvertStackFrame(Runtime.StackFrame frame)
             {
                 var compiledPou = frame.Cpou;
                 var source = new Source()
@@ -196,24 +208,71 @@ namespace DebugAdapter
                 return new VariablesResponse();
 
             var varRef = _varReferenceManager.Get(arguments.VariablesReference);
-            var children = Subrange(varRef.GetChildren(), arguments.Start, arguments.Count).ToImmutableArray();
+            var children = varRef.GetChildren().Subrange(arguments.Start, arguments.Count).ToImmutableArray();
             var valueRequests = children.Select(child => child.ValueRequest).ToImmutableArray();
             var values = _debugRuntime.SendGetVariableValues(valueRequests).GetAwaiter().GetResult();
             var variables = children.Zip(values, (child, value) =>
-            {
-                return new Variable(child.Name, value, child.ChildCount > 0 ? child.Id.Value : 0)
+                new Variable(child.Name, value, child.ChildCount > 0 ? child.Id.Value : 0)
                 {
                     EvaluateName = child.Path,
                     Type = _initializeArguments?.SupportsVariableType == true ? child.Type?.Name : null,
                     IndexedVariables = child.ChildCount,
-                };
-            }).ToList();
+                })
+                .ToList();
 
             return new VariablesResponse(variables);
         }
         protected override EvaluateResponse HandleEvaluateRequest(EvaluateArguments arguments)
         {
             return new EvaluateResponse("Failed to evaluate expression.", 0);
+        }
+        protected override SetVariableResponse HandleSetVariableRequest(SetVariableArguments arguments)
+        {
+            if (_varReferenceManager == null)
+                return new SetVariableResponse();
+
+            var containerVarRef = _varReferenceManager.Get(arguments.VariablesReference);
+            if (containerVarRef.TryGetChildByName(arguments.Name) is not VariableReference varRef)
+                return new SetVariableResponse($"There is no variable named '{arguments.Name}' in '{containerVarRef.Name}'.");
+            if(varRef.ValueRequest is not (MemoryLocation, IRuntimeType) valueRequest)
+                return new SetVariableResponse($"Cannot write to variable '{arguments.Name}'");
+            var rootScope = GetScopeOf(_debugRuntime.Module);
+            var compilerType = GetCompilerType(rootScope, valueRequest.Item2);
+            if(compilerType == null)
+                return new SetVariableResponse($"Unsupported type '{valueRequest.Item2.Name}'.");
+            var messageBag = new Compiler.Messages.MessageBag();
+            var expression = Parser.ParseExpression("value", arguments.Value, messageBag);
+            var boundExpression = ExpressionBinder.Bind(expression, rootScope, messageBag, compilerType);
+            if (messageBag.HasError)
+                return new SetVariableResponse($"Error: {string.Join(Environment.NewLine, messageBag)}");
+            var runtimeTypeFactory = GetRuntimeTypeFactoryOf(_debugRuntime.Module);
+            var assigner = CodegenIR.GenerateAssignment(runtimeTypeFactory, new PouId("$anonymous_setvariable"), valueRequest.Item1, boundExpression);
+            var result = _debugRuntime.SendExecute(assigner).GetAwaiter().GetResult();
+            if(result != null)
+                return new SetVariableResponse($"{result.Exception.Message}");
+            var newValue = _debugRuntime.SendGetVariableValues(ImmutableArray.Create(varRef.ValueRequest)).GetAwaiter().GetResult()[0];
+            return new SetVariableResponse(newValue);
+        }
+
+        private static IScope GetScopeOf(CompiledModule module)
+        {
+            var systemScope = new SystemScope(CaseInsensitiveString.Empty);
+            var rootScope = new RootScope(systemScope);
+            return rootScope;
+        }
+        private static RuntimeTypeFactoryFromType GetRuntimeTypeFactoryOf(CompiledModule module)
+        {
+            return new RuntimeTypeFactoryFromType(module.Types.OfType<RuntimeTypeStructured>());
+        }
+
+        private static Compiler.Types.IType? GetCompilerType(IScope scope, IRuntimeType runtimeType)
+        {
+            foreach (var builtIn in scope.SystemScope.BuiltInTypeTable.AllBuiltInTypes)
+            {
+                if (builtIn.Name.Original == runtimeType.Name)
+                    return builtIn;
+            }
+            return null;
         }
 
         protected override ContinueResponse HandleContinueRequest(ContinueArguments arguments)
@@ -231,14 +290,16 @@ namespace DebugAdapter
         {
             var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
             var curFrame = curCallstack[arguments.FrameId];
-            var curBreakpoint = curFrame.Cpou.BreakpointMap?.FindBreakpointByInstruction(curFrame.CurAddress);
+            var cpou = curFrame.Cpou;
+            var instruction = curFrame.CurAddress;
+            var curBreakpoint = cpou.BreakpointMap?.FindBreakpointByInstruction(instruction);
             if (curBreakpoint != null)
             {
-                var code = curFrame.Cpou.Code;
+                var code = cpou.Code;
                 var stepInIds = new List<int>();
                 var cursors = new Stack<int>();
                 var visisited = new HashSet<int>();
-                cursors.Push(curFrame.CurAddress);
+                cursors.Push(instruction);
                 while (cursors.TryPop(out int cursor))
                 {
                     if (curBreakpoint.Instruction.Contains(cursor) && visisited.Add(cursor))
@@ -266,7 +327,7 @@ namespace DebugAdapter
             {
                 PouId? target = arguments.TargetId is int targetId ? ((IR.Statements.StaticCall)curFrame.Cpou.Code[targetId]).Callee : null;
                 var nextStatementPositions = curBreakpoint.Successors.Select(b => (curFrame.Cpou.Id, b.Instruction.Start)).ToImmutableArray();
-                _debugRuntime.SendStepIn(nextStatementPositions, curFrame.FrameId + 1, target);
+                _debugRuntime.SendStepToFrame(nextStatementPositions, curFrame.FrameId + 1, target);
             }
             return new StepInResponse();
         }
@@ -299,7 +360,8 @@ namespace DebugAdapter
         }
         protected override StepOutResponse HandleStepOutRequest(StepOutArguments arguments)
         {
-            _debugRuntime.SendStep(ImmutableArray<(PouId, int)>.Empty);
+            var curCallstack = _debugRuntime.SendGetStacktrace().GetAwaiter().GetResult();
+            _debugRuntime.SendStepToFrame(ImmutableArray<(PouId, int)>.Empty, curCallstack[^2].FrameId, null);
             return new StepOutResponse();
         }
 
@@ -320,15 +382,6 @@ namespace DebugAdapter
         {
             var debugAdapter = new DebugAdapter(streamIn, streamOut, runtime, logger, module, entryPoint);
             debugAdapter.Run();
-        }
-
-        private static IEnumerable<T> Subrange<T>(IEnumerable<T> values, int? start, int? count)
-        {
-            if (start is int s)
-                values = values.Skip(s);
-            if (count is int c)
-                values = values.Take(c);
-            return values;
         }
     }
 }

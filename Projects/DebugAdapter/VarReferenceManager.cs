@@ -67,6 +67,7 @@ namespace DebugAdapter
         }
 
         public abstract IEnumerable<VariableReference> GetChildren();
+        public virtual VariableReference? TryGetChildByName(string name) => GetChildren().FirstOrDefault(v => v.Name == name);
         public abstract int ChildCount { get; }
         public abstract (MemoryLocation, IRuntimeType)? ValueRequest { get; }
         public abstract string Name { get; }

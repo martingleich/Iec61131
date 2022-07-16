@@ -12,11 +12,11 @@ namespace Compiler.CodegenIR
 		public readonly BreakpointMapBuilder BreakpointFactory = new();
 		public readonly RuntimeTypeFactoryFromType RuntimeTypeFactory;
 		public readonly GeneratorT Generator;
-        public readonly GlobalVariableAllocationTable GlobalVariableAllocationTable;
+        public readonly GlobalVariableAllocationTable? GlobalVariableAllocationTable;
 
-        public static IR.PouId PouIdFromSymbol(FunctionVariableSymbol variable)
+        public static PouId PouIdFromSymbol(FunctionVariableSymbol variable)
 			=> new(variable.UniqueName.ToString().ToUpperInvariant());
-		public static IR.PouId PouIdFromSymbol(ICallableTypeSymbol callableSymbol)
+		public static PouId PouIdFromSymbol(ICallableTypeSymbol callableSymbol)
 			=> new(callableSymbol.UniqueName.ToString().ToUpperInvariant());
 		public static IR.Type TypeFromIType(IType type) => new(type.LayoutInfo.Size);
 
@@ -40,14 +40,29 @@ namespace Compiler.CodegenIR
 			PouId id,
 			ImmutableArray<KeyValuePair<MemoryLocation, ILiteralValue>> values)
 		{
-			var codegen = new CodegenIR(null, null!, runtimeTypeFactory);
+			var codegen = new CodegenIR(null, null, runtimeTypeFactory);
 			codegen.CompileInitials(values);
 			codegen.Generator.IL(IR.Statements.Return.Instance);
 			var compiledPou = codegen.GetCompiledPou(null, id);
 			return compiledPou;
 		}
+        public static CompiledPou GenerateAssignment(
+			RuntimeTypeFactoryFromType runtimeTypeFactory,
+			PouId id,
+			MemoryLocation dst,
+			IBoundExpression expression)
+        {
+			var codegen = new CodegenIR(null, null, runtimeTypeFactory);
+			codegen.CompileAssignment(dst, expression);
+			codegen.Generator.IL(IR.Statements.Return.Instance);
+			var compiledPou = codegen.GetCompiledPou(null, id);
+			return compiledPou;
+        }
 
-		private CodegenIR(BoundPou? pou, GlobalVariableAllocationTable globalVariableAllocationTable, RuntimeTypeFactoryFromType runtimeTypeFactory)
+		private CodegenIR(
+			BoundPou? pou,
+			GlobalVariableAllocationTable? globalVariableAllocationTable,
+			RuntimeTypeFactoryFromType runtimeTypeFactory)
 		{
 			RuntimeTypeFactory = runtimeTypeFactory;
             GlobalVariableAllocationTable = globalVariableAllocationTable;
@@ -108,6 +123,19 @@ namespace Compiler.CodegenIR
 					location,
                     TypeFromIType(value.Value.Type).Size));
 			}
+		}
+		private void CompileAssignment(MemoryLocation location, IBoundExpression value)
+		{
+			var locationVar = _stackAllocator.AllocTemp(IR.Type.Pointer);
+            Generator.IL(new IR.Statements.WriteValue(
+                IR.Expressions.LiteralExpression.FromMemoryLocation(location),
+                locationVar,
+                IR.Type.Pointer.Size));
+			var readableValue = value.Accept(_loadValueExpressionVisitor, null);
+            Generator.IL(new IR.Statements.WriteDerefValue(
+				readableValue.GetExpression(),
+                locationVar,
+                TypeFromIType(value.Type).Size));
 		}
 	}
 }

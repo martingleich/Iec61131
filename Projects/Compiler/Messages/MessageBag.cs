@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Compiler.Messages
 {
@@ -48,6 +49,8 @@ namespace Compiler.Messages
 			else
 				return Messages.DebugShuffle().GetEnumerator();
 		}
+
+		public bool HasError => this.Any(msg => msg.Critical);
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 		private sealed class EmptyEnumerator : IEnumerator<IMessage>
