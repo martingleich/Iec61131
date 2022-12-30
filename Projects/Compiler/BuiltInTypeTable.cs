@@ -167,6 +167,27 @@ namespace Compiler
 			else
 				return null;
 		}
+		public Func<IType, ILiteralValue[], ILiteralValue>? GetCasterFunction(BuiltInType from, BuiltInType to)
+		{
+			if (from.Equals(to))
+				return (_, v) => v[0];
+            if (from.IsInt)
+                return (result, args) => ArithmeticCast_FromInt((IAnyIntLiteralValue)args[0], result, this);
+            else if (from.IsReal && from.Size==4 && to.IsReal && to.Size == 8)
+                return Real_To_LReal;
+            else
+                return null;
+            static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, BuiltInTypeTable builtInTypeTable)
+            {
+                var resultValue = builtInTypeTable.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
+                return resultValue ?? throw new InvalidOperationException("Implicit arithmetic cast must always succeed");
+            }
+            static ILiteralValue Real_To_LReal(IType result, ILiteralValue[] args)
+                => new LRealLiteralValue(((RealLiteralValue)args[0]).Value, result);
+
+		}
+		public bool CanImplicitCast(BuiltInType from, BuiltInType to) => ((from.IsReal && to.IsReal) || (from.IsSignedInt && to.IsSignedInt) || (from.IsUnsignedInt && to.IsUnsignedInt)) && from.Size <= to.Size;
+		public Func<IType, ILiteralValue[], ILiteralValue>? GetImplicitCasterFunction(BuiltInType from, BuiltInType to) => CanImplicitCast(from, to) ? GetCasterFunction(from, to) : null;
 
 		private sealed class TypeMapper : IBuiltInTypeToken.IVisitor<BuiltInType>
 		{

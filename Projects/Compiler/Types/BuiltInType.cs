@@ -59,5 +59,6 @@ namespace Compiler.Types
 			else
 				return new RuntimeTypeUnknown(Code, Size);
 		}
+
 	}
 }

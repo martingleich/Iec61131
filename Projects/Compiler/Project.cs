@@ -82,9 +82,10 @@ namespace Compiler
             var runtimeTypeFactory = new RuntimeTypeFactoryFromType();
 
             var globalAllocationTable = GlobalVariableAllocationTable.Generate(2, BoundModule.Interface, runtimeTypeFactory);
-            var globals = globalAllocationTable.ToCompiledGvls().ToImmutableArray();
+            var globals = globalAllocationTable.ToCompiledGvls().OrderBy(gvl => gvl.Name).ToImmutableArray();
             var pous = BoundModule.FunctionPous.Values.Concat(BoundModule.FunctionBlockPous.Values)
                 .Select(bound => CodegenIR.CodegenIR.GenerateCode(runtimeTypeFactory, globalAllocationTable, SourceMap, bound))
+				.OrderBy(bound => bound.Id.Name)
                 .ToImmutableArray();
 
             return new(globals, pous, runtimeTypeFactory.GetTypes());

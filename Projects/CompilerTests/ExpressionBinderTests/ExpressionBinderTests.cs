@@ -155,15 +155,7 @@ namespace CompilerTests.ExpressionBinderTests
 		[InlineData("ULINT#0 * UDINT#0", "MUL_ULINT")]
 		[InlineData("ULINT#0 / ULINT#0", "DIV_ULINT")]
 
-		[InlineData("UINT#0 + SINT#0", "ADD_DINT")]
-		[InlineData("USINT#0 + SINT#0", "ADD_INT")]
-		[InlineData("DINT#0 + UINT#0", "ADD_LINT")]
-
 		[InlineData("REAL#0 + LREAL#0", "ADD_LREAL")]
-		[InlineData("REAL#0 + INT#0", "ADD_REAL")]
-		[InlineData("INT#0 + LREAL#0", "ADD_LREAL")]
-		[InlineData("LREAL#0 + SINT#0", "ADD_LREAL")]
-		[InlineData("UINT#0 + REAL#0", "ADD_REAL")]
 
 		[InlineData("LTIME#0d + LTIME#0h", "ADD_LTIME")]
 		[InlineData("LTIME#0d - LTIME#0h", "SUB_LTIME")]
@@ -188,7 +180,6 @@ namespace CompilerTests.ExpressionBinderTests
 		[InlineData("INT#1 >= INT#5", "GREATER_EQUAL_INT", false)]
 		[InlineData("INT#7 > INT#5", "GREATER_INT", true)]
 		[InlineData("SINT#3 > LINT#5", "GREATER_LINT", false)]
-		[InlineData("USINT#5 > INT#5", "GREATER_DINT", false)]
 		[InlineData("TIME#1h > TIME#1m", "GREATER_TIME", true)]
 		[InlineData("LTIME#1s >= LTIME#1d", "GREATER_EQUAL_LTIME", false)]
 		[InlineData("BOOL#TRUE = BOOL#FALSE", "EQUAL_BOOL", false)]
@@ -309,7 +300,6 @@ namespace CompilerTests.ExpressionBinderTests
 
 		[Theory]
 		[InlineData("enumValue + 1", "ADD_INT")]
-		[InlineData("LREAL#5 + enumValue", "ADD_LREAL")]
 		public static void BinaryArithemtic_Enums(string expr, string op)
 		{
 			var boundExpression = BindHelper.NewProject

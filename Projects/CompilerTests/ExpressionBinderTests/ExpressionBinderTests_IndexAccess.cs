@@ -10,11 +10,8 @@ namespace CompilerTests.ExpressionBinderTests
 	{
 		[Theory]
 		[InlineData("SINT")]
-		[InlineData("USINT")]
 		[InlineData("INT")]
-		[InlineData("UINT")]
 		[InlineData("DINT")]
-		[InlineData("UDINT")]
 		public static void IndexAccessToArray_VariousTypes(string indexType)
 		{
 			var boundExpression = BindHelper.NewProject

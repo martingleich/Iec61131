@@ -150,39 +150,15 @@ namespace Compiler
 			{
 				foreach (var toType in builtInTypeTable.AllBuiltInTypes)
 				{
-					if (!fromType.Equals(toType) && IsAllowedArithmeticImplicitCast(fromType, toType))
+					if (!fromType.Equals(toType) && builtInTypeTable.GetCasterFunction(fromType, toType) is { } caster)
 					{
-						Func<IType, ILiteralValue[], ILiteralValue>? func;
-						if (fromType.IsInt)
-							func = (result, args) => ArithmeticCast_FromInt((IAnyIntLiteralValue)args[0], result, builtInTypeTable);
-						else if (TypeRelations.IsIdentical(fromType, builtInTypeTable.Real) && TypeRelations.IsIdentical(toType, builtInTypeTable.LReal))
-							func = Real_To_LReal;
-						else
-							func = null;
-						builder.Add(CastOperator(fromType, toType), func);
+						builder.Add(CastOperator(fromType, toType), caster);
 					}
 				}
 			}
 
 			Table = builder.ToImmutable();
 			AllFunctions = Table.Keys.ToSymbolSet();
-		}
-		private static bool IsAllowedArithmeticImplicitCast(BuiltInType builtInSource, BuiltInType builtInTarget)
-		{
-			// Okay casts:
-			// int+real TO LREAL
-			// int TO REAL
-			// unsigned int TO larger (unsigned|signed) int
-			// signed int TO larger signed int
-			if (builtInSource is null)
-				throw new ArgumentNullException(nameof(builtInSource));
-			if (builtInTarget is null)
-				throw new ArgumentNullException(nameof(builtInTarget));
-			if (!builtInSource.IsArithmetic || !builtInTarget.IsArithmetic)
-				return false;
-			return ((builtInSource.IsInt || (builtInSource.IsReal && builtInSource.Size <= builtInTarget.Size)) && builtInTarget.IsReal)
-				|| (builtInSource.IsUnsignedInt && builtInTarget.IsInt && builtInSource.Size <= builtInTarget.Size)
-				|| (builtInSource.IsSignedInt && builtInTarget.IsSignedInt && builtInSource.Size <= builtInTarget.Size);
 		}
 
 		private static void AddComparisons(
@@ -294,14 +270,6 @@ namespace Compiler
 		private static ILiteralValue SubTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedSub(((TimeLiteralValue)args[1]).Value), result);
 		private static ILiteralValue NegTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedNeg(), result);
 		private static ILiteralValue ModTIME(IType result, ILiteralValue[] args) => new TimeLiteralValue(((TimeLiteralValue)args[0]).Value.CheckedMod(((TimeLiteralValue)args[1]).Value), result);
-
-		private static ILiteralValue ArithmeticCast_FromInt(IAnyIntLiteralValue intLiteralValue, IType targetType, BuiltInTypeTable builtInTypeTable)
-		{
-			var resultValue = builtInTypeTable.TryCreateLiteralFromIntValue(intLiteralValue.Value, targetType);
-			return resultValue ?? throw new InvalidOperationException("Implicit arithmetic cast must always succeed");
-		}
-		private static ILiteralValue Real_To_LReal(IType result, ILiteralValue[] args)
-			=> new LRealLiteralValue(((RealLiteralValue)args[0]).Value, result);
 
 		public bool TryGetConstantEvaluator(FunctionVariableSymbol functionSymbol, [NotNullWhen(true)] out Func<IType, ILiteralValue[], ILiteralValue>? result)
 			=> Table.TryGetValue(functionSymbol, out result) && result != null;

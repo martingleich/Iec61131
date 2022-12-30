@@ -121,7 +121,7 @@
 		public void AssignStatement_ImplicitCast()
 		{
 			BindHelper.NewProject
-				.AddFunction("foo", "VAR_TEMP x : REAL; END_VAR", "x := DINT#25;")
+				.AddFunction("foo", "VAR_TEMP x : LREAL; END_VAR", "x := REAL#25;")
 				.BindBodies()
 				.Inspect("foo", st =>
 				{

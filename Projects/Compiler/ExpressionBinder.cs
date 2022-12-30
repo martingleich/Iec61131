@@ -57,6 +57,7 @@ namespace Compiler
 			else if (
 				TypeRelations.IsBuiltInType(targetType, out var builtInTarget) &&
 				TypeRelations.IsBuiltInType(boundValue.Type, out var builtInSource) &&
+				SystemScope.BuiltInTypeTable.CanImplicitCast(builtInSource, builtInTarget) &&
 				SystemScope.BuiltInFunctionTable.TryGetCastFunction(builtInSource, builtInTarget) is FunctionVariableSymbol castFunction)
 			{
 				return new ImplicitCastBoundExpression(boundValue, castFunction);

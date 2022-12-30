@@ -53,7 +53,7 @@ namespace CompilerTests.ExpressionBinderTests
 		public static void FieldCastedResult()
 		{
 			var boundExpression = BindHelper.NewProject
-				.AddDut("myDut", "STRUCT myField : USINT; END_STRUCT")
+				.AddDut("myDut", "STRUCT myField : SINT; END_STRUCT")
 				.WithGlobalVar("value", "myDut")
 				.BindGlobalExpression("value.myField", "DINT");
 			Assert.IsType<ImplicitCastBoundExpression>(boundExpression);
