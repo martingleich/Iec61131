@@ -6,12 +6,20 @@ Language-features:
 		All otherexpressions are typed with the expression typifier.
 		Then perform type inference for the generics.
 		Then make sure everything is typified.
+	Add SIZE_T Alias
+	Arrays use SIZE_T for indicices
+	SIZEOF returns SIZE_T
 	Add CASE statement
-	Add Exception System
-	Add safe ENUMs
 	Add constant condition handling to flow analysis
-	Add call output and call return value var decls.
+	Add call output var decls.
+	Add safe ENUMs
 	Strings
+	Dynamic Arrays&Strings
+	Add Exception System
+		- Catch-Expression-With-Catch: TRY <assign of call|call> CATCH
+			- Has Type bool
+		- Try-Expression-With-Rethrow: TRY <call> THROW
+			- Has Type of <call>
 	Durations
 		Add casts:
 			TIME->LTIME
